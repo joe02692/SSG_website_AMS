@@ -1,26 +1,82 @@
 @import "tailwindcss";
 
-:root {
-  --background: #ffffff;
-  --foreground: #171717;
+/* ---------------------------------------------------------------
+   El-Salam Scouting Group — "modern civic" palette
+   Tailwind v4 is CSS-first: tokens declared in @theme become
+   utilities (bg-brand-600, text-ink, border-line, ...).
+   --------------------------------------------------------------- */
+
+@theme {
+  /* Brand — civic blue */
+  --color-brand-50: #eff6ff;
+  --color-brand-100: #dbeafe;
+  --color-brand-200: #bfdbfe;
+  --color-brand-300: #93c5fd;
+  --color-brand-400: #60a5fa;
+  --color-brand-500: #3b82f6;
+  --color-brand-600: #2563eb;
+  --color-brand-700: #1d4ed8;
+  --color-brand-800: #1e40af;
+  --color-brand-900: #17356f;
+  --color-brand-950: #0f2350;
+
+  /* Warm accent — used sparingly for badges and highlights */
+  --color-accent-400: #fbbf24;
+  --color-accent-500: #f59e0b;
+  --color-accent-600: #d97706;
+
+  --font-sans: var(--font-geist-sans), ui-sans-serif, system-ui, sans-serif;
+  --font-mono: var(--font-geist-mono), ui-monospace, monospace;
 }
 
-@theme inline {
-  --color-background: var(--background);
-  --color-foreground: var(--foreground);
-  --font-sans: var(--font-geist-sans);
-  --font-mono: var(--font-geist-mono);
+/* Semantic surfaces. Raw variables are deliberately named WITHOUT the
+   `--color-` prefix, so the `@theme inline` block below can point at them
+   without defining a variable in terms of itself. */
+:root {
+  --canvas: #ffffff;
+  --surface: #f8fafc;
+  --surface-raised: #ffffff;
+  --ink: #0f172a;
+  --ink-muted: #475569;
+  --ink-subtle: #64748b;
+  --line: #e2e8f0;
 }
 
 @media (prefers-color-scheme: dark) {
   :root {
-    --background: #0a0a0a;
-    --foreground: #ededed;
+    --canvas: #0b1220;
+    --surface: #0f172a;
+    --surface-raised: #16213a;
+    --ink: #e8edf6;
+    --ink-muted: #a3b1c6;
+    --ink-subtle: #8496ae;
+    --line: #23304a;
   }
 }
 
+@theme inline {
+  --color-canvas: var(--canvas);
+  --color-surface: var(--surface);
+  --color-surface-raised: var(--surface-raised);
+  --color-ink: var(--ink);
+  --color-ink-muted: var(--ink-muted);
+  --color-ink-subtle: var(--ink-subtle);
+  --color-line: var(--line);
+}
+
 body {
-  background: var(--background);
-  color: var(--foreground);
-  font-family: Arial, Helvetica, sans-serif;
+  background: var(--canvas);
+  color: var(--ink);
+}
+
+/* Respect users who ask for reduced motion */
+@media (prefers-reduced-motion: reduce) {
+  *,
+  *::before,
+  *::after {
+    animation-duration: 0.01ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.01ms !important;
+    scroll-behavior: auto !important;
+  }
 }
