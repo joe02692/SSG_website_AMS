@@ -11,6 +11,8 @@ const ERROR_MESSAGES: Record<string, string> = {
     "That confirmation link was incomplete. Please request a new one.",
   confirmation_failed:
     "That confirmation link has expired or has already been used.",
+  confirmed_sign_in:
+    "Your email is confirmed! We couldn't sign you in automatically on this device, so please sign in below.",
 };
 
 export default async function LoginPage({
