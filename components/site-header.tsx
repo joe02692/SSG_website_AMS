@@ -5,7 +5,7 @@ import { signOutAction } from "@/app/auth/actions";
 
 const NAV = [
   { href: "/#history", label: "Our history" },
-  { href: "/#gallery", label: "Camp gallery" },
+  { href: "/gallery", label: "Camp gallery" },
   { href: "/#join", label: "Join us" },
 ];
 

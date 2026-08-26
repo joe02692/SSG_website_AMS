@@ -10,18 +10,27 @@ export const metadata: Metadata = {
 export default async function DashboardPage({
   searchParams,
 }: {
-  searchParams: Promise<{ denied?: string }>;
+  searchParams: Promise<{ denied?: string; pw?: string }>;
 }) {
   // Re-checked here on purpose. proxy.ts already redirected anonymous
   // visitors, but that is an optimistic cookie check — this is the one that
   // actually guards the data.
   const user = await requireUser();
   const profile = await getCurrentProfile();
-  const { denied } = await searchParams;
+  const { denied, pw } = await searchParams;
 
   return (
     <SiteShell>
       <div className="mx-auto max-w-6xl px-4 py-12 sm:px-6 sm:py-16">
+        {pw === "updated" ? (
+          <p
+            role="status"
+            className="mb-6 rounded-lg border border-brand-200 bg-brand-50 px-3 py-2.5 text-sm text-brand-900"
+          >
+            Your password has been updated.
+          </p>
+        ) : null}
+
         {denied ? (
           <p
             role="alert"

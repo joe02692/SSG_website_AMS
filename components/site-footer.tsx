@@ -30,7 +30,7 @@ export function SiteFooter() {
               </Link>
             </li>
             <li>
-              <Link href="/#gallery" className="hover:text-ink">
+              <Link href="/gallery" className="hover:text-ink">
                 Camp gallery
               </Link>
             </li>

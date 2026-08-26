@@ -1,0 +1,2 @@
+cd C:\Users\joeel\OneDrive\Desktop\ssg-website-ams
+npm run dev

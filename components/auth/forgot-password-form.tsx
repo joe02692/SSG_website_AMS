@@ -2,23 +2,28 @@
 
 import { useActionState, useId } from "react";
 import Link from "next/link";
-import { signInAction, type AuthState } from "@/app/auth/actions";
+import { requestPasswordResetAction, type AuthState } from "@/app/auth/actions";
 import { Field, inputClass } from "@/components/ui/field";
 import { SubmitButton } from "@/components/ui/submit-button";
 
 const initialState: AuthState = {};
 
-export function LoginForm({ redirectTo }: { redirectTo?: string }) {
+export function ForgotPasswordForm() {
   const [state, formAction, pending] = useActionState(
-    signInAction,
+    requestPasswordResetAction,
     initialState,
   );
   const id = useId();
 
   return (
     <form action={formAction} className="space-y-5" noValidate>
-      {redirectTo ? (
-        <input type="hidden" name="redirectTo" value={redirectTo} />
+      {state.notice ? (
+        <p
+          role="status"
+          className="rounded-lg border border-brand-200 bg-brand-50 px-3 py-2.5 text-sm text-brand-900"
+        >
+          {state.notice}
+        </p>
       ) : null}
 
       {state.error ? (
@@ -42,37 +47,17 @@ export function LoginForm({ redirectTo }: { redirectTo?: string }) {
         />
       </Field>
 
-      <Field label="Password" htmlFor={`${id}-password`}>
-        <input
-          id={`${id}-password`}
-          name="password"
-          type="password"
-          autoComplete="current-password"
-          required
-          className={inputClass}
-        />
-      </Field>
-
-      <p className="-mt-2 text-right">
-        <Link
-          href="/forgot-password"
-          className="text-xs font-medium text-brand-700 underline-offset-4 hover:underline"
-        >
-          Forgot password?
-        </Link>
-      </p>
-
-      <SubmitButton pending={pending} pendingLabel="Signing in…">
-        Sign in
+      <SubmitButton pending={pending} pendingLabel="Sending…">
+        Email me a reset link
       </SubmitButton>
 
       <p className="text-center text-sm text-ink-muted">
-        New to the group?{" "}
+        Remembered it?{" "}
         <Link
-          href="/signup"
+          href="/login"
           className="font-medium text-brand-700 underline-offset-4 hover:underline"
         >
-          Create an account
+          Sign in
         </Link>
       </p>
     </form>

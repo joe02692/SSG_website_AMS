@@ -3,7 +3,12 @@ import { NextResponse, type NextRequest } from "next/server";
 import { supabaseAnonKey, supabaseUrl } from "./env";
 
 /** Route prefixes that require a signed-in user. */
-const PROTECTED_PREFIXES = ["/dashboard", "/members", "/admin"] as const;
+const PROTECTED_PREFIXES = [
+  "/dashboard",
+  "/members",
+  "/admin",
+  "/reset-password",
+] as const;
 
 /** Auth pages a signed-in user should be bounced away from. */
 const AUTH_PAGES = ["/login", "/signup"] as const;

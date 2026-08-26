@@ -131,6 +131,79 @@ export async function signInAction(
 }
 
 // ---------------------------------------------------------------------------
+// Password reset — step 1: request the email
+// ---------------------------------------------------------------------------
+export async function requestPasswordResetAction(
+  _prevState: AuthState,
+  formData: FormData,
+): Promise<AuthState> {
+  const email = str(formData, "email").toLowerCase();
+
+  if (!EMAIL_RE.test(email)) {
+    return { error: "Enter a valid email address." };
+  }
+
+  const supabase = await createClient();
+  const origin = (await headers()).get("origin") ?? "";
+
+  // After the user clicks the emailed link, /auth/confirm exchanges the
+  // recovery code for a session and forwards them to /reset-password.
+  await supabase.auth.resetPasswordForEmail(email, {
+    redirectTo: `${origin}/auth/confirm?next=/reset-password`,
+  });
+
+  // Deliberately identical whether or not the address has an account —
+  // this endpoint must not let anyone probe which emails are registered.
+  return {
+    notice:
+      "If that address has an account, a reset link is on its way. Check your inbox (and spam folder).",
+  };
+}
+
+// ---------------------------------------------------------------------------
+// Password reset — step 2: set the new password
+// ---------------------------------------------------------------------------
+export async function updatePasswordAction(
+  _prevState: AuthState,
+  formData: FormData,
+): Promise<AuthState> {
+  const password = str(formData, "password");
+  const confirm = str(formData, "confirmPassword");
+
+  const fieldErrors: Record<string, string> = {};
+  if (password.length < MIN_PASSWORD_LENGTH) {
+    fieldErrors.password = `Use at least ${MIN_PASSWORD_LENGTH} characters.`;
+  }
+  if (confirm !== password) {
+    fieldErrors.confirmPassword = "The passwords don't match.";
+  }
+  if (Object.keys(fieldErrors).length > 0) {
+    return { fieldErrors, error: "Please fix the highlighted fields." };
+  }
+
+  const supabase = await createClient();
+
+  // The recovery link signed them in; no session means the link expired.
+  const {
+    data: { user },
+  } = await supabase.auth.getUser();
+  if (!user) {
+    return {
+      error:
+        "Your reset link has expired or was already used. Request a new one from the sign-in page.",
+    };
+  }
+
+  const { error } = await supabase.auth.updateUser({ password });
+  if (error) {
+    return { error: error.message };
+  }
+
+  revalidatePath("/", "layout");
+  redirect("/dashboard?pw=updated");
+}
+
+// ---------------------------------------------------------------------------
 // Sign out
 // ---------------------------------------------------------------------------
 export async function signOutAction() {
