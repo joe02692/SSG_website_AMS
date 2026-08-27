@@ -1,4 +1,5 @@
 import type { Metadata } from "next";
+import Link from "next/link";
 import { SiteShell } from "@/components/site-shell";
 import { requireUser, getCurrentProfile } from "@/lib/dal";
 import { ROLE_DESCRIPTIONS, ROLE_LABELS } from "@/lib/roles";
@@ -47,6 +48,23 @@ export default async function DashboardPage({
           Your account is set up. Section records and camp bookings land here in
           the coming weeks.
         </p>
+
+        <div className="mt-5 flex flex-wrap gap-3">
+          <Link
+            href="/dashboard/profile"
+            className="rounded-lg border border-line bg-surface-raised px-4 py-2.5 text-sm font-semibold text-ink transition hover:border-brand-300"
+          >
+            Edit your details
+          </Link>
+          {profile?.role === "leader" ? (
+            <Link
+              href="/members"
+              className="rounded-lg border border-line bg-surface-raised px-4 py-2.5 text-sm font-semibold text-ink transition hover:border-brand-300"
+            >
+              Manage members
+            </Link>
+          ) : null}
+        </div>
 
         <dl className="mt-8 grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
           <div className="rounded-xl border border-line bg-surface-raised p-5">
