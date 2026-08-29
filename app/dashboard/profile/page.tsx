@@ -6,6 +6,7 @@ import { ROLE_LABELS } from "@/lib/roles";
 import { ProfileForm } from "@/components/profile/profile-form";
 import { DetailsForm } from "@/components/onboarding/details-form";
 import { updateDetailsAction } from "@/app/onboarding/actions";
+import { questionsForRole } from "@/lib/onboarding";
 
 export const metadata: Metadata = {
   title: "Your details",
@@ -49,7 +50,8 @@ export default async function ProfilePage() {
           <div className="mt-4 rounded-2xl border border-line bg-surface-raised p-6">
             <DetailsForm
               action={updateDetailsAction}
-              profile={profile}
+              questions={questionsForRole(profile?.role)}
+              answers={profile?.details}
               submitLabel="Save details"
               pendingLabel="Saving…"
             />

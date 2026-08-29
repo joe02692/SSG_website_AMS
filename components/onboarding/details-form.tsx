@@ -2,10 +2,9 @@
 
 import { useActionState, useId } from "react";
 import type { DetailsState } from "@/app/onboarding/actions";
-import { MAX_ANSWER_LENGTH, ONBOARDING_QUESTIONS } from "@/lib/onboarding";
+import { MAX_ANSWER_LENGTH, type Question } from "@/lib/onboarding";
 import { Field, inputClass } from "@/components/ui/field";
 import { SubmitButton } from "@/components/ui/submit-button";
-import type { Profile } from "@/lib/dal";
 
 const initialState: DetailsState = {};
 
@@ -16,13 +15,15 @@ type Action = (
 
 export function DetailsForm({
   action,
-  profile,
+  questions,
+  answers,
   submitLabel,
   pendingLabel,
 }: {
   action: Action;
+  questions: Question[];
   /** Existing answers, so the profile page can prefill. */
-  profile?: Profile | null;
+  answers?: Record<string, string>;
   submitLabel: string;
   pendingLabel: string;
 }) {
@@ -49,22 +50,39 @@ export function DetailsForm({
         </p>
       ) : null}
 
-      {ONBOARDING_QUESTIONS.map((question) => {
-        const fieldId = `${id}-${question.column}`;
-        const defaultValue = profile?.[question.column] ?? "";
+      {questions.map((question) => {
+        const fieldId = `${id}-${question.id}`;
+        const defaultValue = answers?.[question.id] ?? "";
 
         return (
           <Field
-            key={question.column}
+            key={question.id}
             label={question.label}
             htmlFor={fieldId}
             hint={question.hint}
-            error={state.fieldErrors?.[question.column]}
+            error={state.fieldErrors?.[question.id]}
           >
-            {question.type === "textarea" ? (
+            {question.type === "select" ? (
+              <select
+                id={fieldId}
+                name={question.id}
+                required={question.required}
+                defaultValue={defaultValue}
+                className={inputClass}
+              >
+                <option value="">
+                  {question.placeholder ?? "Choose one…"}
+                </option>
+                {(question.options ?? []).map((option) => (
+                  <option key={option} value={option}>
+                    {option}
+                  </option>
+                ))}
+              </select>
+            ) : question.type === "textarea" ? (
               <textarea
                 id={fieldId}
-                name={question.column}
+                name={question.id}
                 rows={3}
                 maxLength={MAX_ANSWER_LENGTH}
                 required={question.required}
@@ -75,7 +93,7 @@ export function DetailsForm({
             ) : (
               <input
                 id={fieldId}
-                name={question.column}
+                name={question.id}
                 type={question.type ?? "text"}
                 maxLength={MAX_ANSWER_LENGTH}
                 required={question.required}

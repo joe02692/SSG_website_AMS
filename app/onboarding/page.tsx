@@ -4,6 +4,7 @@ import Link from "next/link";
 import { getCurrentProfile, requireUser } from "@/lib/dal";
 import { DetailsForm } from "@/components/onboarding/details-form";
 import { completeOnboardingAction } from "@/app/onboarding/actions";
+import { questionsForRole } from "@/lib/onboarding";
 
 export const metadata: Metadata = {
   title: "Your details",
@@ -53,7 +54,8 @@ export default async function OnboardingPage() {
 
           <DetailsForm
             action={completeOnboardingAction}
-            profile={profile}
+            questions={questionsForRole(profile?.role)}
+            answers={profile?.details}
             submitLabel="Finish signing up"
             pendingLabel="Saving…"
           />

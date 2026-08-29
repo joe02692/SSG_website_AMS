@@ -9,19 +9,16 @@ export type Profile = {
   id: string;
   full_name: string | null;
   role: Role;
-  detail_1: string | null;
-  detail_2: string | null;
-  detail_3: string | null;
-  detail_4: string | null;
-  detail_5: string | null;
+  /** Onboarding answers, keyed by question id from lib/onboarding.ts. */
+  details: Record<string, string>;
   /** NULL until the member finishes the onboarding questions. */
   details_completed_at: string | null;
   created_at: string;
   updated_at: string;
 };
 
-const PROFILE_COLUMNS =
-  "id, full_name, role, detail_1, detail_2, detail_3, detail_4, detail_5, details_completed_at, created_at, updated_at";
+export const PROFILE_COLUMNS =
+  "id, full_name, role, details, details_completed_at, created_at, updated_at";
 
 /**
  * The Data Access Layer.

@@ -1,6 +1,6 @@
 import type { Metadata } from "next";
 import { SiteShell } from "@/components/site-shell";
-import { requireSiteAdmin, type Profile } from "@/lib/dal";
+import { PROFILE_COLUMNS, requireSiteAdmin, type Profile } from "@/lib/dal";
 import { ROLE_LABELS, isHeadSiteAdminRole, type Role } from "@/lib/roles";
 import { createClient } from "@/lib/supabase/server";
 import { InviteForm } from "@/components/members/invite-form";
@@ -73,9 +73,7 @@ export default async function MembersPage() {
   const [{ data: memberRows }, { data: inviteRows }] = await Promise.all([
     supabase
       .from("profiles")
-      .select(
-        "id, full_name, role, detail_1, detail_2, detail_3, detail_4, detail_5, details_completed_at, created_at, updated_at",
-      )
+      .select(PROFILE_COLUMNS)
       .order("created_at", { ascending: true }),
     supabase
       .from("leader_invites")

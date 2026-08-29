@@ -53,11 +53,15 @@ export const SITE_ADMIN_ROLES = ["site_admin", "head_site_admin"] as const;
 /**
  * Roles an invite code can grant.
  *
- * Deliberately excludes the site-level roles: whoever can mint a code must
- * not be able to mint site-level access. Those are assigned by hand, by
- * email, from the SQL editor.
+ * head_site_admin is deliberately absent: that role is assigned by hand from
+ * the SQL editor, so no code — however it leaks — can ever mint a second one.
+ * Only the head site admin can create codes at all (is_head_site_admin() RLS).
  */
-export const INVITABLE_ROLES = ["stage_admin", "stage_leader"] as const;
+export const INVITABLE_ROLES = [
+  "site_admin",
+  "stage_admin",
+  "stage_leader",
+] as const;
 
 export type InvitableRole = (typeof INVITABLE_ROLES)[number];
 
