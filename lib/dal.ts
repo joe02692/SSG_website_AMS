@@ -9,6 +9,8 @@ export type Profile = {
   id: string;
   full_name: string | null;
   role: Role;
+  /** The single group owner. Gates member management and invite minting. */
+  is_owner: boolean;
   created_at: string;
   updated_at: string;
 };
@@ -42,7 +44,7 @@ export const getCurrentProfile = cache(async (): Promise<Profile | null> => {
   const supabase = await createClient();
   const { data, error } = await supabase
     .from("profiles")
-    .select("id, full_name, role, created_at, updated_at")
+    .select("id, full_name, role, is_owner, created_at, updated_at")
     .eq("id", user.id)
     .single();
 
@@ -55,6 +57,20 @@ export async function requireUser() {
   const user = await getCurrentUser();
   if (!user) redirect("/login");
   return user;
+}
+
+/**
+ * Redirects unless the signed-in member is the group owner.
+ *
+ * Deliberately not role-based: ownership is one specific account, and the
+ * matching `is_owner()` RLS policies enforce the same rule at the database
+ * even if a request never passes through this page.
+ */
+export async function requireOwner(): Promise<Profile> {
+  const profile = await getCurrentProfile();
+  if (!profile) redirect("/login");
+  if (!profile.is_owner) redirect("/dashboard?denied=1");
+  return profile;
 }
 
 /** Redirects unless the signed-in member holds one of `roles`. */

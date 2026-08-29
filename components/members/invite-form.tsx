@@ -2,6 +2,7 @@
 
 import { useActionState, useId } from "react";
 import { createInviteAction, type InviteState } from "@/app/members/actions";
+import { INVITABLE_ROLES, ROLE_LABELS } from "@/lib/roles";
 import { Field, inputClass } from "@/components/ui/field";
 import { SubmitButton } from "@/components/ui/submit-button";
 import { CopyButton } from "@/components/members/copy-button";
@@ -42,6 +43,25 @@ export function InviteForm() {
           </p>
         </div>
       ) : null}
+
+      <Field
+        label="What kind of leader?"
+        htmlFor={`${id}-grants`}
+        hint="Both have the same access for now; the distinction is recorded for later."
+      >
+        <select
+          id={`${id}-grants`}
+          name="grantsRole"
+          defaultValue="stage_leader"
+          className={inputClass}
+        >
+          {INVITABLE_ROLES.map((value) => (
+            <option key={value} value={value}>
+              {ROLE_LABELS[value]}
+            </option>
+          ))}
+        </select>
+      </Field>
 
       <Field
         label="Who is it for?"

@@ -24,6 +24,14 @@ const CHOICES: {
   { value: "leader", badge: "Invite only", disabled: false },
 ];
 
+/**
+ * The signup form offers one "Leader" choice. Which leader role you actually
+ * get — Stage Admin or Stage Leader — is decided by the invite code you
+ * redeem, in the database, not by anything chosen here.
+ */
+const LEADER_CHOICE_DESCRIPTION =
+  "Runs or oversees a stage. Requires an invite code from the group.";
+
 export function SignupForm() {
   const [state, formAction, pending] = useActionState(
     signUpAction,
@@ -95,7 +103,9 @@ export function SignupForm() {
                     ) : null}
                   </span>
                   <span className="block text-xs text-ink-subtle">
-                    {ROLE_DESCRIPTIONS[choice.value]}
+                    {choice.value === "leader"
+                      ? LEADER_CHOICE_DESCRIPTION
+                      : ROLE_DESCRIPTIONS[choice.value]}
                   </span>
                 </span>
               </label>

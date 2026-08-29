@@ -1,6 +1,6 @@
 import type { Metadata } from "next";
 import { SiteShell } from "@/components/site-shell";
-import { requireRole, type Profile } from "@/lib/dal";
+import { requireOwner, type Profile } from "@/lib/dal";
 import { ROLE_LABELS, type Role } from "@/lib/roles";
 import { createClient } from "@/lib/supabase/server";
 import { InviteForm } from "@/components/members/invite-form";
@@ -18,15 +18,21 @@ type Invite = {
   expires_at: string | null;
   used_by: string | null;
   used_at: string | null;
+  grants_role: Role;
 };
 
 const ROLE_BADGE: Record<Role, string> = {
-  leader:
+  stage_admin:
     "bg-brand-100 text-brand-800 dark:bg-brand-950 dark:text-brand-200",
+  stage_leader:
+    "bg-brand-50 text-brand-700 dark:bg-brand-950/60 dark:text-brand-300",
+  leader: "bg-brand-100 text-brand-800 dark:bg-brand-950 dark:text-brand-200",
   scout: "bg-surface text-ink-muted",
-  parent:
-    "bg-accent-500/15 text-accent-600 dark:bg-accent-500/10",
+  parent: "bg-accent-500/15 text-accent-600 dark:bg-accent-500/10",
 };
+
+/** Roles worth a headline count on this page. */
+const COUNTED_ROLES: Role[] = ["stage_admin", "stage_leader", "scout"];
 
 function formatDate(value: string | null): string {
   if (!value) return "—";
@@ -46,20 +52,23 @@ function inviteStatus(invite: Invite): "used" | "expired" | "active" {
 }
 
 export default async function MembersPage() {
-  // The real gate. proxy.ts only checked that *a* session exists;
-  // this redirects anyone who isn't a leader.
-  await requireRole("leader");
+  // The real gate. proxy.ts only checked that *a* session exists.
+  // The group owner only — everyone else, including stage admins and stage
+  // leaders, is redirected; /dashboard/stage is the leaders' page.
+  await requireOwner();
 
   const supabase = await createClient();
 
   const [{ data: memberRows }, { data: inviteRows }] = await Promise.all([
     supabase
       .from("profiles")
-      .select("id, full_name, role, created_at, updated_at")
+      .select("id, full_name, role, is_owner, created_at, updated_at")
       .order("created_at", { ascending: true }),
     supabase
       .from("leader_invites")
-      .select("code, note, created_at, expires_at, used_by, used_at")
+      .select(
+        "code, note, created_at, expires_at, used_by, used_at, grants_role",
+      )
       .order("created_at", { ascending: false }),
   ]);
 
@@ -84,7 +93,7 @@ export default async function MembersPage() {
         </p>
 
         <dl className="mt-6 flex flex-wrap gap-3">
-          {(Object.keys(ROLE_LABELS) as Role[]).map((role) => (
+          {COUNTED_ROLES.map((role) => (
             <div
               key={role}
               className="rounded-lg border border-line bg-surface-raised px-4 py-2.5"
@@ -174,6 +183,9 @@ export default async function MembersPage() {
                     Code
                   </th>
                   <th scope="col" className="px-4 py-3 font-medium">
+                    Grants
+                  </th>
+                  <th scope="col" className="px-4 py-3 font-medium">
                     For
                   </th>
                   <th scope="col" className="px-4 py-3 font-medium">
@@ -188,7 +200,7 @@ export default async function MembersPage() {
                 {invites.length === 0 ? (
                   <tr>
                     <td
-                      colSpan={4}
+                      colSpan={5}
                       className="px-4 py-6 text-center text-ink-subtle"
                     >
                       No invite codes yet — create the first one on the left.
@@ -207,6 +219,13 @@ export default async function MembersPage() {
                             {status === "active" ? (
                               <CopyButton text={invite.code} />
                             ) : null}
+                          </span>
+                        </td>
+                        <td className="px-4 py-3">
+                          <span
+                            className={`whitespace-nowrap rounded-full px-2.5 py-1 text-xs font-medium ${ROLE_BADGE[invite.grants_role]}`}
+                          >
+                            {ROLE_LABELS[invite.grants_role]}
                           </span>
                         </td>
                         <td className="max-w-40 truncate px-4 py-3 text-ink-muted">

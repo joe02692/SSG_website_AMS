@@ -2,6 +2,7 @@ import type { Metadata } from "next";
 import Link from "next/link";
 import { SiteShell } from "@/components/site-shell";
 import { requireRole } from "@/lib/dal";
+import { LEADER_ROLES } from "@/lib/roles";
 
 export const metadata: Metadata = {
   title: "Stage",
@@ -10,7 +11,7 @@ export const metadata: Metadata = {
 export default async function StagePage() {
   // Leader-only. proxy.ts already bounced anonymous visitors; this is the
   // check that actually enforces the role.
-  const profile = await requireRole("leader");
+  const profile = await requireRole(...LEADER_ROLES);
 
   return (
     <SiteShell>

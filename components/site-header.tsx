@@ -1,6 +1,6 @@
 import Link from "next/link";
 import { getCurrentProfile } from "@/lib/dal";
-import { ROLE_LABELS } from "@/lib/roles";
+import { ROLE_LABELS, isLeaderRole } from "@/lib/roles";
 import { signOutAction } from "@/app/auth/actions";
 
 const NAV = [
@@ -56,7 +56,7 @@ export async function SiteHeader() {
                   {ROLE_LABELS[profile.role]}
                 </span>
               </span>
-              {profile.role === "leader" ? (
+              {isLeaderRole(profile.role) ? (
                 <>
                   <Link
                     href="/dashboard/stage"
@@ -64,12 +64,14 @@ export async function SiteHeader() {
                   >
                     Stage
                   </Link>
-                  <Link
-                    href="/members"
-                    className="hidden text-sm font-medium text-ink-muted transition hover:text-ink sm:block"
-                  >
-                    Members
-                  </Link>
+                  {profile.is_owner ? (
+                    <Link
+                      href="/members"
+                      className="hidden text-sm font-medium text-ink-muted transition hover:text-ink sm:block"
+                    >
+                      Members
+                    </Link>
+                  ) : null}
                 </>
               ) : null}
               <Link

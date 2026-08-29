@@ -4,6 +4,7 @@ import { randomBytes } from "node:crypto";
 import { revalidatePath } from "next/cache";
 import { createClient } from "@/lib/supabase/server";
 import { getCurrentProfile } from "@/lib/dal";
+import { isInvitableRole } from "@/lib/roles";
 
 export type InviteState = {
   error?: string;
@@ -33,9 +34,9 @@ function generateCode(): string {
  * leader_invites would block a non-leader anyway — this check just turns a
  * silent database refusal into an honest error message.
  */
-async function requireLeader() {
+async function requireAdmin() {
   const profile = await getCurrentProfile();
-  if (!profile || profile.role !== "leader") return null;
+  if (!profile?.is_owner) return null;
   return profile;
 }
 
@@ -46,12 +47,17 @@ export async function createInviteAction(
   _prevState: InviteState,
   formData: FormData,
 ): Promise<InviteState> {
-  const leader = await requireLeader();
-  if (!leader) return { error: "Only leaders can create invite codes." };
+  const admin = await requireAdmin();
+  if (!admin) return { error: "Only the group owner can create invite codes." };
 
   const rawNote = formData.get("note");
   const note =
     typeof rawNote === "string" ? rawNote.trim().slice(0, 200) : "";
+
+  const grantsRole = formData.get("grantsRole");
+  if (!isInvitableRole(grantsRole)) {
+    return { error: "Choose which kind of leader this code creates." };
+  }
 
   const rawDays = formData.get("expiresDays");
   const days =
@@ -70,8 +76,11 @@ export async function createInviteAction(
   const { error } = await supabase.from("leader_invites").insert({
     code,
     note: note || null,
-    created_by: leader.id,
+    created_by: admin.id,
     expires_at: expiresAt,
+    // The database reads this back in handle_new_user() to decide the role —
+    // it is not re-derived from anything the new member sends at signup.
+    grants_role: grantsRole,
   });
 
   if (error) {
@@ -89,8 +98,8 @@ export async function createInviteAction(
 // Revoke an unused invite
 // ---------------------------------------------------------------------------
 export async function revokeInviteAction(formData: FormData): Promise<void> {
-  const leader = await requireLeader();
-  if (!leader) return;
+  const admin = await requireAdmin();
+  if (!admin) return;
 
   const code = formData.get("code");
   if (typeof code !== "string" || !code) return;
