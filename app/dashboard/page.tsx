@@ -57,12 +57,20 @@ export default async function DashboardPage({
             Edit your details
           </Link>
           {profile?.role === "leader" ? (
-            <Link
-              href="/members"
-              className="rounded-lg border border-line bg-surface-raised px-4 py-2.5 text-sm font-semibold text-ink transition hover:border-brand-300"
-            >
-              Manage members
-            </Link>
+            <>
+              <Link
+                href="/dashboard/stage"
+                className="rounded-lg border border-line bg-surface-raised px-4 py-2.5 text-sm font-semibold text-ink transition hover:border-brand-300"
+              >
+                Stage
+              </Link>
+              <Link
+                href="/members"
+                className="rounded-lg border border-line bg-surface-raised px-4 py-2.5 text-sm font-semibold text-ink transition hover:border-brand-300"
+              >
+                Manage members
+              </Link>
+            </>
           ) : null}
         </div>
 

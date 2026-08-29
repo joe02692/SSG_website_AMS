@@ -57,12 +57,20 @@ export async function SiteHeader() {
                 </span>
               </span>
               {profile.role === "leader" ? (
-                <Link
-                  href="/members"
-                  className="hidden text-sm font-medium text-ink-muted transition hover:text-ink sm:block"
-                >
-                  Members
-                </Link>
+                <>
+                  <Link
+                    href="/dashboard/stage"
+                    className="hidden text-sm font-medium text-ink-muted transition hover:text-ink sm:block"
+                  >
+                    Stage
+                  </Link>
+                  <Link
+                    href="/members"
+                    className="hidden text-sm font-medium text-ink-muted transition hover:text-ink sm:block"
+                  >
+                    Members
+                  </Link>
+                </>
               ) : null}
               <Link
                 href="/dashboard"
