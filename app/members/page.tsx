@@ -5,6 +5,7 @@ import { ROLE_LABELS, isHeadSiteAdminRole, type Role } from "@/lib/roles";
 import { createClient } from "@/lib/supabase/server";
 import { InviteForm } from "@/components/members/invite-form";
 import { CopyButton } from "@/components/members/copy-button";
+import { DeleteMemberButton } from "@/components/members/delete-member-button";
 import { revokeInviteAction } from "@/app/members/actions";
 
 export const metadata: Metadata = {
@@ -140,6 +141,11 @@ export default async function MembersPage() {
                   <th scope="col" className="px-4 py-3 font-medium">
                     Joined
                   </th>
+                  {canManageInvites ? (
+                    <th scope="col" className="px-4 py-3 font-medium">
+                      <span className="sr-only">Actions</span>
+                    </th>
+                  ) : null}
                 </tr>
               </thead>
               <tbody className="divide-y divide-line bg-surface-raised">
@@ -158,6 +164,17 @@ export default async function MembersPage() {
                     <td className="px-4 py-3 text-ink-muted">
                       {formatDate(member.created_at)}
                     </td>
+                    {canManageInvites ? (
+                      <td className="px-4 py-3">
+                        {member.id === viewer.id ||
+                        member.role === "head_site_admin" ? null : (
+                          <DeleteMemberButton
+                            memberId={member.id}
+                            name={member.full_name ?? "this member"}
+                          />
+                        )}
+                      </td>
+                    ) : null}
                   </tr>
                 ))}
               </tbody>

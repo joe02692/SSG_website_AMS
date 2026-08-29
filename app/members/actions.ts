@@ -3,6 +3,7 @@
 import { randomBytes } from "node:crypto";
 import { revalidatePath } from "next/cache";
 import { createClient } from "@/lib/supabase/server";
+import { createAdminSupabase } from "@/lib/supabase/admin";
 import { getCurrentProfile } from "@/lib/dal";
 import { isHeadSiteAdminRole, isInvitableRole } from "@/lib/roles";
 
@@ -120,4 +121,65 @@ export async function revokeInviteAction(formData: FormData): Promise<void> {
     .is("used_at", null);
 
   revalidatePath("/members");
+}
+
+// ---------------------------------------------------------------------------
+// Delete a member's account
+// ---------------------------------------------------------------------------
+export type DeleteState = { error?: string };
+
+/**
+ * Permanently removes an account.
+ *
+ * This is the one operation a member session cannot perform: deleting a row
+ * from auth.users needs the service role key. Deleting the auth user cascades
+ * to their profile; any invite code they redeemed keeps its used_at stamp, so
+ * the code stays spent (see migration 0005).
+ *
+ * Irreversible — there is no undo and no soft-delete tombstone. If you later
+ * want "remove their access but keep the person on the roster", that's a
+ * different action: set role to 'scout' instead of calling this.
+ */
+export async function deleteMemberAction(
+  _prevState: DeleteState,
+  formData: FormData,
+): Promise<DeleteState> {
+  const admin = await requireHeadAdmin();
+  if (!admin) return { error: "Only the head site admin can delete accounts." };
+
+  const memberId = formData.get("memberId");
+  if (typeof memberId !== "string" || !memberId) {
+    return { error: "Nothing to delete." };
+  }
+
+  // Deleting yourself would leave the group with no head site admin and no
+  // way back in except SQL.
+  if (memberId === admin.id) {
+    return { error: "You can't delete your own account." };
+  }
+
+  const supabase = await createClient();
+  const { data: target } = await supabase
+    .from("profiles")
+    .select("id, role, full_name")
+    .eq("id", memberId)
+    .single();
+
+  if (!target) return { error: "That member no longer exists." };
+
+  // Belt and braces: even though only the head admin reaches this line, one
+  // head admin must not be able to remove another.
+  if (target.role === "head_site_admin") {
+    return { error: "Head site admin accounts can't be deleted from here." };
+  }
+
+  const adminClient = createAdminSupabase();
+  const { error } = await adminClient.auth.admin.deleteUser(memberId);
+
+  if (error) {
+    return { error: "Could not delete that account. Please try again." };
+  }
+
+  revalidatePath("/members");
+  return {};
 }
