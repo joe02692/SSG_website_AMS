@@ -4,6 +4,8 @@ import { SiteShell } from "@/components/site-shell";
 import { requireUser, getCurrentProfile } from "@/lib/dal";
 import { ROLE_LABELS } from "@/lib/roles";
 import { ProfileForm } from "@/components/profile/profile-form";
+import { DetailsForm } from "@/components/onboarding/details-form";
+import { updateDetailsAction } from "@/app/onboarding/actions";
 
 export const metadata: Metadata = {
   title: "Your details",
@@ -33,6 +35,26 @@ export default async function ProfilePage() {
         <div className="mt-8 rounded-2xl border border-line bg-surface-raised p-6">
           <ProfileForm fullName={profile?.full_name ?? ""} />
         </div>
+
+        <section aria-labelledby="details-heading" className="mt-8">
+          <h2
+            id="details-heading"
+            className="text-lg font-semibold tracking-tight text-ink"
+          >
+            Membership questions
+          </h2>
+          <p className="mt-1 text-sm text-ink-muted">
+            The answers you gave when you joined.
+          </p>
+          <div className="mt-4 rounded-2xl border border-line bg-surface-raised p-6">
+            <DetailsForm
+              action={updateDetailsAction}
+              profile={profile}
+              submitLabel="Save details"
+              pendingLabel="Saving…"
+            />
+          </div>
+        </section>
 
         {/* Read-only facts: changing either one is a separate, guarded flow. */}
         <dl className="mt-6 space-y-4 rounded-2xl border border-line bg-surface p-6">

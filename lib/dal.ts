@@ -9,9 +9,19 @@ export type Profile = {
   id: string;
   full_name: string | null;
   role: Role;
+  detail_1: string | null;
+  detail_2: string | null;
+  detail_3: string | null;
+  detail_4: string | null;
+  detail_5: string | null;
+  /** NULL until the member finishes the onboarding questions. */
+  details_completed_at: string | null;
   created_at: string;
   updated_at: string;
 };
+
+const PROFILE_COLUMNS =
+  "id, full_name, role, detail_1, detail_2, detail_3, detail_4, detail_5, details_completed_at, created_at, updated_at";
 
 /**
  * The Data Access Layer.
@@ -42,7 +52,7 @@ export const getCurrentProfile = cache(async (): Promise<Profile | null> => {
   const supabase = await createClient();
   const { data, error } = await supabase
     .from("profiles")
-    .select("id, full_name, role, created_at, updated_at")
+    .select(PROFILE_COLUMNS)
     .eq("id", user.id)
     .single();
 
@@ -55,6 +65,18 @@ export async function requireUser() {
   const user = await getCurrentUser();
   if (!user) redirect("/login");
   return user;
+}
+
+/**
+ * Sends the member to /onboarding until they've answered the signup
+ * questions. Called from the dashboard layout so every page under it is
+ * covered by one check.
+ */
+export async function requireCompletedDetails(): Promise<Profile> {
+  const profile = await getCurrentProfile();
+  if (!profile) redirect("/login");
+  if (!profile.details_completed_at) redirect("/onboarding");
+  return profile;
 }
 
 /** Redirects unless the signed-in member is site-level staff. */

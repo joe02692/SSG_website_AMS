@@ -8,6 +8,7 @@ const PROTECTED_PREFIXES = [
   "/members",
   "/admin",
   "/reset-password",
+  "/onboarding",
 ] as const;
 
 /** Auth pages a signed-in user should be bounced away from. */

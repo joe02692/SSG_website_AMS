@@ -73,7 +73,9 @@ export default async function MembersPage() {
   const [{ data: memberRows }, { data: inviteRows }] = await Promise.all([
     supabase
       .from("profiles")
-      .select("id, full_name, role, created_at, updated_at")
+      .select(
+        "id, full_name, role, detail_1, detail_2, detail_3, detail_4, detail_5, details_completed_at, created_at, updated_at",
+      )
       .order("created_at", { ascending: true }),
     supabase
       .from("leader_invites")
