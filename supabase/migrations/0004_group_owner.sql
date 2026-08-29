@@ -9,7 +9,7 @@
 --   * it survives the account being recreated (just re-flag the new row)
 --
 -- Exactly one row should have is_owner = true. Nothing enforces that here;
--- it's set by hand below.
+-- it's set by hand at the bottom of this file.
 -- ============================================================================
 
 alter table public.profiles
@@ -35,26 +35,36 @@ as $$
 $$;
 
 comment on function public.is_owner() is
-  'True only for the group owner. Narrower than is_leader() and is_stage_admin().';
+  'True only for the group owner. Narrower than is_leader().';
 
 -- ----------------------------------------------------------------------------
 -- The flag must be as unforgeable as the role.
--- Extends the existing guard rather than adding a second trigger.
+--
+-- Note this function is SECURITY INVOKER (the default) on purpose: it needs
+-- to see who the *caller* is, and SECURITY DEFINER would report the function
+-- owner instead, defeating the whole check.
+--
+-- PostgREST switches the connection role to `anon` or `authenticated` for
+-- every browser-originated request, so testing current_user identifies client
+-- traffic exactly. A direct connection — the Supabase SQL editor, psql, a
+-- migration — arrives as `postgres` and is allowed through. The earlier
+-- version of this guard tested for `service_role` in the JWT claims and so
+-- rejected the SQL editor too, which has no claims at all.
 -- ----------------------------------------------------------------------------
 create or replace function public.prevent_role_escalation()
 returns trigger
 language plpgsql
-security definer
 set search_path = ''
 as $$
 begin
   if new.role is distinct from old.role
      or new.is_owner is distinct from old.is_owner
   then
-    if coalesce(
-         current_setting('request.jwt.claims', true)::jsonb ->> 'role',
-         ''
-       ) <> 'service_role'
+    if current_user in ('anon', 'authenticated')
+       or coalesce(
+            current_setting('request.jwt.claims', true)::jsonb ->> 'role',
+            ''
+          ) in ('anon', 'authenticated')
     then
       raise exception
         'profiles.role and profiles.is_owner cannot be changed from a client connection'
@@ -82,8 +92,11 @@ create policy "leader_invites: owner manages"
 -- narrowing that to their own stage is a follow-up for the DBMS team.
 
 -- ----------------------------------------------------------------------------
--- Claim ownership. CHANGE THE EMAIL, then run.
+-- Claim ownership. CHANGE THE EMAIL if yours differs, then run.
+-- Safe to re-run: it clears any existing owner first.
 -- ----------------------------------------------------------------------------
+update public.profiles set is_owner = false where is_owner;
+
 update public.profiles
    set is_owner = true
  where id = (

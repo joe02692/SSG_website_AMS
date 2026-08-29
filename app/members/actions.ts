@@ -106,12 +106,14 @@ export async function revokeInviteAction(formData: FormData): Promise<void> {
 
   const supabase = await createClient();
   // Only unused codes can be revoked — used ones stay as an audit trail of
-  // who joined with which invite.
+  // who joined with which invite. Test used_at, not used_by: deleting the
+  // member who redeemed a code NULLs used_by via the FK cascade, which would
+  // otherwise make a spent code look revocable (and redeemable) again.
   await supabase
     .from("leader_invites")
     .delete()
     .eq("code", code)
-    .is("used_by", null);
+    .is("used_at", null);
 
   revalidatePath("/members");
 }
