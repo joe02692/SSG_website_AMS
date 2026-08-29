@@ -1,7 +1,7 @@
 import type { Metadata } from "next";
 import { SiteShell } from "@/components/site-shell";
-import { requireOwner, type Profile } from "@/lib/dal";
-import { ROLE_LABELS, type Role } from "@/lib/roles";
+import { requireSiteAdmin, type Profile } from "@/lib/dal";
+import { ROLE_LABELS, isHeadSiteAdminRole, type Role } from "@/lib/roles";
 import { createClient } from "@/lib/supabase/server";
 import { InviteForm } from "@/components/members/invite-form";
 import { CopyButton } from "@/components/members/copy-button";
@@ -22,6 +22,10 @@ type Invite = {
 };
 
 const ROLE_BADGE: Record<Role, string> = {
+  head_site_admin:
+    "bg-accent-500/20 text-accent-600 dark:bg-accent-500/15 dark:text-accent-400",
+  site_admin:
+    "bg-brand-100 text-brand-800 dark:bg-brand-950 dark:text-brand-200",
   stage_admin:
     "bg-brand-100 text-brand-800 dark:bg-brand-950 dark:text-brand-200",
   stage_leader:
@@ -32,7 +36,12 @@ const ROLE_BADGE: Record<Role, string> = {
 };
 
 /** Roles worth a headline count on this page. */
-const COUNTED_ROLES: Role[] = ["stage_admin", "stage_leader", "scout"];
+const COUNTED_ROLES: Role[] = [
+  "site_admin",
+  "stage_admin",
+  "stage_leader",
+  "scout",
+];
 
 function formatDate(value: string | null): string {
   if (!value) return "—";
@@ -53,16 +62,18 @@ function inviteStatus(invite: Invite): "used" | "expired" | "active" {
 
 export default async function MembersPage() {
   // The real gate. proxy.ts only checked that *a* session exists.
-  // The group owner only — everyone else, including stage admins and stage
-  // leaders, is redirected; /dashboard/stage is the leaders' page.
-  await requireOwner();
+  // Site-level staff only — stage admins and stage leaders are redirected;
+  // /dashboard/stage is their page.
+  const viewer = await requireSiteAdmin();
+  // Issuing and revoking codes is narrower still: the head site admin alone.
+  const canManageInvites = isHeadSiteAdminRole(viewer.role);
 
   const supabase = await createClient();
 
   const [{ data: memberRows }, { data: inviteRows }] = await Promise.all([
     supabase
       .from("profiles")
-      .select("id, full_name, role, is_owner, created_at, updated_at")
+      .select("id, full_name, role, created_at, updated_at")
       .order("created_at", { ascending: true }),
     supabase
       .from("leader_invites")
@@ -154,7 +165,10 @@ export default async function MembersPage() {
           </div>
         </section>
 
-        {/* ------------------------------------------------------- Invites */}
+        {/* Invites — head site admin only. An unused code on screen is
+            effectively an invitation, so site admins don't see this section
+            at all rather than seeing codes they can't issue. */}
+        {canManageInvites ? (
         <section
           aria-labelledby="invites-heading"
           className="mt-12 grid gap-8 lg:grid-cols-[minmax(0,22rem)_1fr]"
@@ -279,6 +293,7 @@ export default async function MembersPage() {
             </table>
           </div>
         </section>
+        ) : null}
       </div>
     </SiteShell>
   );

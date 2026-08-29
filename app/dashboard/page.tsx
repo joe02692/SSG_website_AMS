@@ -2,7 +2,12 @@ import type { Metadata } from "next";
 import Link from "next/link";
 import { SiteShell } from "@/components/site-shell";
 import { requireUser, getCurrentProfile } from "@/lib/dal";
-import { ROLE_DESCRIPTIONS, ROLE_LABELS, isLeaderRole } from "@/lib/roles";
+import {
+  ROLE_DESCRIPTIONS,
+  ROLE_LABELS,
+  isSiteAdminRole,
+  isStageRole,
+} from "@/lib/roles";
 
 export const metadata: Metadata = {
   title: "Dashboard",
@@ -56,7 +61,7 @@ export default async function DashboardPage({
           >
             Edit your details
           </Link>
-          {isLeaderRole(profile?.role) ? (
+          {isStageRole(profile?.role) ? (
             <Link
               href="/dashboard/stage"
               className="rounded-lg border border-line bg-surface-raised px-4 py-2.5 text-sm font-semibold text-ink transition hover:border-brand-300"
@@ -64,7 +69,7 @@ export default async function DashboardPage({
               Stage
             </Link>
           ) : null}
-          {profile?.is_owner ? (
+          {isSiteAdminRole(profile?.role) ? (
             <Link
               href="/members"
               className="rounded-lg border border-line bg-surface-raised px-4 py-2.5 text-sm font-semibold text-ink transition hover:border-brand-300"

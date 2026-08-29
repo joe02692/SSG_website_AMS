@@ -4,7 +4,7 @@ import { randomBytes } from "node:crypto";
 import { revalidatePath } from "next/cache";
 import { createClient } from "@/lib/supabase/server";
 import { getCurrentProfile } from "@/lib/dal";
-import { isInvitableRole } from "@/lib/roles";
+import { isHeadSiteAdminRole, isInvitableRole } from "@/lib/roles";
 
 export type InviteState = {
   error?: string;
@@ -30,13 +30,15 @@ function generateCode(): string {
 }
 
 /**
- * Every action here re-checks the role server-side. The RLS policies on
- * leader_invites would block a non-leader anyway — this check just turns a
- * silent database refusal into an honest error message.
+ * Issuing and revoking codes belongs to the head site admin alone — a site
+ * admin can read the member list but must not be able to hand out staff
+ * access. Re-checked here because Server Actions are reachable by direct
+ * POST; the is_head_site_admin() RLS policy would refuse anyway, but this
+ * turns a silent database rejection into an honest error message.
  */
-async function requireAdmin() {
+async function requireHeadAdmin() {
   const profile = await getCurrentProfile();
-  if (!profile?.is_owner) return null;
+  if (!isHeadSiteAdminRole(profile?.role)) return null;
   return profile;
 }
 
@@ -47,8 +49,10 @@ export async function createInviteAction(
   _prevState: InviteState,
   formData: FormData,
 ): Promise<InviteState> {
-  const admin = await requireAdmin();
-  if (!admin) return { error: "Only the group owner can create invite codes." };
+  const admin = await requireHeadAdmin();
+  if (!admin) {
+    return { error: "Only the head site admin can create invite codes." };
+  }
 
   const rawNote = formData.get("note");
   const note =
@@ -98,7 +102,7 @@ export async function createInviteAction(
 // Revoke an unused invite
 // ---------------------------------------------------------------------------
 export async function revokeInviteAction(formData: FormData): Promise<void> {
-  const admin = await requireAdmin();
+  const admin = await requireHeadAdmin();
   if (!admin) return;
 
   const code = formData.get("code");
