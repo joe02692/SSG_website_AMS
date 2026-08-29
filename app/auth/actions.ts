@@ -4,7 +4,7 @@ import { redirect } from "next/navigation";
 import { revalidatePath } from "next/cache";
 import { headers } from "next/headers";
 import { createClient } from "@/lib/supabase/server";
-import { SELF_SERVE_ROLES } from "@/lib/roles";
+import { COMING_SOON_ROLES, SELF_SERVE_ROLES } from "@/lib/roles";
 
 export type AuthState = {
   error?: string;
@@ -57,7 +57,16 @@ export async function signUpAction(
   const isSelfServe = (SELF_SERVE_ROLES as readonly string[]).includes(
     requestedRole,
   );
-  if (!isSelfServe && requestedRole !== "leader") {
+  const isComingSoon = (COMING_SOON_ROLES as readonly string[]).includes(
+    requestedRole,
+  );
+
+  // The radio for these is disabled in the UI, but that's only a hint — a
+  // crafted POST straight to this action would sail past it.
+  if (isComingSoon) {
+    fieldErrors.role =
+      "Parent accounts aren't open yet. Please check back soon.";
+  } else if (!isSelfServe && requestedRole !== "leader") {
     fieldErrors.role = "Choose how you're joining.";
   }
   if (requestedRole === "leader" && !inviteCode) {
@@ -71,7 +80,7 @@ export async function signUpAction(
   const supabase = await createClient();
   const origin = (await headers()).get("origin") ?? "";
 
-  const { error } = await supabase.auth.signUp({
+  const { data, error } = await supabase.auth.signUp({
     email,
     password,
     options: {
@@ -90,8 +99,19 @@ export async function signUpAction(
     return { error: error.message };
   }
 
-  // With email confirmation enabled (the Supabase default) there is no
-  // session yet, so we tell them to check their inbox rather than redirect.
+  // When "Confirm email" is switched off in the Supabase dashboard, signUp
+  // returns a live session — send them straight in rather than to a mailbox
+  // that will never receive anything.
+  if (data.session) {
+    revalidatePath("/", "layout");
+    // redirect() throws a control-flow exception; nothing after it runs.
+    redirect("/dashboard");
+  }
+
+  // Note: Supabase returns a user with an empty `identities` array when the
+  // address is already registered, rather than erroring — deliberately, so
+  // the endpoint can't be used to discover which emails have accounts. We
+  // mirror that by showing the same message either way.
   return {
     notice:
       "Account created. Check your email for a confirmation link to finish signing in.",

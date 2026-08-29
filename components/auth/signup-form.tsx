@@ -3,21 +3,33 @@
 import { useActionState, useId, useState } from "react";
 import Link from "next/link";
 import { signUpAction, type AuthState } from "@/app/auth/actions";
-import { ROLE_DESCRIPTIONS, ROLE_LABELS } from "@/lib/roles";
+import { ROLE_DESCRIPTIONS, ROLE_LABELS, type Role } from "@/lib/roles";
 import { Field, inputClass } from "@/components/ui/field";
 import { SubmitButton } from "@/components/ui/submit-button";
 
 const initialState: AuthState = {};
 
-/** scout and parent are self-serve; leader is gated behind an invite code. */
-const CHOICES = ["scout", "parent", "leader"] as const;
+/**
+ * scout is self-serve; leader is gated behind an invite code; parent is
+ * shown but not open yet in this version. The `disabled` flag here is a
+ * UI convenience only — signUpAction rejects a parent signup server-side.
+ */
+const CHOICES: {
+  value: Role;
+  badge: string | null;
+  disabled: boolean;
+}[] = [
+  { value: "scout", badge: null, disabled: false },
+  { value: "parent", badge: "Coming soon", disabled: true },
+  { value: "leader", badge: "Invite only", disabled: false },
+];
 
 export function SignupForm() {
   const [state, formAction, pending] = useActionState(
     signUpAction,
     initialState,
   );
-  const [role, setRole] = useState<(typeof CHOICES)[number]>("scout");
+  const [role, setRole] = useState<Role>("scout");
   const id = useId();
 
   return (
@@ -45,38 +57,50 @@ export function SignupForm() {
           How are you joining?
         </legend>
         <div className="grid gap-2">
-          {CHOICES.map((choice) => (
-            <label
-              key={choice}
-              className={`flex cursor-pointer gap-3 rounded-lg border p-3 transition ${
-                role === choice
-                  ? "border-brand-500 bg-brand-50/60 ring-1 ring-brand-500/30"
-                  : "border-line bg-surface-raised hover:border-brand-300"
-              }`}
-            >
-              <input
-                type="radio"
-                name="role"
-                value={choice}
-                checked={role === choice}
-                onChange={() => setRole(choice)}
-                className="mt-0.5 size-4 accent-brand-600"
-              />
-              <span className="min-w-0">
-                <span className="block text-sm font-medium text-ink">
-                  {ROLE_LABELS[choice]}
-                  {choice === "leader" ? (
-                    <span className="ml-2 rounded bg-accent-500/15 px-1.5 py-0.5 text-[11px] font-semibold text-accent-600">
-                      Invite only
-                    </span>
-                  ) : null}
+          {CHOICES.map((choice) => {
+            const selected = role === choice.value;
+            return (
+              <label
+                key={choice.value}
+                className={`flex gap-3 rounded-lg border p-3 transition ${
+                  choice.disabled
+                    ? "cursor-not-allowed border-line bg-surface opacity-60"
+                    : selected
+                      ? "cursor-pointer border-brand-500 bg-brand-50/60 ring-1 ring-brand-500/30"
+                      : "cursor-pointer border-line bg-surface-raised hover:border-brand-300"
+                }`}
+              >
+                <input
+                  type="radio"
+                  name="role"
+                  value={choice.value}
+                  checked={selected}
+                  disabled={choice.disabled}
+                  onChange={() => setRole(choice.value)}
+                  className="mt-0.5 size-4 accent-brand-600 disabled:cursor-not-allowed"
+                />
+                <span className="min-w-0">
+                  <span className="block text-sm font-medium text-ink">
+                    {ROLE_LABELS[choice.value]}
+                    {choice.badge ? (
+                      <span
+                        className={`ml-2 rounded px-1.5 py-0.5 text-[11px] font-semibold ${
+                          choice.disabled
+                            ? "bg-ink-subtle/15 text-ink-subtle"
+                            : "bg-accent-500/15 text-accent-600"
+                        }`}
+                      >
+                        {choice.badge}
+                      </span>
+                    ) : null}
+                  </span>
+                  <span className="block text-xs text-ink-subtle">
+                    {ROLE_DESCRIPTIONS[choice.value]}
+                  </span>
                 </span>
-                <span className="block text-xs text-ink-subtle">
-                  {ROLE_DESCRIPTIONS[choice]}
-                </span>
-              </span>
-            </label>
-          ))}
+              </label>
+            );
+          })}
         </div>
         {state.fieldErrors?.role ? (
           <p className="text-xs font-medium text-red-600">

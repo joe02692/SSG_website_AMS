@@ -4,7 +4,15 @@ export const ROLES = ["scout", "leader", "parent"] as const;
 export type Role = (typeof ROLES)[number];
 
 /** Roles a visitor may choose for themselves at signup. */
-export const SELF_SERVE_ROLES = ["scout", "parent"] as const;
+export const SELF_SERVE_ROLES = ["scout"] as const;
+
+/**
+ * Roles shown in the signup UI but not open yet. Listed separately (rather
+ * than removed) so the option still appears with a "Coming soon" badge —
+ * and so the server can reject it explicitly instead of falling through to
+ * the generic "choose how you're joining" error.
+ */
+export const COMING_SOON_ROLES = ["parent"] as const;
 
 export const ROLE_LABELS: Record<Role, string> = {
   scout: "Scout",
