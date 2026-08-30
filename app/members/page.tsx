@@ -6,7 +6,7 @@ import { createClient } from "@/lib/supabase/server";
 import { InviteForm } from "@/components/members/invite-form";
 import { CopyButton } from "@/components/members/copy-button";
 import { DeleteMemberButton } from "@/components/members/delete-member-button";
-import { revokeInviteAction } from "@/app/members/actions";
+import { DeleteInviteButton } from "@/components/members/delete-invite-button";
 
 export const metadata: Metadata = {
   title: "Members",
@@ -199,7 +199,8 @@ export default async function MembersPage() {
             </h2>
             <p className="mt-2 text-sm text-ink-muted">
               A code is single-use: once someone signs up with it, it&apos;s
-              spent. Revoking removes an unused code immediately.
+              spent. The expiry is a deadline for <em>redeeming</em> it — it
+              never affects an account that already exists.
             </p>
             <div className="mt-5 rounded-xl border border-line bg-surface-raised p-5">
               <InviteForm />
@@ -286,21 +287,11 @@ export default async function MembersPage() {
                           )}
                         </td>
                         <td className="px-4 py-3 text-right">
-                          {status !== "used" ? (
-                            <form action={revokeInviteAction}>
-                              <input
-                                type="hidden"
-                                name="code"
-                                value={invite.code}
-                              />
-                              <button
-                                type="submit"
-                                className="text-xs font-medium text-red-600 underline-offset-4 hover:underline"
-                              >
-                                Revoke
-                              </button>
-                            </form>
-                          ) : null}
+                          <DeleteInviteButton
+                            code={invite.code}
+                            used={status === "used"}
+                            usedByName={nameById.get(invite.used_by ?? "")}
+                          />
                         </td>
                       </tr>
                     );

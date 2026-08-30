@@ -78,7 +78,11 @@ export function InviteForm() {
         />
       </Field>
 
-      <Field label="Expires" htmlFor={`${id}-expires`}>
+      <Field
+        label="Expires"
+        htmlFor={`${id}-expires`}
+        hint="How long the code stays redeemable. Accounts created with it are permanent."
+      >
         <select
           id={`${id}-expires`}
           name="expiresDays"

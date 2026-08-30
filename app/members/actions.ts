@@ -100,34 +100,50 @@ export async function createInviteAction(
 }
 
 // ---------------------------------------------------------------------------
-// Revoke an unused invite
+// Delete an invite code
 // ---------------------------------------------------------------------------
-export async function revokeInviteAction(formData: FormData): Promise<void> {
+export type DeleteState = { error?: string };
+
+/**
+ * Removes a code row entirely — used or unused.
+ *
+ * An unused code: this is a straightforward revoke, and the code can never be
+ * redeemed afterwards.
+ *
+ * A used code: the row is the only record of who joined with which invite, so
+ * deleting it discards that link. The member's account is untouched — their
+ * role already lives on their profile and does not depend on this row.
+ *
+ * Note the code string becomes free to mint again afterwards. That is not a
+ * way to "recycle" codes and there is no need to: codes are 8 random
+ * characters from a 31-character alphabet, so the supply is effectively
+ * unlimited. Deleting is for tidiness, not capacity.
+ */
+export async function deleteInviteAction(
+  _prevState: DeleteState,
+  formData: FormData,
+): Promise<DeleteState> {
   const admin = await requireHeadAdmin();
-  if (!admin) return;
+  if (!admin) return { error: "Only the head site admin can delete codes." };
 
   const code = formData.get("code");
-  if (typeof code !== "string" || !code) return;
+  if (typeof code !== "string" || !code) return { error: "Nothing to delete." };
 
   const supabase = await createClient();
-  // Only unused codes can be revoked — used ones stay as an audit trail of
-  // who joined with which invite. Test used_at, not used_by: deleting the
-  // member who redeemed a code NULLs used_by via the FK cascade, which would
-  // otherwise make a spent code look revocable (and redeemable) again.
-  await supabase
+  const { error } = await supabase
     .from("leader_invites")
     .delete()
-    .eq("code", code)
-    .is("used_at", null);
+    .eq("code", code);
+
+  if (error) return { error: "Could not delete that code. Try again." };
 
   revalidatePath("/members");
+  return {};
 }
 
 // ---------------------------------------------------------------------------
 // Delete a member's account
 // ---------------------------------------------------------------------------
-export type DeleteState = { error?: string };
-
 /**
  * Permanently removes an account.
  *
