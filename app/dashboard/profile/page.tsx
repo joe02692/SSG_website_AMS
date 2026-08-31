@@ -10,6 +10,8 @@ import {
 import { ROLE_LABELS } from "@/lib/roles";
 import { ProfileForm } from "@/components/profile/profile-form";
 import { DetailsForm } from "@/components/onboarding/details-form";
+import { DocumentUpload } from "@/components/profile/document-upload";
+import { createClient } from "@/lib/supabase/server";
 import { updateDetailsAction } from "@/app/onboarding/actions";
 import {
   ageFromDateOfBirth,
@@ -28,6 +30,18 @@ export default async function ProfilePage() {
   const scout = isScout ? await getScoutDetails() : null;
   const answers = isScout ? scoutAnswers(scout) : (profile?.details ?? {});
   const age = scout ? ageFromDateOfBirth(scout.date_of_birth) : null;
+
+  // Signed URL for the stored document, minted here rather than exposing a
+  // public link. Sixty seconds is plenty to open it and short enough that a
+  // copied URL is useless almost immediately.
+  let documentUrl: string | null = null;
+  if (scout?.document_path) {
+    const supabase = await createClient();
+    const { data } = await supabase.storage
+      .from("scout-documents")
+      .createSignedUrl(scout.document_path, 60);
+    documentUrl = data?.signedUrl ?? null;
+  }
 
   return (
     <SiteShell>
@@ -78,6 +92,24 @@ export default async function ProfilePage() {
             />
           </div>
         </section>
+
+        {isScout ? (
+          <section aria-labelledby="document-heading" className="mt-8">
+            <h2
+              id="document-heading"
+              className="text-lg font-semibold tracking-tight text-ink"
+            >
+              Birth certificate — شهادة الميلاد
+            </h2>
+            <div className="mt-4 rounded-2xl border border-line bg-surface-raised p-6">
+              <DocumentUpload
+                profileId={user.id}
+                currentPath={scout?.document_path ?? null}
+                signedUrl={documentUrl}
+              />
+            </div>
+          </section>
+        ) : null}
 
         {/* Read-only facts: changing either one is a separate, guarded flow. */}
         <dl className="mt-6 space-y-4 rounded-2xl border border-line bg-surface p-6">
