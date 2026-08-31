@@ -189,7 +189,19 @@ export async function deleteMemberAction(
     return { error: "Head site admin accounts can't be deleted from here." };
   }
 
-  const adminClient = createAdminSupabase();
+  // createAdminSupabase() throws when SUPABASE_SERVICE_ROLE_KEY is missing.
+  // Letting that escape turns a misconfigured environment into a 500 that
+  // takes the whole page down, so catch it and say what's actually wrong.
+  let adminClient;
+  try {
+    adminClient = createAdminSupabase();
+  } catch {
+    return {
+      error:
+        "Deleting accounts isn't configured on this deployment — SUPABASE_SERVICE_ROLE_KEY is missing.",
+    };
+  }
+
   const { error } = await adminClient.auth.admin.deleteUser(memberId);
 
   if (error) {
