@@ -57,6 +57,64 @@ export const getCurrentProfile = cache(async (): Promise<Profile | null> => {
   return data as Profile;
 });
 
+export type ScoutDetails = {
+  profile_id: string;
+  date_of_birth: string;
+  address: string;
+  national_id: string | null;
+  personal_phone: string;
+  parent_phone: string;
+  document_path: string | null;
+  stage_id: number;
+  /** Joined from public.stages — the code the onboarding form uses. */
+  stage_code: string | null;
+};
+
+/**
+ * The signed-in scout's registration details, or null for staff (who have no
+ * row) and for anyone who hasn't finished onboarding.
+ */
+export const getScoutDetails = cache(async (): Promise<ScoutDetails | null> => {
+  const user = await getCurrentUser();
+  if (!user) return null;
+
+  const supabase = await createClient();
+  const { data, error } = await supabase
+    .from("scout_details")
+    .select(
+      "profile_id, date_of_birth, address, national_id, personal_phone, parent_phone, document_path, stage_id, stages(code)",
+    )
+    .eq("profile_id", user.id)
+    .maybeSingle();
+
+  if (error || !data) return null;
+
+  const row = data as unknown as Omit<ScoutDetails, "stage_code"> & {
+    stages: { code: string } | { code: string }[] | null;
+  };
+  const joined = Array.isArray(row.stages) ? row.stages[0] : row.stages;
+
+  return { ...row, stage_code: joined?.code ?? null };
+});
+
+/**
+ * Reshapes a scout_details row into the flat answers map the onboarding form
+ * expects, so the same form can prefill for editing.
+ */
+export function scoutAnswers(
+  details: ScoutDetails | null,
+): Record<string, string> {
+  if (!details) return {};
+  return {
+    date_of_birth: details.date_of_birth ?? "",
+    address: details.address ?? "",
+    personal_phone: details.personal_phone ?? "",
+    parent_phone: details.parent_phone ?? "",
+    stage_code: details.stage_code ?? "",
+    national_id: details.national_id ?? "",
+  };
+}
+
 /** Redirects to /login when there is no signed-in user. */
 export async function requireUser() {
   const user = await getCurrentUser();

@@ -74,8 +74,8 @@ export function DetailsForm({
                   {question.placeholder ?? "Choose one…"}
                 </option>
                 {(question.options ?? []).map((option) => (
-                  <option key={option} value={option}>
-                    {option}
+                  <option key={option.value} value={option.value}>
+                    {option.label}
                   </option>
                 ))}
               </select>
@@ -95,7 +95,11 @@ export function DetailsForm({
                 id={fieldId}
                 name={question.id}
                 type={question.type ?? "text"}
-                maxLength={MAX_ANSWER_LENGTH}
+                // A date input must not carry maxLength — it breaks the
+                // native picker in some browsers.
+                maxLength={
+                  question.type === "date" ? undefined : MAX_ANSWER_LENGTH
+                }
                 required={question.required}
                 defaultValue={defaultValue}
                 placeholder={question.placeholder}

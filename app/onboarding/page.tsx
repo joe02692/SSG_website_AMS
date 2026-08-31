@@ -1,10 +1,15 @@
 import type { Metadata } from "next";
 import { redirect } from "next/navigation";
 import Link from "next/link";
-import { getCurrentProfile, requireUser } from "@/lib/dal";
+import {
+  getCurrentProfile,
+  getScoutDetails,
+  requireUser,
+  scoutAnswers,
+} from "@/lib/dal";
 import { DetailsForm } from "@/components/onboarding/details-form";
 import { completeOnboardingAction } from "@/app/onboarding/actions";
-import { questionsForRole } from "@/lib/onboarding";
+import { questionsForRole, usesScoutDetails } from "@/lib/onboarding";
 
 export const metadata: Metadata = {
   title: "Your details",
@@ -17,6 +22,12 @@ export default async function OnboardingPage() {
   // Already answered — nothing to do here. Without this, the dashboard
   // layout's redirect and this page could bounce a member back and forth.
   if (profile?.details_completed_at) redirect("/dashboard");
+
+  // Scouts answer into real columns; staff still use the JSONB blob.
+  const isScout = usesScoutDetails(profile?.role);
+  const answers = isScout
+    ? scoutAnswers(await getScoutDetails())
+    : (profile?.details ?? {});
 
   return (
     <div className="flex min-h-dvh flex-col bg-surface">
@@ -55,7 +66,7 @@ export default async function OnboardingPage() {
           <DetailsForm
             action={completeOnboardingAction}
             questions={questionsForRole(profile?.role)}
-            answers={profile?.details}
+            answers={answers}
             submitLabel="Finish signing up"
             pendingLabel="Saving…"
           />

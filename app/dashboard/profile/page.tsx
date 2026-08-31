@@ -1,12 +1,21 @@
 import type { Metadata } from "next";
 import Link from "next/link";
 import { SiteShell } from "@/components/site-shell";
-import { requireUser, getCurrentProfile } from "@/lib/dal";
+import {
+  requireUser,
+  getCurrentProfile,
+  getScoutDetails,
+  scoutAnswers,
+} from "@/lib/dal";
 import { ROLE_LABELS } from "@/lib/roles";
 import { ProfileForm } from "@/components/profile/profile-form";
 import { DetailsForm } from "@/components/onboarding/details-form";
 import { updateDetailsAction } from "@/app/onboarding/actions";
-import { questionsForRole } from "@/lib/onboarding";
+import {
+  ageFromDateOfBirth,
+  questionsForRole,
+  usesScoutDetails,
+} from "@/lib/onboarding";
 
 export const metadata: Metadata = {
   title: "Your details",
@@ -15,6 +24,10 @@ export const metadata: Metadata = {
 export default async function ProfilePage() {
   const user = await requireUser();
   const profile = await getCurrentProfile();
+  const isScout = usesScoutDetails(profile?.role);
+  const scout = isScout ? await getScoutDetails() : null;
+  const answers = isScout ? scoutAnswers(scout) : (profile?.details ?? {});
+  const age = scout ? ageFromDateOfBirth(scout.date_of_birth) : null;
 
   return (
     <SiteShell>
@@ -46,12 +59,20 @@ export default async function ProfilePage() {
           </h2>
           <p className="mt-1 text-sm text-ink-muted">
             The answers you gave when you joined.
+            {age !== null ? (
+              <>
+                {" "}
+                You are <span className="font-medium text-ink">{age}</span> —
+                worked out from your date of birth, so it updates itself every
+                birthday.
+              </>
+            ) : null}
           </p>
           <div className="mt-4 rounded-2xl border border-line bg-surface-raised p-6">
             <DetailsForm
               action={updateDetailsAction}
               questions={questionsForRole(profile?.role)}
-              answers={profile?.details}
+              answers={answers}
               submitLabel="Save details"
               pendingLabel="Saving…"
             />
