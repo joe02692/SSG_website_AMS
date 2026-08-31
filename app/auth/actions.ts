@@ -69,15 +69,32 @@ export async function signUpAction(
   } else if (!isSelfServe && requestedRole !== "leader") {
     fieldErrors.role = "Choose how you're joining.";
   }
-  if (requestedRole === "leader" && !inviteCode) {
-    fieldErrors.inviteCode = "Leader accounts need an invite code.";
+  // Codes are generated in upper case; accept whatever case is typed.
+  const normalisedCode = inviteCode.toUpperCase();
+
+  const supabase = await createClient();
+
+  if (requestedRole === "leader") {
+    if (!normalisedCode) {
+      fieldErrors.inviteCode = "Leader accounts need an invite code.";
+    } else {
+      // Check the code BEFORE creating anything. Without this the account is
+      // created first and the database trigger rejects it, which works but
+      // gives the person a failed request instead of a clear message.
+      const { data: valid } = await supabase.rpc("invite_code_is_valid", {
+        code: normalisedCode,
+      });
+      if (!valid) {
+        fieldErrors.inviteCode =
+          "That code isn't valid — it may be mistyped, expired, or already used.";
+      }
+    }
   }
 
   if (Object.keys(fieldErrors).length > 0) {
     return { fieldErrors, error: "Please fix the highlighted fields." };
   }
 
-  const supabase = await createClient();
   const origin = (await headers()).get("origin") ?? "";
 
   const { data, error } = await supabase.auth.signUp({
@@ -90,12 +107,29 @@ export async function signUpAction(
         // Named "requested_" on purpose: it is a hint the database trigger
         // may override. It is never the authoritative role.
         requested_role: isSelfServe ? requestedRole : "scout",
-        ...(inviteCode ? { leader_invite_code: inviteCode } : {}),
+        ...(normalisedCode ? { leader_invite_code: normalisedCode } : {}),
       },
     },
   });
 
   if (error) {
+    // The trigger raises when a code is unusable. That normally can't happen
+    // — it was checked a moment ago — but it does if someone else redeems the
+    // last-but-one use in between, so translate it rather than showing a raw
+    // database error.
+    const message = `${error.message} ${error.code ?? ""}`;
+    if (
+      message.includes("ELSALAM_INVALID_INVITE") ||
+      message.includes("Database error saving new user")
+    ) {
+      return {
+        fieldErrors: {
+          inviteCode:
+            "That code was just used or is no longer valid. Ask for a new one.",
+        },
+        error: "Please fix the highlighted fields.",
+      };
+    }
     return { error: error.message };
   }
 
