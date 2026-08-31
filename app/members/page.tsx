@@ -1,4 +1,5 @@
 import type { Metadata } from "next";
+import Link from "next/link";
 import { SiteShell } from "@/components/site-shell";
 import { PROFILE_COLUMNS, requireSiteAdmin, type Profile } from "@/lib/dal";
 import { ROLE_LABELS, isHeadSiteAdminRole, type Role } from "@/lib/roles";
@@ -102,6 +103,15 @@ export default async function MembersPage() {
         <p className="mt-2 text-ink-muted">
           Everyone registered in the system, and the invite codes that grant
           leader access.
+        </p>
+
+        <p className="mt-4">
+          <Link
+            href="/members/scouts"
+            className="inline-flex rounded-lg border border-line bg-surface-raised px-4 py-2.5 text-sm font-semibold text-ink transition hover:border-brand-300"
+          >
+            Scout registrations →
+          </Link>
         </p>
 
         <dl className="mt-6 flex flex-wrap gap-3">
