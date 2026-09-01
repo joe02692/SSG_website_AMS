@@ -30,10 +30,23 @@ export async function getDocumentUrlAction(
   const path = formData.get("path");
   if (typeof path !== "string" || !path) return { error: "No document." };
 
+  // "download" asks Supabase to send Content-Disposition: attachment with the
+  // given filename, so the browser saves the file instead of displaying it.
+  const wantsDownload = formData.get("mode") === "download";
+  const rawName = formData.get("filename");
+  const filename =
+    typeof rawName === "string" && rawName ? rawName : "certificate";
+
   const supabase = await createClient();
   const { data, error } = await supabase.storage
     .from("scout-documents")
-    .createSignedUrl(path, 60);
+    .createSignedUrl(
+      path,
+      60,
+      wantsDownload
+        ? { download: `${filename}.${path.split(".").pop() ?? "jpg"}` }
+        : undefined,
+    );
 
   if (error || !data?.signedUrl) {
     return { error: "Could not open that document." };

@@ -91,6 +91,17 @@ export default async function ScoutsPage() {
           </div>
         </dl>
 
+        {withDocument > 0 ? (
+          <p className="mt-6">
+            <a
+              href="/members/scouts/download-all"
+              className="inline-flex rounded-lg border border-line bg-surface-raised px-4 py-2.5 text-sm font-semibold text-ink transition hover:border-brand-300"
+            >
+              Download all certificates (.zip)
+            </a>
+          </p>
+        ) : null}
+
         <p className="mt-6 rounded-lg border border-amber-200 bg-amber-50 px-3 py-2.5 text-sm text-amber-900">
           This page shows children&apos;s home addresses, ID numbers and
           parents&apos; phone numbers. Please don&apos;t leave it open on a
@@ -168,7 +179,10 @@ export default async function ScoutsPage() {
                     </td>
                     <td className="px-4 py-3">
                       {row.document_path ? (
-                        <ViewDocumentButton path={row.document_path} />
+                        <ViewDocumentButton
+                          path={row.document_path}
+                          filename={row.profiles?.full_name ?? "certificate"}
+                        />
                       ) : (
                         <span className="text-xs text-ink-subtle">Missing</span>
                       )}
