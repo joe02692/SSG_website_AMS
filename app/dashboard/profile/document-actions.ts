@@ -133,13 +133,19 @@ export async function recordDocumentAction(
     .eq("profile_id", profile.id)
     .select("profile_id");
 
-  // 42703 = undefined_column. Migration 0013 adds document_uploaded_at, and a
-  // database that never ran it fails the whole update over that one field —
-  // which is how a file could sit safely in Backblaze while the member was
-  // told the save failed. Record the path anyway; the timestamp is only used
-  // for reporting, and losing the link to an uploaded file is far worse.
+  // Migration 0013 adds document_uploaded_at, and a database that never ran it
+  // fails the whole update over that one field — which is how a file can sit
+  // safely in Backblaze while the member is told the save failed. Record the
+  // path anyway; the timestamp is only informational, and losing the link to
+  // an uploaded file is far worse than losing a date.
+  //
+  // Two codes, because two different components can refuse. PGRST204 is
+  // PostgREST checking the write against its cached schema and rejecting it
+  // before Postgres is involved; 42703 is Postgres's own undefined_column, for
+  // the case where PostgREST's cache is stale in the other direction.
   const missingTimestampColumn =
-    error?.code === "42703" && error.message.includes("document_uploaded_at");
+    (error?.code === "PGRST204" || error?.code === "42703") &&
+    (error?.message ?? "").includes("document_uploaded_at");
 
   if (missingTimestampColumn) {
     console.error(
