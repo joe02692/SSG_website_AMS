@@ -27,21 +27,40 @@ deployment". Nothing else breaks.
 - **Note the endpoint and region.** On the Buckets page, the bucket shows an
   Endpoint like `s3.us-west-004.backblazeb2.com`. The region is the middle
   part — `us-west-004` in that example. Yours may differ.
-- **Add the CORS rule** so browsers can upload. B2 console → bucket → **CORS
-  Rules** → *Share everything in this bucket with all HTTPS origins* is the
-  quick option; the safer custom rule allows only your origins with `PUT` and
-  `GET`. Without a CORS rule the upload fails in the browser while everything
-  else looks fine.
+- **Add the CORS rule** by running, in the project folder:
+
+  ```
+  node scripts/set-b2-cors.mjs
+  ```
+
+  **Do not use the web console for this.** Its four canned options are
+  download-only — they allow GET and HEAD, not PUT. Ticking *"Share everything
+  in this bucket with all HTTPS origins"* and applying it to *Both* APIs still
+  refuses browser uploads, and the browser reports it as though no rule existed
+  at all, which sends you looking for a rule you already set. The console says
+  as much in passing: custom rules can only come from an API.
+
+  The script reads `.env.local`, applies the rule, and prints back what
+  Backblaze actually stored. Change the allowed origins with `B2_CORS_ORIGINS`
+  (comma-separated) if the deployment URL changes.
+
+  If it fails with 403, the scoped application key isn't allowed to change
+  bucket settings — use a key with access to all buckets for the one run, then
+  put the scoped key back.
 - **Add the environment variables** to `.env.local` AND to Vercel → Settings →
   Environment Variables:
 
 ```
 B2_KEY_ID=your-key-id
 B2_APP_KEY=your-application-key
-B2_BUCKET=ssg.ams.bc
-B2_ENDPOINT=https://s3.us-west-004.backblazeb2.com
-B2_REGION=us-west-004
+B2_BUCKET=SSG.AMS.BC
+B2_ENDPOINT=https://s3.eu-central-003.backblazeb2.com
+B2_REGION=eu-central-003
 ```
+
+`B2_BUCKET` must be the bucket name **exactly as the console shows it**, and
+`B2_ENDPOINT` / `B2_REGION` must be the region the bucket actually lives in
+(ours is `eu-central-003`, not the `us-west-004` in Backblaze's examples).
 
 - **Redeploy.** Environment variables only apply to new builds.
 - **Clear the old test uploads**, which still point at Supabase Storage:
@@ -74,9 +93,35 @@ locally, or Vercel → the deployment → Runtime Logs. Usual causes: the
 application key was scoped to a different bucket, `B2_REGION` doesn't match
 the endpoint, or the key was regenerated in B2 and never updated here.
 
-**The upload gets to "Uploading…" and then fails.** That's the browser talking
-to Backblaze directly, so it's the **CORS rule** — the one setup step whose
-absence breaks nothing else. Open DevTools → Console; a CORS error confirms it.
+**"The browser couldn't reach the storage service."** The upload got as far as
+"Uploading…" and then the browser refused. That request goes straight from the
+browser to Backblaze, so our server never sees it and the logs say nothing.
+Open **DevTools → Console** for the real error. Two causes:
+
+- **CORS.** If the Console says *"Response to preflight request doesn't pass
+  access control check: No 'Access-Control-Allow-Origin' header"*, run
+  `node scripts/set-b2-cors.mjs`. A canned console rule is not enough — see the
+  setup step above for why. Remember too that a rejection Backblaze sends
+  *without* CORS headers is equally invisible to the browser, so an
+  authentication error can wear the same disguise.
+- **A checksum baked in at signing time.** Fixed in `lib/b2.ts` on 5 Sep 2026,
+  recorded here because the symptom is baffling. Recent AWS SDK versions default
+  to attaching `x-amz-checksum-crc32` to a PutObject — but for a presigned URL
+  the checksum is computed while signing, when there is no body, so the URL
+  carried the CRC32 of nothing and every real upload was a mismatch. Cured with
+  `requestChecksumCalculation: "WHEN_REQUIRED"`. If those parameters ever
+  reappear in a signed URL after an SDK upgrade, this is what came back.
+- **The bucket name.** Ours is `SSG.AMS.BC`. Backblaze's S3-compatible API
+  documents **lowercase only**, and advises sticking to lowercase letters,
+  numbers and hyphens, because periods break virtual-hosted-style HTTPS: they
+  add DNS labels the wildcard certificate doesn't cover.
+
+  We are not hitting the certificate problem — the SDK addresses this bucket
+  path-style (`…backblazeb2.com/SSG.AMS.BC/<key>`), which `lib/b2.ts` now pins
+  explicitly with `forcePathStyle: true`. The capitals are the remaining
+  question mark. If CORS is correct and uploads still fail, **create a bucket
+  named `ssg-ams-bc`** and point `B2_BUCKET` at it. It costs nothing while the
+  bucket is empty and removes the last variable Backblaze warns about.
 
 ## ⚠️ The security trade this made
 

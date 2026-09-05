@@ -122,22 +122,50 @@ export function DocumentUpload({ currentPath }: { currentPath: string | null }) 
       }
 
       setStatus("Uploading…");
-      // Content-Type must match what was signed, or the upload is rejected.
-      const response = await fetch(ticket.url, {
-        method: "PUT",
-        headers: { "Content-Type": file.type },
-        body: file,
-      });
+
+      // This request goes browser → Backblaze, so it is the one step our server
+      // cannot see. Its two failure modes need telling apart, because they look
+      // identical to a user and have nothing in common:
+      //
+      //   • fetch THROWS with no status — the browser blocked it before asking.
+      //     Either the bucket's CORS rule is missing or doesn't allow the
+      //     content-type header, or the hostname failed TLS. Not a connection
+      //     problem, however much it resembles one.
+      //   • fetch RESOLVES with a bad status — Backblaze answered and refused.
+      //     Usually a signature or permissions problem.
+      let response: Response;
+      try {
+        // Content-Type must match what was signed, or the upload is rejected.
+        response = await fetch(ticket.url, {
+          method: "PUT",
+          headers: { "Content-Type": file.type },
+          body: file,
+        });
+      } catch (cause) {
+        console.error("[certificate] the upload request was blocked", cause);
+        setLocalError(
+          "The browser couldn't reach the storage service. This is almost always the bucket's CORS rule — see Tasks/document-storage.md. Open DevTools → Console for the exact error.",
+        );
+        return;
+      }
 
       if (!response.ok) {
-        setLocalError("Upload failed. Please try again.");
+        console.error(
+          "[certificate] storage refused the upload",
+          response.status,
+          await response.text().catch(() => ""),
+        );
+        setLocalError(
+          `Storage refused the upload (HTTP ${response.status}). Check the bucket name and application key.`,
+        );
         return;
       }
 
       if (keyRef.current) keyRef.current.value = ticket.key;
       formRef.current?.requestSubmit();
-    } catch {
-      setLocalError("Upload failed. Check your connection and try again.");
+    } catch (cause) {
+      console.error("[certificate] upload failed before it started", cause);
+      setLocalError("Something went wrong preparing the file. Please try again.");
     } finally {
       setStatus(null);
       event.target.value = "";

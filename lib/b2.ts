@@ -87,6 +87,38 @@ function client() {
     region,
     endpoint,
     credentials: { accessKeyId: keyId, secretAccessKey: appKey },
+    // Path-style — https://s3.<region>.backblazeb2.com/<bucket>/<key> — the
+    // form Backblaze documents.
+    //
+    // Pinned rather than inferred. The SDK already picks path-style on its own
+    // for our bucket, because a name containing periods or capitals isn't
+    // DNS-safe and it falls back; the generated URL is byte-identical with and
+    // without this flag. But that is a heuristic about the bucket name, and if
+    // the bucket is ever renamed to something DNS-safe the SDK would silently
+    // switch to <bucket>.s3.<region>.backblazeb2.com. Stating the intent costs
+    // one line and removes the surprise.
+    //
+    // Related, and the reason to care: Backblaze advises using only lowercase
+    // letters, numbers and hyphens in bucket names, because periods break
+    // virtual-hosted-style HTTPS — they add DNS labels their wildcard
+    // certificate doesn't cover.
+    forcePathStyle: true,
+
+    // Do not attach a checksum unless the operation requires one.
+    //
+    // Recent AWS SDK versions default to WHEN_SUPPORTED, which adds
+    // x-amz-checksum-crc32 to a PutObject. For a *presigned* upload that is
+    // actively wrong: the checksum is computed when the URL is signed, and at
+    // that moment there is no body — so the URL carries the CRC32 of nothing
+    // (x-amz-checksum-crc32=AAAAAA==) while the browser then PUTs a real
+    // photo. The signature is valid, the payload is fine, and the upload is
+    // rejected for a mismatch that was baked in before the file was chosen.
+    //
+    // This is the standard fix for presigned uploads to non-AWS S3 services
+    // (Backblaze, R2, MinIO). Verified: with this set, the checksum query
+    // parameters disappear from the signed URL.
+    requestChecksumCalculation: "WHEN_REQUIRED",
+    responseChecksumValidation: "WHEN_REQUIRED",
   });
 }
 
