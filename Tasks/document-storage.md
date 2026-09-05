@@ -33,20 +33,41 @@ deployment". Nothing else breaks.
   node scripts/set-b2-cors.mjs
   ```
 
-  **Do not use the web console for this.** Its four canned options are
-  download-only — they allow GET and HEAD, not PUT. Ticking *"Share everything
-  in this bucket with all HTTPS origins"* and applying it to *Both* APIs still
-  refuses browser uploads, and the browser reports it as though no rule existed
-  at all, which sends you looking for a rule you already set. The console says
-  as much in passing: custom rules can only come from an API.
+  **The web console cannot do this.** All four of its options write the same
+  rule — Backblaze's docs name it `downloadFromAnyOrigin` — whose operations
+  are `b2_download_file_by_id` and `b2_download_file_by_name`. There is no
+  upload operation in it. Ticking *"Share everything in this bucket with all
+  HTTPS origins"* and applying it to *Both* APIs still refuses every browser
+  upload, and refuses it by omitting the CORS headers, so the browser reports
+  it exactly as if no rule had ever been set — sending you to look for a rule
+  you know you configured.
 
-  The script reads `.env.local`, applies the rule, and prints back what
-  Backblaze actually stored. Change the allowed origins with `B2_CORS_ORIGINS`
-  (comma-separated) if the deployment URL changes.
+  The rule the script writes allows the S3 upload operation (plus get, head
+  and delete), with `allowedHeaders: ["*"]`. That last part is not padding: the
+  upload sends `Content-Type: image/jpeg`, which is not on the browser's
+  safelist, so a preflight `OPTIONS` goes first and is refused unless
+  `content-type` is allowed. Operations without headers is the near-miss.
 
-  If it fails with 403, the scoped application key isn't allowed to change
-  bucket settings — use a key with access to all buckets for the one run, then
-  put the scoped key back.
+  It reads `.env.local`, applies the rule, and prints back what Backblaze
+  stored. Change the allowed origins with `B2_CORS_ORIGINS` (comma-separated)
+  when the deployment URL changes.
+
+  If it stops because the key lacks `writeBuckets` — keys scoped to one bucket
+  usually do — create a key with access to **all** buckets, use it in
+  `.env.local` for that single run, then put the scoped key back. Only this
+  script needs the wider key; the app never does.
+
+  Note it talks to the B2 **native** API, not the S3 one. S3's
+  `PutBucketCors` refuses any bucket that already holds native rules, and the
+  console's rule is native — so once those radio buttons have been touched even
+  once, the native API is the only remaining route.
+
+  It also sends a *superset* of operation names and lets Backblaze strike out
+  what it doesn't recognise, printing what it dropped. That looks like belt and
+  braces; it isn't. Backblaze's documentation lists `s3_put_object`, and the
+  API answers `unknown allowedOperation value: s3_put_object`. Since the docs
+  and the API disagree, the script asks the API. It also survives Backblaze
+  renaming these later.
 - **Add the environment variables** to `.env.local` AND to Vercel → Settings →
   Environment Variables:
 
