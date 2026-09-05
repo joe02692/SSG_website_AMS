@@ -55,6 +55,29 @@ Then delete the `scout-documents` bucket in Supabase → Storage.
 
 Note `B2_ENDPOINT` includes `https://` and `B2_REGION` does not.
 
+## Troubleshooting
+
+**"Uploads aren't configured on this deployment — missing B2_KEY_ID, …"**
+Exactly what it says: those variables aren't visible to the running app. The
+message names the ones that are absent, so fix those and nothing else.
+
+- Locally: they go in `.env.local` at the repo root, and **`npm run dev` must
+  be restarted** — env files are read once at boot.
+- On Vercel: Settings → Environment Variables, ticked for **Production**
+  (and Preview, if you test on preview URLs), then **Redeploy**. Adding a
+  variable does nothing to a build that already exists.
+
+**"Storage rejected the upload request. The settings are present but not
+working."** All five variables are set, so it's the values or the key. Check
+the server log line beginning `[certificate]` — `npm run dev`'s terminal
+locally, or Vercel → the deployment → Runtime Logs. Usual causes: the
+application key was scoped to a different bucket, `B2_REGION` doesn't match
+the endpoint, or the key was regenerated in B2 and never updated here.
+
+**The upload gets to "Uploading…" and then fails.** That's the browser talking
+to Backblaze directly, so it's the **CORS rule** — the one setup step whose
+absence breaks nothing else. Open DevTools → Console; a CORS error confirms it.
+
 ## ⚠️ The security trade this made
 
 In Supabase Storage the **database** decided who could read a file — an RLS

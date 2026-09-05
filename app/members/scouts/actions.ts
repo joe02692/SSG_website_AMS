@@ -2,9 +2,14 @@
 
 import { getCurrentProfile } from "@/lib/dal";
 import { isSiteAdminRole } from "@/lib/roles";
-import { presignDownload } from "@/lib/b2";
+import { missingStorageEnv, presignDownload } from "@/lib/b2";
 
-export type DocumentLinkState = { url?: string; error?: string };
+export type DocumentLinkState = {
+  url?: string;
+  /** Echoed back so the client knows whether to pop it up or save it. */
+  mode?: "view" | "download";
+  error?: string;
+};
 
 /**
  * Mints a short-lived signed URL for one scout's document.
@@ -40,8 +45,13 @@ export async function getDocumentUrlAction(
       key,
       wantsDownload ? `${base}.${extension}` : undefined,
     );
-    return { url };
-  } catch {
-    return { error: "Document storage isn't configured on this deployment." };
+    return { url, mode: wantsDownload ? "download" : "view" };
+  } catch (error) {
+    const missing = missingStorageEnv();
+    if (missing.length > 0) {
+      return { error: `Storage not configured (missing ${missing.join(", ")}).` };
+    }
+    console.error("[certificate] could not sign a download URL", error);
+    return { error: "Storage refused the request. Check the server logs." };
   }
 }

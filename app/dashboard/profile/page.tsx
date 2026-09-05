@@ -11,7 +11,6 @@ import { ROLE_LABELS } from "@/lib/roles";
 import { ProfileForm } from "@/components/profile/profile-form";
 import { DetailsForm } from "@/components/onboarding/details-form";
 import { DocumentUpload } from "@/components/profile/document-upload";
-import { presignDownload } from "@/lib/b2";
 import { updateDetailsAction } from "@/app/onboarding/actions";
 import {
   ageFromDateOfBirth,
@@ -31,18 +30,10 @@ export default async function ProfilePage() {
   const answers = isScout ? scoutAnswers(scout) : (profile?.details ?? {});
   const age = scout ? ageFromDateOfBirth(scout.date_of_birth) : null;
 
-  // Signed URL for the stored document, minted here rather than exposing a
-  // public link. Sixty seconds is plenty to open it and short enough that a
-  // copied URL is useless almost immediately.
-  let documentUrl: string | null = null;
-  if (scout?.document_path) {
-    try {
-      documentUrl = await presignDownload(scout.document_path);
-    } catch {
-      // Storage not configured — the upload box still renders and explains.
-      documentUrl = null;
-    }
-  }
+  // No signed URL is minted here on purpose. One signed at render time expires
+  // 60 seconds later — usually before anyone clicks View — and until then it is
+  // a live link to a child's identity document sitting in the page source.
+  // DocumentUpload asks for a fresh one when the button is pressed.
 
   return (
     <SiteShell>
@@ -103,10 +94,7 @@ export default async function ProfilePage() {
               Birth certificate — شهادة الميلاد
             </h2>
             <div className="mt-4 rounded-2xl border border-line bg-surface-raised p-6">
-              <DocumentUpload
-                currentPath={scout?.document_path ?? null}
-                signedUrl={documentUrl}
-              />
+              <DocumentUpload currentPath={scout?.document_path ?? null} />
             </div>
           </section>
         ) : null}

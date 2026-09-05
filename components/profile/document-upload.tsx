@@ -1,38 +1,50 @@
 "use client";
 
-import { useActionState, useId, useRef, useState } from "react";
+import {
+  useActionState,
+  useCallback,
+  useEffect,
+  useId,
+  useRef,
+  useState,
+} from "react";
 import { compressImage } from "@/lib/compress-image";
 import {
+  DocumentPreview,
+  previewKind,
+} from "@/components/ui/document-preview";
+import {
   createUploadUrlAction,
+  getOwnDocumentUrlAction,
   recordDocumentAction,
   removeDocumentAction,
   type DocumentState,
+  type OwnDocumentLink,
 } from "@/app/dashboard/profile/document-actions";
 
 const initialState: DocumentState = {};
+const initialLink: OwnDocumentLink = {};
 
 const MAX_BYTES = 10 * 1024 * 1024;
 const ACCEPTED = ["image/jpeg", "image/png", "image/webp", "application/pdf"];
 
 /**
- * Uploads the birth certificate straight from the browser to Backblaze B2.
+ * Uploads the birth certificate straight from the browser to Backblaze B2, and
+ * shows it back in a popup afterwards.
  *
- * Four steps: shrink the photo, ask the server for a one-off upload URL (it
- * decides the key and checks who's asking), PUT the file, then tell the server
- * the key.
+ * Four steps to upload: shrink the photo, ask the server for a one-off upload
+ * URL (it decides the key and checks who's asking), PUT the file, then tell the
+ * server the key.
  *
  * The file never passes through our server — which keeps it under Vercel's
  * ~4.5MB request limit and means the document isn't sitting in a function's
  * memory on its way past.
+ *
+ * Viewing mints a fresh signed URL on click. The page used to be rendered with
+ * one already in it, which expired 60 seconds later — so by the time anyone
+ * pressed View it was usually dead.
  */
-export function DocumentUpload({
-  currentPath,
-  signedUrl,
-}: {
-  currentPath: string | null;
-  /** Short-lived URL for viewing the existing file, minted server-side. */
-  signedUrl: string | null;
-}) {
+export function DocumentUpload({ currentPath }: { currentPath: string | null }) {
   const [recordState, recordAction] = useActionState(
     recordDocumentAction,
     initialState,
@@ -41,13 +53,40 @@ export function DocumentUpload({
     removeDocumentAction,
     initialState,
   );
+  const [linkState, linkAction, linking] = useActionState(
+    getOwnDocumentUrlAction,
+    initialLink,
+  );
+
+  const [dismissed, setDismissed] = useState<string | null>(null);
   const [status, setStatus] = useState<string | null>(null);
   const [localError, setLocalError] = useState<string | null>(null);
   const formRef = useRef<HTMLFormElement>(null);
   const keyRef = useRef<HTMLInputElement>(null);
+  const navigated = useRef<string | null>(null);
   const id = useId();
 
   const busy = status !== null;
+
+  useEffect(() => {
+    if (linkState.mode !== "download" || !linkState.url) return;
+    if (navigated.current === linkState.url) return;
+    navigated.current = linkState.url;
+    // Content-Disposition: attachment, so this saves the file without
+    // navigating away from the page.
+    window.location.href = linkState.url;
+  }, [linkState.url, linkState.mode]);
+
+  // Derived, not mirrored — see the note in ViewDocumentButton.
+  const previewUrl =
+    linkState.mode === "view" && linkState.url && linkState.url !== dismissed
+      ? linkState.url
+      : null;
+
+  const closePreview = useCallback(
+    () => setDismissed(linkState.url ?? null),
+    [linkState.url],
+  );
 
   async function handleFile(event: React.ChangeEvent<HTMLInputElement>) {
     const original = event.target.files?.[0];
@@ -105,7 +144,8 @@ export function DocumentUpload({
     }
   }
 
-  const message = localError ?? recordState.error ?? removeState.error;
+  const message =
+    localError ?? recordState.error ?? removeState.error ?? linkState.error;
   const notice = recordState.notice ?? removeState.notice;
 
   return (
@@ -131,16 +171,31 @@ export function DocumentUpload({
       {currentPath ? (
         <div className="flex flex-wrap items-center gap-3 rounded-lg border border-line bg-canvas px-3 py-2.5">
           <span className="text-sm text-ink">A document is on file.</span>
-          {signedUrl ? (
-            <a
-              href={signedUrl}
-              target="_blank"
-              rel="noopener noreferrer"
-              className="text-sm font-medium text-brand-700 underline-offset-4 hover:underline dark:text-brand-300"
+
+          <form action={linkAction} className="flex items-center gap-2">
+            <button
+              type="submit"
+              name="mode"
+              value="view"
+              disabled={linking}
+              className="text-sm font-medium text-brand-700 underline-offset-4 hover:underline disabled:opacity-60 dark:text-brand-300"
             >
-              View
-            </a>
-          ) : null}
+              {linking ? "…" : "View"}
+            </button>
+            <span aria-hidden className="text-ink-subtle">
+              ·
+            </span>
+            <button
+              type="submit"
+              name="mode"
+              value="download"
+              disabled={linking}
+              className="text-sm font-medium text-brand-700 underline-offset-4 hover:underline disabled:opacity-60 dark:text-brand-300"
+            >
+              Download
+            </button>
+          </form>
+
           <form action={removeAction} className="ml-auto">
             <button
               type="submit"
@@ -178,6 +233,13 @@ export function DocumentUpload({
       <form ref={formRef} action={recordAction} className="hidden">
         <input ref={keyRef} type="hidden" name="key" />
       </form>
+
+      <DocumentPreview
+        url={previewUrl}
+        title="Your birth certificate"
+        kind={previewKind(currentPath ?? "")}
+        onClose={closePreview}
+      />
     </div>
   );
 }

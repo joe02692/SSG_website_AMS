@@ -9,6 +9,8 @@ import {
   ALLOWED_TYPES,
   MAX_UPLOAD_BYTES,
   deleteObject,
+  missingStorageEnv,
+  presignDownload,
   presignUpload,
 } from "@/lib/b2";
 
@@ -64,10 +66,19 @@ export async function createUploadUrlAction(
   try {
     const url = await presignUpload(key, contentType);
     return { url, key };
-  } catch {
+  } catch (error) {
+    // Naming the missing variables is the difference between a five-minute fix
+    // and an afternoon of guessing which one of five is absent.
+    const missing = missingStorageEnv();
+    if (missing.length > 0) {
+      return {
+        error: `Uploads aren't configured on this deployment — missing ${missing.join(", ")}. Add them in Vercel → Settings → Environment Variables, then redeploy.`,
+      };
+    }
+    console.error("[certificate] could not sign an upload URL", error);
     return {
       error:
-        "Uploads aren't configured on this deployment — the storage settings are missing.",
+        "Storage rejected the upload request. The settings are present but not working — check the server logs.",
     };
   }
 }
@@ -117,6 +128,59 @@ export async function recordDocumentAction(
 
   revalidatePath("/dashboard/profile");
   return { notice: "Document uploaded." };
+}
+
+export type OwnDocumentLink = {
+  url?: string;
+  mode?: "view" | "download";
+  error?: string;
+};
+
+/**
+ * A fresh signed URL for the caller's OWN document.
+ *
+ * Deliberately takes no key: it reads the path out of the caller's own row, so
+ * there is no parameter to tamper with. A scout cannot ask this for someone
+ * else's certificate because there is nothing to ask with.
+ *
+ * Minted on click, not at page render — a URL signed while the page was being
+ * built has often expired by the time anyone presses the button.
+ */
+export async function getOwnDocumentUrlAction(
+  _prev: OwnDocumentLink,
+  formData: FormData,
+): Promise<OwnDocumentLink> {
+  const profile = await getCurrentProfile();
+  if (!profile) return { error: "You need to be signed in." };
+
+  const supabase = await createClient();
+  const { data } = await supabase
+    .from("scout_details")
+    .select("document_path")
+    .eq("profile_id", profile.id)
+    .maybeSingle();
+
+  const key = data?.document_path;
+  if (!key) return { error: "No document on file." };
+
+  const wantsDownload = formData.get("mode") === "download";
+  const extension = key.split(".").pop() ?? "jpg";
+  const base = profile.full_name?.trim() || "birth-certificate";
+
+  try {
+    const url = await presignDownload(
+      key,
+      wantsDownload ? `${base}.${extension}` : undefined,
+    );
+    return { url, mode: wantsDownload ? "download" : "view" };
+  } catch (error) {
+    const missing = missingStorageEnv();
+    if (missing.length > 0) {
+      return { error: `Storage not configured (missing ${missing.join(", ")}).` };
+    }
+    console.error("[certificate] could not sign a view URL", error);
+    return { error: "Could not open the document. Please try again." };
+  }
 }
 
 /** Removes the file from storage and forgets the key. */

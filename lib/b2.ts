@@ -41,29 +41,44 @@ export const ALLOWED_TYPES = [
   "application/pdf",
 ];
 
-function config() {
-  const keyId = process.env.B2_KEY_ID;
-  const appKey = process.env.B2_APP_KEY;
-  const bucket = process.env.B2_BUCKET;
-  const endpoint = process.env.B2_ENDPOINT;
-  const region = process.env.B2_REGION;
+const REQUIRED_ENV = [
+  "B2_KEY_ID",
+  "B2_APP_KEY",
+  "B2_BUCKET",
+  "B2_ENDPOINT",
+  "B2_REGION",
+] as const;
 
-  if (!keyId || !appKey || !bucket || !endpoint || !region) {
+/**
+ * Which B2 variables are missing, by name.
+ *
+ * Worth its own function: "storage isn't configured" is a useless thing to
+ * read when four of the five are set and you can't tell which one you fumbled.
+ * Callers put these names in the error they show.
+ */
+export function missingStorageEnv(): string[] {
+  return REQUIRED_ENV.filter((name) => !process.env[name]);
+}
+
+function config() {
+  const missing = missingStorageEnv();
+  if (missing.length > 0) {
     throw new Error(
-      "Backblaze B2 is not configured. Set B2_KEY_ID, B2_APP_KEY, B2_BUCKET, B2_ENDPOINT and B2_REGION.",
+      `Backblaze B2 is not configured — missing ${missing.join(", ")}.`,
     );
   }
-  return { keyId, appKey, bucket, endpoint, region };
+  return {
+    keyId: String(process.env.B2_KEY_ID),
+    appKey: String(process.env.B2_APP_KEY),
+    bucket: String(process.env.B2_BUCKET),
+    endpoint: String(process.env.B2_ENDPOINT),
+    region: String(process.env.B2_REGION),
+  };
 }
 
 /** True when the B2 environment variables are present. */
 export function storageConfigured(): boolean {
-  try {
-    config();
-    return true;
-  } catch {
-    return false;
-  }
+  return missingStorageEnv().length === 0;
 }
 
 function client() {
