@@ -65,6 +65,7 @@ export type ScoutDetails = {
   personal_phone: string;
   parent_phone: string;
   document_path: string | null;
+  document_uploaded_at: string | null;
   stage_id: number;
   /** Joined from public.stages — the code the onboarding form uses. */
   stage_code: string | null;
@@ -82,7 +83,7 @@ export const getScoutDetails = cache(async (): Promise<ScoutDetails | null> => {
   const { data, error } = await supabase
     .from("scout_details")
     .select(
-      "profile_id, date_of_birth, address, national_id, personal_phone, parent_phone, document_path, stage_id, stages(code)",
+      "profile_id, date_of_birth, address, national_id, personal_phone, parent_phone, document_path, document_uploaded_at, stage_id, stages(code)",
     )
     .eq("profile_id", user.id)
     .maybeSingle();
