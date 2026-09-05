@@ -39,3 +39,11 @@ yarn-error.log*
 # typescript
 *.tsbuildinfo
 next-env.d.ts
+
+# Files downloaded out of a Claude chat land here. They are copies of files
+# that already live in their proper folders, so committing them means the same
+# component is defined twice — and the stale copy fails `tsc` the moment the
+# real one changes shape. That is exactly what broke CI on 5 Sep 2026.
+# Also excluded in tsconfig.json and eslint.config.mjs, so a stray download
+# can't turn CI red again.
+/Claude outputs/
