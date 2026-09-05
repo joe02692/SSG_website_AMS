@@ -3,6 +3,7 @@ import { getCurrentProfile } from "@/lib/dal";
 import { isSiteAdminRole } from "@/lib/roles";
 import { createClient } from "@/lib/supabase/server";
 import { getObjectBytes } from "@/lib/b2";
+import { nameSlug } from "@/lib/documents";
 
 /**
  * Bundles every scout's document into one ZIP.
@@ -25,10 +26,6 @@ type Row = {
   profiles: { full_name: string | null } | null;
   stages: { name_en: string } | null;
 };
-
-function safeName(value: string): string {
-  return value.replace(/[^\p{L}\p{N} _-]/gu, "").trim() || "unnamed";
-}
 
 export async function GET() {
   // Route Handlers get no protection from the page's requireSiteAdmin(), so
@@ -82,8 +79,8 @@ export async function GET() {
     }
 
     const extension = path.split(".").pop() ?? "jpg";
-    const folder = safeName(row.stages?.name_en ?? "Unassigned");
-    const person = safeName(row.profiles?.full_name ?? "unnamed");
+    const folder = nameSlug(row.stages?.name_en ?? "Unassigned");
+    const person = nameSlug(row.profiles?.full_name);
     // Same name twice would silently overwrite inside the archive.
     zip.file(`${folder}/${person}-${added + 1}.${extension}`, bytes);
     added += 1;

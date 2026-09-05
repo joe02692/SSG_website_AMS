@@ -3,6 +3,7 @@
 import { getCurrentProfile } from "@/lib/dal";
 import { isSiteAdminRole } from "@/lib/roles";
 import { missingStorageEnv, presignDownload } from "@/lib/b2";
+import { nameSlug } from "@/lib/documents";
 
 export type DocumentLinkState = {
   url?: string;
@@ -36,14 +37,13 @@ export async function getDocumentUrlAction(
 
   const wantsDownload = formData.get("mode") === "download";
   const rawName = formData.get("filename");
-  const base =
-    typeof rawName === "string" && rawName ? rawName : "certificate";
+  const base = nameSlug(typeof rawName === "string" ? rawName : null);
   const extension = key.split(".").pop() ?? "jpg";
 
   try {
     const url = await presignDownload(
       key,
-      wantsDownload ? `${base}.${extension}` : undefined,
+      wantsDownload ? `${base}-birth-certificate.${extension}` : undefined,
     );
     return { url, mode: wantsDownload ? "download" : "view" };
   } catch (error) {

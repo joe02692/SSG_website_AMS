@@ -4,6 +4,7 @@ import { randomUUID } from "node:crypto";
 import { revalidatePath } from "next/cache";
 import { createClient } from "@/lib/supabase/server";
 import { getCurrentProfile } from "@/lib/dal";
+import { nameSlug } from "@/lib/documents";
 import { usesScoutDetails } from "@/lib/onboarding";
 import {
   ALLOWED_TYPES,
@@ -61,7 +62,18 @@ export async function createUploadUrlAction(
   }
 
   // Built from the session, not the request body.
-  const key = `${profile.id}/${randomUUID()}.${EXTENSIONS[contentType]}`;
+  //
+  // The name comes from the signed-in profile rather than a field on the form.
+  // Two reasons: the member never has to type it, and it cannot be wrong — a
+  // typed box lets someone save "Ahmed" on Youssef's account, and once a few
+  // hundred of those exist nobody can trust a filename again. The server
+  // already knows exactly whose account this is.
+  //
+  // Eight hex characters, not a whole UUID, because these live under
+  // <profile_id>/ — the only files they could collide with are that same
+  // member's own, of which there is normally one.
+  const suffix = randomUUID().replace(/-/g, "").slice(0, 8);
+  const key = `${profile.id}/${nameSlug(profile.full_name)}_${suffix}.${EXTENSIONS[contentType]}`;
 
   try {
     const url = await presignUpload(key, contentType);
@@ -109,16 +121,52 @@ export async function recordDocumentAction(
     .eq("profile_id", profile.id)
     .maybeSingle();
 
-  const { error } = await supabase
+  // .select() so a successful call also tells us how many rows it touched.
+  // Without it, an update matching nothing looks identical to one that worked,
+  // and the member is told their certificate is saved when it isn't.
+  let { data: updated, error } = await supabase
     .from("scout_details")
     .update({
       document_path: key,
       document_uploaded_at: new Date().toISOString(),
     })
-    .eq("profile_id", profile.id);
+    .eq("profile_id", profile.id)
+    .select("profile_id");
+
+  // 42703 = undefined_column. Migration 0013 adds document_uploaded_at, and a
+  // database that never ran it fails the whole update over that one field —
+  // which is how a file could sit safely in Backblaze while the member was
+  // told the save failed. Record the path anyway; the timestamp is only used
+  // for reporting, and losing the link to an uploaded file is far worse.
+  const missingTimestampColumn =
+    error?.code === "42703" && error.message.includes("document_uploaded_at");
+
+  if (missingTimestampColumn) {
+    console.error(
+      "[certificate] scout_details.document_uploaded_at is missing — run supabase/migrations/0013_document_expiry.sql",
+    );
+    ({ data: updated, error } = await supabase
+      .from("scout_details")
+      .update({ document_path: key })
+      .eq("profile_id", profile.id)
+      .select("profile_id"));
+  }
 
   if (error) {
-    return { error: "Could not save the document. Please try again." };
+    // The generic "please try again" that used to be here was the actual bug
+    // in disguise: the database said exactly what was wrong and we replaced it
+    // with a sentence that invited the member to repeat a failing action.
+    console.error("[certificate] could not record the document", error);
+    return {
+      error: `Could not save the document — the database refused the update (${error.code ?? "unknown"}: ${error.message}).`,
+    };
+  }
+
+  if (!updated || updated.length === 0) {
+    return {
+      error:
+        "Your registration details haven't been filled in yet, so there's nowhere to attach the certificate. Complete the membership questions above first.",
+    };
   }
 
   // Remove the file it replaced, so superseded copies don't linger.
@@ -127,7 +175,11 @@ export async function recordDocumentAction(
   }
 
   revalidatePath("/dashboard/profile");
-  return { notice: "Document uploaded." };
+  return {
+    notice: missingTimestampColumn
+      ? "Upload done. (Note for admins: migration 0013 hasn't been run on this database.)"
+      : "Upload done.",
+  };
 }
 
 export type OwnDocumentLink = {
@@ -165,12 +217,12 @@ export async function getOwnDocumentUrlAction(
 
   const wantsDownload = formData.get("mode") === "download";
   const extension = key.split(".").pop() ?? "jpg";
-  const base = profile.full_name?.trim() || "birth-certificate";
+  const base = nameSlug(profile.full_name);
 
   try {
     const url = await presignDownload(
       key,
-      wantsDownload ? `${base}.${extension}` : undefined,
+      wantsDownload ? `${base}-birth-certificate.${extension}` : undefined,
     );
     return { url, mode: wantsDownload ? "download" : "view" };
   } catch (error) {

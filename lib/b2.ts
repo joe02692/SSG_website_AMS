@@ -7,6 +7,7 @@ import {
   S3Client,
 } from "@aws-sdk/client-s3";
 import { getSignedUrl } from "@aws-sdk/s3-request-presigner";
+import { attachmentDisposition } from "@/lib/documents";
 
 /**
  * Backblaze B2 — where scouts' birth certificates live, permanently.
@@ -163,9 +164,7 @@ export async function presignDownload(
     Bucket: bucketName(),
     Key: key,
     ...(downloadName
-      ? {
-          ResponseContentDisposition: `attachment; filename="${downloadName.replace(/"/g, "")}"`,
-        }
+      ? { ResponseContentDisposition: attachmentDisposition(downloadName) }
       : {}),
   });
   return getSignedUrl(client(), command, { expiresIn: DOWNLOAD_URL_TTL });
