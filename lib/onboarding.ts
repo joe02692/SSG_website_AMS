@@ -19,7 +19,12 @@ export type QuestionType =
   | "tel"
   | "textarea"
   | "select"
-  | "date";
+  | "date"
+  | "number"
+  /** One or more choices. Submitted as repeated form values under one name. */
+  | "checkbox"
+  /** Uploads to Backblaze on selection and submits the resulting object key. */
+  | "file";
 
 export type Question = {
   /** Storage key. For scouts this is the scout_details column name. */
@@ -27,8 +32,18 @@ export type Question = {
   label: string;
   hint?: string;
   type?: QuestionType;
-  /** Required when type is "select". The only accepted answers (values). */
+  /** Required when type is "select" or "checkbox". The only accepted answers. */
   options?: { value: string; label: string }[];
+  /** number only. */
+  min?: number;
+  max?: number;
+  /**
+   * Show this question only when another question currently holds one of
+   * these values. Used for academic year, which a graduate must not answer —
+   * the database enforces the same pairing, this just stops people filling in
+   * a box that will be rejected.
+   */
+  visibleWhen?: { question: string; equals: string[] };
   required?: boolean;
   placeholder?: string;
 };
@@ -100,24 +115,118 @@ export const SCOUT_QUESTIONS: Question[] = [
     placeholder: "14 digits",
     hint: "Optional, but needed before camps and official registration.",
   },
+  {
+    id: "document_path",
+    label: "Birth certificate image — صورة شهادة الميلاد",
+    type: "file",
+    required: true,
+    hint: "A photo or scan is fine — uploading straight from your phone works. Only you and the site admins can see it.",
+  },
 ];
 
-/** Asked of anyone who joins with an invite code. Still placeholders. */
+/**
+ * Applicant status — the PDF's ENUM('University Student', 'Graduate').
+ * Stored as the snake_case value; the CHECK constraint in 0014 accepts exactly
+ * these two.
+ */
+export const APPLICANT_STATUSES = [
+  { value: "university_student", label: "University student — طالب جامعي" },
+  { value: "graduate", label: "Graduate — خريج" },
+];
+
+/**
+ * Leader registration. Each id is a column on public.leader_details, except
+ * `committee_codes`, which becomes rows in public.leader_committees.
+ *
+ * Taken from the DBMS team's "Leaders Registration Form (SSG Secretary)"
+ * specification. Three fields in that document are deliberately absent here:
+ * full_name (already on profiles), email (already on auth.users, and
+ * verified), and age (derived from date_of_birth by public.age_years, so it
+ * cannot drift out of date). See the header of migration 0014.
+ */
 export const LEADER_QUESTIONS: Question[] = [
-  { id: "leader_q1", label: "Test 1", type: "text" },
-  { id: "leader_q2", label: "Test 2", type: "text" },
   {
-    id: "leader_q3",
-    label: "Test 3",
-    type: "select",
-    options: [
-      { value: "Option A", label: "Option A" },
-      { value: "Option B", label: "Option B" },
-      { value: "Option C", label: "Option C" },
-    ],
+    id: "date_of_birth",
+    label: "Date of birth — تاريخ الميلاد",
+    type: "date",
+    required: true,
+    hint: "Your age is worked out from this, so it stays correct every year.",
   },
-  { id: "leader_q4", label: "Test 4", type: "text" },
-  { id: "leader_q5", label: "Test 5", type: "text" },
+  {
+    id: "personal_phone",
+    label: "Personal phone — رقم الهاتف الشخصي",
+    type: "tel",
+    required: true,
+    placeholder: "01XXXXXXXXX",
+    hint: "11 digits, starting 01.",
+  },
+  {
+    id: "national_id",
+    label: "National ID — الرقم القومي",
+    type: "text",
+    required: true,
+    placeholder: "14 digits",
+    hint: "14 digits. Each leader's number must be unique.",
+  },
+  {
+    id: "id_card_path",
+    label: "ID card photo — صورة البطاقة الشخصية",
+    type: "file",
+    required: true,
+    hint: "A photo or scan of both sides if possible. Only you and the site admins can see it.",
+  },
+  {
+    id: "applicant_status",
+    label: "Current status — الحالة",
+    type: "select",
+    required: true,
+    options: APPLICANT_STATUSES,
+  },
+  {
+    id: "university",
+    label: "University — الجامعة",
+    type: "text",
+    required: true,
+  },
+  {
+    id: "faculty",
+    label: "Faculty / College — الكلية",
+    type: "text",
+    required: true,
+  },
+  {
+    id: "academic_year",
+    label: "Academic year — السنة الدراسية",
+    type: "text",
+    required: true,
+    placeholder: "e.g. Third year",
+    hint: "Students only — graduates skip this.",
+    // Mirrors the CHECK constraint in 0014: a graduate must leave this empty,
+    // a student must fill it in. Hiding it is kinder than rejecting it.
+    visibleWhen: { question: "applicant_status", equals: ["university_student"] },
+  },
+  {
+    id: "committee_codes",
+    label: "Stages / committees you serve — المراحل واللجان",
+    type: "checkbox",
+    required: true,
+    hint: "Tick every one you lead. Most leaders serve more than one.",
+    options: SCOUT_STAGES,
+  },
+  {
+    id: "leadership_years",
+    label: "Years of leadership experience — سنوات الخبرة القيادية",
+    type: "number",
+    required: true,
+    min: 0,
+    max: 70,
+  },
+  {
+    id: "join_date",
+    label: "Date you joined scouting — تاريخ الانضمام للكشافة",
+    type: "date",
+    required: true,
+  },
 ];
 
 /** Staff get the leader set; everyone else gets scout registration. */
@@ -125,9 +234,19 @@ export function questionsForRole(role: Role | null | undefined): Question[] {
   return isStaffRole(role) ? LEADER_QUESTIONS : SCOUT_QUESTIONS;
 }
 
-/** True when this member's answers belong in scout_details, not JSONB. */
+/** True when this member's answers belong in scout_details. */
 export function usesScoutDetails(role: Role | null | undefined): boolean {
   return !isStaffRole(role);
+}
+
+/** True when this member's answers belong in leader_details. */
+export function usesLeaderDetails(role: Role | null | undefined): boolean {
+  return isStaffRole(role);
+}
+
+/** The document each role uploads during onboarding, by question id. */
+export function documentQuestionId(role: Role | null | undefined): string {
+  return isStaffRole(role) ? "id_card_path" : "document_path";
 }
 
 /** Longest free-text answer we'll store. */

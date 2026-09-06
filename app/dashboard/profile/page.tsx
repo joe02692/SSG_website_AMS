@@ -5,12 +5,13 @@ import {
   requireUser,
   getCurrentProfile,
   getScoutDetails,
+  getLeaderDetails,
   scoutAnswers,
+  leaderAnswers,
 } from "@/lib/dal";
 import { ROLE_LABELS } from "@/lib/roles";
 import { ProfileForm } from "@/components/profile/profile-form";
 import { DetailsForm } from "@/components/onboarding/details-form";
-import { DocumentUpload } from "@/components/profile/document-upload";
 import { updateDetailsAction } from "@/app/onboarding/actions";
 import {
   ageFromDateOfBirth,
@@ -31,13 +32,17 @@ export default async function ProfilePage() {
   // already returns null for staff, who have no row, so firing it speculatively
   // costs one wasted lookup for a handful of accounts and saves a full hop for
   // the rest. Both are cache()d, so nothing is fetched twice.
-  const [profile, scout] = await Promise.all([
+  const [profile, scout, leader] = await Promise.all([
     getCurrentProfile(),
     getScoutDetails(),
+    getLeaderDetails(),
   ]);
   const isScout = usesScoutDetails(profile?.role);
-  const answers = isScout ? scoutAnswers(scout) : (profile?.details ?? {});
-  const age = isScout && scout ? ageFromDateOfBirth(scout.date_of_birth) : null;
+  const answers = isScout ? scoutAnswers(scout) : leaderAnswers(leader);
+
+  // Derived on read, never stored — the same rule for both roles.
+  const birthDate = isScout ? scout?.date_of_birth : leader?.date_of_birth;
+  const age = birthDate ? ageFromDateOfBirth(birthDate) : null;
 
   // No signed URL is minted here on purpose. One signed at render time expires
   // 60 seconds later — usually before anyone clicks View — and until then it is
@@ -94,19 +99,11 @@ export default async function ProfilePage() {
           </div>
         </section>
 
-        {isScout ? (
-          <section aria-labelledby="document-heading" className="mt-8">
-            <h2
-              id="document-heading"
-              className="text-lg font-semibold tracking-tight text-ink"
-            >
-              Birth certificate — شهادة الميلاد
-            </h2>
-            <div className="mt-4 rounded-2xl border border-line bg-surface-raised p-6">
-              <DocumentUpload currentPath={scout?.document_path ?? null} />
-            </div>
-          </section>
-        ) : null}
+        {/* The document upload used to be a separate section here. It is now
+            one of the questions in the form above — the birth certificate for
+            scouts, the ID card for leaders — because both are required to
+            complete registration, and a required field that lives outside the
+            form you submit is a trap. */}
 
         {/* Read-only facts: changing either one is a separate, guarded flow. */}
         <dl className="mt-6 space-y-4 rounded-2xl border border-line bg-surface p-6">

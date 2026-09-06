@@ -4,8 +4,8 @@ import { randomUUID } from "node:crypto";
 import { revalidatePath } from "next/cache";
 import { createClient } from "@/lib/supabase/server";
 import { getCurrentProfile } from "@/lib/dal";
+import { isStaffRole } from "@/lib/roles";
 import { nameSlug } from "@/lib/documents";
-import { usesScoutDetails } from "@/lib/onboarding";
 import {
   ALLOWED_TYPES,
   MAX_UPLOAD_BYTES,
@@ -35,7 +35,7 @@ const EXTENSIONS: Record<string, string> = {
  *
  * This is the security boundary. B2 doesn't know who Supabase users are, so
  * everything depends on the checks here:
- *   • the caller must be signed in and be a scout
+ *   • the caller must be signed in
  *   • the key is built server-side from THEIR id — never from user input, so
  *     nobody can aim an upload at someone else's folder
  *   • the content type is pinned into the signature
@@ -47,9 +47,12 @@ export async function createUploadUrlAction(
 ): Promise<UploadTicket> {
   const profile = await getCurrentProfile();
   if (!profile) return { error: "You need to be signed in." };
-  if (!usesScoutDetails(profile.role)) {
-    return { error: "Only scouts upload a birth certificate." };
-  }
+
+  // Any signed-in member may upload: scouts a birth certificate, staff an ID
+  // card photo. The role check that used to live here is gone because it no
+  // longer decides anything — the key is built from this member's own profile
+  // id either way, and which COLUMN the key lands in is decided by the save
+  // action from the stored role, never from the request.
 
   const contentType = String(formData.get("contentType") ?? "");
   const size = Number(formData.get("size") ?? 0);
@@ -95,98 +98,13 @@ export async function createUploadUrlAction(
   }
 }
 
-/**
- * Records a key the browser has just uploaded to, and clears the file it
- * replaced. Re-checks the key prefix: a valid session must not be able to
- * point their profile at another scout's document.
- */
-export async function recordDocumentAction(
-  _prev: DocumentState,
-  formData: FormData,
-): Promise<DocumentState> {
-  const profile = await getCurrentProfile();
-  if (!profile) return { error: "You need to be signed in." };
-
-  const key = formData.get("key");
-  if (typeof key !== "string" || !key) return { error: "Nothing was uploaded." };
-  if (!key.startsWith(`${profile.id}/`)) {
-    return { error: "That file doesn't belong to your account." };
-  }
-
-  const supabase = await createClient();
-
-  const { data: existing } = await supabase
-    .from("scout_details")
-    .select("document_path")
-    .eq("profile_id", profile.id)
-    .maybeSingle();
-
-  // .select() so a successful call also tells us how many rows it touched.
-  // Without it, an update matching nothing looks identical to one that worked,
-  // and the member is told their certificate is saved when it isn't.
-  let { data: updated, error } = await supabase
-    .from("scout_details")
-    .update({
-      document_path: key,
-      document_uploaded_at: new Date().toISOString(),
-    })
-    .eq("profile_id", profile.id)
-    .select("profile_id");
-
-  // Migration 0013 adds document_uploaded_at, and a database that never ran it
-  // fails the whole update over that one field — which is how a file can sit
-  // safely in Backblaze while the member is told the save failed. Record the
-  // path anyway; the timestamp is only informational, and losing the link to
-  // an uploaded file is far worse than losing a date.
-  //
-  // Two codes, because two different components can refuse. PGRST204 is
-  // PostgREST checking the write against its cached schema and rejecting it
-  // before Postgres is involved; 42703 is Postgres's own undefined_column, for
-  // the case where PostgREST's cache is stale in the other direction.
-  const missingTimestampColumn =
-    (error?.code === "PGRST204" || error?.code === "42703") &&
-    (error?.message ?? "").includes("document_uploaded_at");
-
-  if (missingTimestampColumn) {
-    console.error(
-      "[certificate] scout_details.document_uploaded_at is missing — run supabase/migrations/0013_document_expiry.sql",
-    );
-    ({ data: updated, error } = await supabase
-      .from("scout_details")
-      .update({ document_path: key })
-      .eq("profile_id", profile.id)
-      .select("profile_id"));
-  }
-
-  if (error) {
-    // The generic "please try again" that used to be here was the actual bug
-    // in disguise: the database said exactly what was wrong and we replaced it
-    // with a sentence that invited the member to repeat a failing action.
-    console.error("[certificate] could not record the document", error);
-    return {
-      error: `Could not save the document — the database refused the update (${error.code ?? "unknown"}: ${error.message}).`,
-    };
-  }
-
-  if (!updated || updated.length === 0) {
-    return {
-      error:
-        "Your registration details haven't been filled in yet, so there's nowhere to attach the certificate. Complete the membership questions above first.",
-    };
-  }
-
-  // Remove the file it replaced, so superseded copies don't linger.
-  if (existing?.document_path && existing.document_path !== key) {
-    await deleteObject(existing.document_path);
-  }
-
-  revalidatePath("/dashboard/profile");
-  return {
-    notice: missingTimestampColumn
-      ? "Upload done. (Note for admins: migration 0013 hasn't been run on this database.)"
-      : "Upload done.",
-  };
-}
+/* recordDocumentAction lived here.
+ *
+ * It updated scout_details after a standalone upload on the profile page.
+ * Both documents are now required fields inside the registration form, so the
+ * key is written by the same action that creates the row — one insert instead
+ * of an upload that had to find a row to attach itself to. The old flow could
+ * not work during onboarding at all, because the row did not exist yet. */
 
 export type OwnDocumentLink = {
   url?: string;
@@ -211,24 +129,39 @@ export async function getOwnDocumentUrlAction(
   const profile = await getCurrentProfile();
   if (!profile) return { error: "You need to be signed in." };
 
+  // Which table and column holds this member's document is decided by their
+  // STORED role — a scout's birth certificate lives in scout_details, a
+  // leader's ID card in leader_details. Nothing about that comes from the
+  // request, so there is no parameter to tamper with.
   const supabase = await createClient();
-  const { data } = await supabase
-    .from("scout_details")
-    .select("document_path")
-    .eq("profile_id", profile.id)
-    .maybeSingle();
+  const staff = isStaffRole(profile.role);
 
-  const key = data?.document_path;
+  const { data } = staff
+    ? await supabase
+        .from("leader_details")
+        .select("id_card_path")
+        .eq("profile_id", profile.id)
+        .maybeSingle()
+    : await supabase
+        .from("scout_details")
+        .select("document_path")
+        .eq("profile_id", profile.id)
+        .maybeSingle();
+
+  const key = staff
+    ? (data as { id_card_path?: string } | null)?.id_card_path
+    : (data as { document_path?: string } | null)?.document_path;
   if (!key) return { error: "No document on file." };
 
   const wantsDownload = formData.get("mode") === "download";
   const extension = key.split(".").pop() ?? "jpg";
   const base = nameSlug(profile.full_name);
+  const label = staff ? "id-card" : "birth-certificate";
 
   try {
     const url = await presignDownload(
       key,
-      wantsDownload ? `${base}-birth-certificate.${extension}` : undefined,
+      wantsDownload ? `${base}-${label}.${extension}` : undefined,
     );
     return { url, mode: wantsDownload ? "download" : "view" };
   } catch (error) {
@@ -247,6 +180,17 @@ export async function removeDocumentAction(
 ): Promise<DocumentState> {
   const profile = await getCurrentProfile();
   if (!profile) return { error: "You need to be signed in." };
+
+  // Leaders cannot remove their ID card: leader_details.id_card_path is NOT
+  // NULL by the DBMS team's spec, so there is no valid "no document" state to
+  // move to. Replacing it is done by uploading a new one from the profile
+  // form, which overwrites the key and deletes the old object.
+  if (isStaffRole(profile.role)) {
+    return {
+      error:
+        "An ID card photo is required for leaders. Upload a replacement instead of removing this one.",
+    };
+  }
 
   const supabase = await createClient();
   const { data: existing } = await supabase

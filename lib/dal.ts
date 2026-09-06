@@ -102,6 +102,83 @@ export const getScoutDetails = cache(async (): Promise<ScoutDetails | null> => {
  * Reshapes a scout_details row into the flat answers map the onboarding form
  * expects, so the same form can prefill for editing.
  */
+export type LeaderDetails = {
+  profile_id: string;
+  date_of_birth: string;
+  personal_phone: string;
+  national_id: string;
+  id_card_path: string;
+  applicant_status: string;
+  university: string;
+  faculty: string;
+  academic_year: string | null;
+  leadership_years: number;
+  join_date: string;
+  /** Stage codes joined through public.leader_committees. */
+  committee_codes: string[];
+};
+
+/**
+ * Registration details for a leader or site admin.
+ *
+ * Returns null for scouts, who have no row here — the mirror of
+ * getScoutDetails() returning null for staff. Callers can fire both
+ * speculatively and let the roles sort themselves out.
+ */
+export const getLeaderDetails = cache(async (): Promise<LeaderDetails | null> => {
+  const user = await getCurrentUser();
+  if (!user) return null;
+
+  const supabase = await createClient();
+  const { data, error } = await supabase
+    .from("leader_details")
+    .select(
+      "profile_id, date_of_birth, personal_phone, national_id, id_card_path, applicant_status, university, faculty, academic_year, leadership_years, join_date, leader_committees(stages(code))",
+    )
+    .eq("profile_id", user.id)
+    .maybeSingle();
+
+  if (error || !data) return null;
+
+  const row = data as unknown as Omit<LeaderDetails, "committee_codes"> & {
+    leader_committees: { stages: { code: string } | null }[] | null;
+  };
+
+  return {
+    ...row,
+    committee_codes: (row.leader_committees ?? [])
+      .map((link) => link.stages?.code)
+      .filter((code): code is string => Boolean(code)),
+  };
+});
+
+/**
+ * Leader details as form answers.
+ *
+ * committee_codes is joined with commas because DetailsForm prefills a
+ * checkbox group by splitting on them — the same string shape a text field
+ * would carry, so the form needs no special case for "this answer is a list".
+ */
+export function leaderAnswers(
+  details: LeaderDetails | null,
+): Record<string, string> {
+  if (!details) return {};
+  return {
+    date_of_birth: details.date_of_birth ?? "",
+    personal_phone: details.personal_phone ?? "",
+    national_id: details.national_id ?? "",
+    id_card_path: details.id_card_path ?? "",
+    applicant_status: details.applicant_status ?? "",
+    university: details.university ?? "",
+    faculty: details.faculty ?? "",
+    academic_year: details.academic_year ?? "",
+    leadership_years:
+      details.leadership_years === null ? "" : String(details.leadership_years),
+    join_date: details.join_date ?? "",
+    committee_codes: details.committee_codes.join(","),
+  };
+}
+
 export function scoutAnswers(
   details: ScoutDetails | null,
 ): Record<string, string> {

@@ -4,8 +4,10 @@ import Link from "next/link";
 import {
   getCurrentProfile,
   getScoutDetails,
+  getLeaderDetails,
   requireUser,
   scoutAnswers,
+  leaderAnswers,
 } from "@/lib/dal";
 import { DetailsForm } from "@/components/onboarding/details-form";
 import { completeOnboardingAction } from "@/app/onboarding/actions";
@@ -22,9 +24,10 @@ export default async function OnboardingPage() {
   // user id, so it does not depend on the profile; awaiting the profile first
   // just to decide whether to ask was an extra round trip on a page every new
   // member sees before they can do anything else.
-  const [profile, scout] = await Promise.all([
+  const [profile, scout, leader] = await Promise.all([
     getCurrentProfile(),
     getScoutDetails(),
+    getLeaderDetails(),
   ]);
 
   // Already answered — nothing to do here. Without this, the dashboard
@@ -33,7 +36,7 @@ export default async function OnboardingPage() {
 
   // Scouts answer into real columns; staff still use the JSONB blob.
   const isScout = usesScoutDetails(profile?.role);
-  const answers = isScout ? scoutAnswers(scout) : (profile?.details ?? {});
+  const answers = isScout ? scoutAnswers(scout) : leaderAnswers(leader);
 
   return (
     <div className="flex min-h-dvh flex-col bg-surface">
