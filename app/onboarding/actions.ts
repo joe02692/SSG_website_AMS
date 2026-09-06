@@ -25,6 +25,54 @@ function field(formData: FormData, key: string): string {
   return typeof raw === "string" ? raw.trim() : "";
 }
 
+/**
+ * Turns a Postgres/PostgREST error into something a person can act on.
+ *
+ * "Could not save your details. Please try again." was the message here, and
+ * it is worse than useless: the database says precisely what is wrong, and
+ * hiding that behind an invitation to repeat a failing action costs an
+ * afternoon every time. The same mistake already cost one on the birth
+ * certificate. Codes are included deliberately — this is a members-only app
+ * for a scout group, not a public product, and a code someone can paste to me
+ * is worth more than a soothing sentence.
+ */
+function describeSaveError(
+  error: { code?: string; message?: string; details?: string } | null,
+  table: string,
+  migration: string,
+): string {
+  if (!error) return "Could not save your details. Please try again.";
+
+  // The table isn't there. PGRST205 is PostgREST failing to find it in its
+  // schema cache; 42P01 is Postgres's own undefined_table.
+  if (
+    error.code === "PGRST205" ||
+    error.code === "42P01" ||
+    (error.message ?? "").includes(`relation "public.${table}" does not exist`) ||
+    (error.message ?? "").includes(`Could not find the table 'public.${table}'`)
+  ) {
+    return `The ${table} table doesn't exist in this database yet. Run supabase/migrations/${migration} in the Supabase SQL editor, then try again.`;
+  }
+
+  // A column is missing — the migration ran, but an older version of it.
+  if (error.code === "PGRST204" || error.code === "42703") {
+    return `This database is missing a column that ${migration} adds (${error.message ?? "unknown column"}). Re-run supabase/migrations/${migration}.`;
+  }
+
+  // A CHECK constraint refused the row. Name it: they are all documented in
+  // the migration, so the name points straight at the rule that fired.
+  if (error.code === "23514") {
+    return `The database rejected one of the answers (${error.message ?? "check constraint"}).`;
+  }
+
+  // RLS refused the write.
+  if (error.code === "42501") {
+    return "The database refused this write for your account. This is a row-level-security policy problem, not something you did wrong.";
+  }
+
+  return `Could not save your details — the database said: ${error.code ?? "unknown"}: ${error.message ?? "no message"}`;
+}
+
 // ---------------------------------------------------------------------------
 // Scouts — real columns, real constraints
 // ---------------------------------------------------------------------------
@@ -150,7 +198,10 @@ async function saveScoutDetails(
         error: "Please fix the highlighted answers.",
       };
     }
-    return { error: "Could not save your details. Please try again." };
+    console.error("[onboarding] could not save scout details", error);
+    return {
+      error: describeSaveError(error, "scout_details", "0010_scout_details.sql"),
+    };
   }
 
   if (markComplete) {
@@ -324,7 +375,9 @@ async function saveLeaderDetails(
       };
     }
     console.error("[onboarding] could not save leader details", error);
-    return { error: "Could not save your details. Please try again." };
+    return {
+      error: describeSaveError(error, "leader_details", "0014_leader_details.sql"),
+    };
   }
 
   // Replace the committee set rather than merge it: unticking a box has to
@@ -337,7 +390,9 @@ async function saveLeaderDetails(
 
   if (committeeError) {
     console.error("[onboarding] could not save committees", committeeError);
-    return { error: "Your details saved, but the committees did not. Please try again." };
+    return {
+      error: `Your details saved, but the committees did not. ${describeSaveError(committeeError, "leader_committees", "0014_leader_details.sql")}`,
+    };
   }
 
   if (markComplete) {
