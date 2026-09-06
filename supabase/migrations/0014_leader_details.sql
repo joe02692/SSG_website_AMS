@@ -222,4 +222,26 @@ create policy "leader_committees: site admins read all"
 -- No DELETE policy on leader_details: removing a leader is a guarded admin
 -- flow through the service role, not something a session can do to itself.
 
+-- ----------------------------------------------------------------------------
+-- 6. Table privileges
+--
+-- RLS and GRANT are two separate gates and BOTH must open. A policy that says
+-- "you may insert your own row" is irrelevant if the role has no INSERT
+-- privilege on the table at all — Postgres refuses at the grant, before it
+-- ever evaluates the policy, and reports 42501 either way. That makes the two
+-- failures look identical while needing opposite fixes.
+--
+-- Omitting this block is exactly what broke leader onboarding on 6 Sep 2026:
+-- the tables and every policy existed, and every leader still got
+-- "permission denied for table leader_details". 0001 and 0010 both grant
+-- explicitly; this one did not.
+--
+-- Privileges match the policies deliberately — no DELETE on leader_details,
+-- because there is no DELETE policy to go with it.
+-- ----------------------------------------------------------------------------
+grant usage on schema public to authenticated;
+grant select, insert, update on public.leader_details to authenticated;
+grant select, insert, update, delete on public.leader_committees to authenticated;
+grant select on public.leader_details_with_age to authenticated;
+
 notify pgrst, 'reload schema';

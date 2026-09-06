@@ -137,7 +137,7 @@ export default async function MembersPage() {
             href="/members/scouts"
             className="inline-flex rounded-lg border border-line bg-surface-raised px-4 py-2.5 text-sm font-semibold text-ink transition hover:border-brand-300"
           >
-            Scout registrations →
+            Registrations →
           </Link>
         </p>
 

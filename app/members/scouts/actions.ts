@@ -40,10 +40,19 @@ export async function getDocumentUrlAction(
   const base = nameSlug(typeof rawName === "string" ? rawName : null);
   const extension = key.split(".").pop() ?? "jpg";
 
+  // The page says what kind of document this is; the action has no way to
+  // know. Without it every leader's ID card downloaded as
+  // "<name>-birth-certificate.jpg", which is wrong in a folder someone later
+  // has to make sense of. Slugged because it reaches a filename.
+  const rawLabel = formData.get("label");
+  const label = nameSlug(
+    typeof rawLabel === "string" && rawLabel ? rawLabel : "document",
+  );
+
   try {
     const url = await presignDownload(
       key,
-      wantsDownload ? `${base}-birth-certificate.${extension}` : undefined,
+      wantsDownload ? `${base}-${label}.${extension}` : undefined,
     );
     return { url, mode: wantsDownload ? "download" : "view" };
   } catch (error) {

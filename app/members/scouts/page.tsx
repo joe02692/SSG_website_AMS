@@ -5,9 +5,10 @@ import { requireSiteAdmin } from "@/lib/dal";
 import { createClient } from "@/lib/supabase/server";
 import { ageFromDateOfBirth } from "@/lib/onboarding";
 import { ViewDocumentButton } from "@/components/members/view-document-button";
+import { LeadersTable, type LeaderRow } from "@/components/members/leaders-table";
 
 export const metadata: Metadata = {
-  title: "Scouts",
+  title: "Registrations",
 };
 
 type ScoutRow = {
@@ -58,7 +59,20 @@ export default async function ScoutsPage() {
 
   const rows = (data ?? []) as unknown as ScoutRow[];
 
+  // Leaders. Ordered by join date so the longest-serving are at the top, which
+  // is the order a secretary reads this list in.
+  const { data: leaderData, error: leaderError } = await supabase
+    .from("leader_details")
+    .select(
+      "profile_id, date_of_birth, personal_phone, national_id, id_card_path, applicant_status, university, faculty, academic_year, leadership_years, join_date, profiles(full_name, role), leader_committees(stages(name_en, name_ar))",
+    )
+    .order("join_date", { ascending: true })
+    .limit(MAX_ROWS);
+
+  const leaders = (leaderData ?? []) as unknown as LeaderRow[];
+
   const withDocument = rows.filter((r) => r.document_path).length;
+  const withIdCard = leaders.filter((l) => l.id_card_path).length;
 
   return (
     <SiteShell>
@@ -71,13 +85,24 @@ export default async function ScoutsPage() {
         </Link>
 
         <h1 className="mt-3 text-3xl font-semibold tracking-tight text-ink">
-          Scouts
+          Registrations
         </h1>
         <p className="mt-2 text-ink-muted">
-          Registration details for every scout who has completed onboarding.
+          Registration details for everyone who has completed onboarding —
+          scouts first, then leaders and site staff.
         </p>
 
-        <dl className="mt-6 flex flex-wrap gap-3">
+        <p className="mt-6 rounded-lg border border-warning-line bg-warning-surface px-3 py-2.5 text-sm text-warning-ink">
+          This page shows home addresses, ID numbers and phone numbers,
+          including children&apos;s. Please don&apos;t leave it open on a shared
+          screen, and don&apos;t export it without a reason.
+        </p>
+
+        <h2 className="mt-10 text-xl font-semibold tracking-tight text-ink">
+          Scouts
+        </h2>
+
+        <dl className="mt-4 flex flex-wrap gap-3">
           <div className="rounded-lg border border-line bg-surface-raised px-4 py-2.5">
             <dt className="text-xs uppercase tracking-wider text-ink-subtle">
               Registered
@@ -108,12 +133,6 @@ export default async function ScoutsPage() {
             </a>
           </p>
         ) : null}
-
-        <p className="mt-6 rounded-lg border border-warning-line bg-warning-surface px-3 py-2.5 text-sm text-warning-ink">
-          This page shows children&apos;s home addresses, ID numbers and
-          parents&apos; phone numbers. Please don&apos;t leave it open on a
-          shared screen, and don&apos;t export it without a reason.
-        </p>
 
         {rows.length === 0 ? (
           <div className="mt-8 rounded-2xl border border-dashed border-line bg-surface p-10 text-center">
@@ -199,6 +218,53 @@ export default async function ScoutsPage() {
               </tbody>
             </table>
           </div>
+        )}
+
+        {/* ------------------------------------------------------------ Leaders */}
+        <h2 className="mt-14 text-xl font-semibold tracking-tight text-ink">
+          Leaders and site staff
+        </h2>
+
+        <dl className="mt-4 flex flex-wrap gap-3">
+          <div className="rounded-lg border border-line bg-surface-raised px-4 py-2.5">
+            <dt className="text-xs uppercase tracking-wider text-ink-subtle">
+              Registered
+            </dt>
+            <dd className="text-lg font-semibold text-ink">{leaders.length}</dd>
+          </div>
+          <div className="rounded-lg border border-line bg-surface-raised px-4 py-2.5">
+            <dt className="text-xs uppercase tracking-wider text-ink-subtle">
+              ID card on file
+            </dt>
+            <dd className="text-lg font-semibold text-ink">
+              {withIdCard}
+              <span className="text-sm font-normal text-ink-subtle">
+                {" "}
+                / {leaders.length}
+              </span>
+            </dd>
+          </div>
+        </dl>
+
+        {leaderError ? (
+          <p
+            role="alert"
+            className="mt-6 rounded-lg border border-danger-line bg-danger-surface px-3 py-2.5 text-sm text-danger-ink"
+          >
+            Could not load the leaders list ({leaderError.code ?? "unknown"}:{" "}
+            {leaderError.message}). If this mentions a missing table or a
+            permission, run migrations 0014 and 0015.
+          </p>
+        ) : leaders.length === 0 ? (
+          <div className="mt-6 rounded-2xl border border-dashed border-line bg-surface p-10 text-center">
+            <p className="text-lg font-medium text-ink">No leaders yet</p>
+            <p className="mt-2 text-sm text-ink-muted">
+              Leaders appear here once they join with an invite code and finish
+              the details form.
+            </p>
+          </div>
+        ) : (
+          <LeadersTable rows={leaders} />
         )}
       </div>
     </SiteShell>

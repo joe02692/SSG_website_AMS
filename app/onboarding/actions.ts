@@ -65,9 +65,13 @@ function describeSaveError(
     return `The database rejected one of the answers (${error.message ?? "check constraint"}).`;
   }
 
-  // RLS refused the write.
+  // 42501 is insufficient_privilege, and it covers TWO different problems that
+  // need different fixes — so the raw message goes in the sentence:
+  //   "permission denied for table X"        → the GRANT is missing
+  //   "violates row-level security policy"   → the policy is missing or wrong
+  // Saying only "it's an RLS problem" sends you to fix the half that is fine.
   if (error.code === "42501") {
-    return "The database refused this write for your account. This is a row-level-security policy problem, not something you did wrong.";
+    return `The database refused this write (42501: ${error.message ?? "no message"}). "permission denied for table" means a GRANT is missing; "row-level security policy" means a policy is. Migration 0015 repairs both.`;
   }
 
   return `Could not save your details — the database said: ${error.code ?? "unknown"}: ${error.message ?? "no message"}`;

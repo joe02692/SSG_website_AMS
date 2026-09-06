@@ -27,9 +27,12 @@ const initialState: DocumentLinkState = {};
 export function ViewDocumentButton({
   path,
   filename,
+  label = "birth-certificate",
 }: {
   path: string;
   filename: string;
+  /** What kind of document this is — ends up in the downloaded filename. */
+  label?: string;
 }) {
   const [state, formAction, pending] = useActionState(
     getDocumentUrlAction,
@@ -63,6 +66,7 @@ export function ViewDocumentButton({
       <form action={formAction} className="flex items-center gap-2">
         <input type="hidden" name="path" value={path} />
         <input type="hidden" name="filename" value={filename} />
+        <input type="hidden" name="label" value={label} />
         <button
           type="submit"
           name="mode"
