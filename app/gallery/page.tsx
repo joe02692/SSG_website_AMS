@@ -17,7 +17,7 @@ export default async function GalleryPage() {
     <SiteShell>
       <div className="mx-auto max-w-6xl px-4 py-12 sm:px-6 sm:py-16">
         <div className="mb-10 max-w-2xl">
-          <p className="text-sm font-semibold uppercase tracking-wider text-brand-700">
+          <p className="text-sm font-semibold uppercase tracking-wider text-brand-ink">
             Camp gallery
           </p>
           <h1 className="mt-2 text-3xl font-semibold tracking-tight text-ink sm:text-4xl">

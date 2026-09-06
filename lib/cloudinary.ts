@@ -1,5 +1,7 @@
 import "server-only";
 
+import { cache } from "react";
+
 /**
  * Read-only Cloudinary integration.
  *
@@ -72,11 +74,44 @@ async function adminGet(path: string): Promise<unknown | null> {
   }
 }
 
+/** Same as adminGet, for the search endpoint, which takes a JSON body. */
+async function adminPost(path: string, body: unknown): Promise<unknown | null> {
+  const creds = credentials();
+  if (!creds) return null;
+
+  const auth = Buffer.from(`${creds.apiKey}:${creds.apiSecret}`).toString(
+    "base64",
+  );
+
+  try {
+    const res = await fetch(
+      `https://api.cloudinary.com/v1_1/${creds.cloudName}${path}`,
+      {
+        method: "POST",
+        headers: {
+          Authorization: `Basic ${auth}`,
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify(body),
+        next: { revalidate: REVALIDATE_SECONDS, tags: ["gallery"] },
+      },
+    );
+    if (!res.ok) return null;
+    return await res.json();
+  } catch {
+    return null;
+  }
+}
+
 /**
  * Find the real root folder path, case-insensitively — so "gallery",
  * "Gallery" or "GALLERY" in the Media Library all work.
+ *
+ * cache()d because every album lookup starts by calling this. Rendering the
+ * gallery for M albums used to issue the /folders request M+1 times, each one
+ * a sequential await blocking that album's photo fetch.
  */
-async function resolveRootFolder(): Promise<string | null> {
+const resolveRootFolder = cache(async (): Promise<string | null> => {
   const data = (await adminGet(`/folders`)) as {
     folders?: { name: string; path: string }[];
   } | null;
@@ -85,7 +120,7 @@ async function resolveRootFolder(): Promise<string | null> {
     (folder) => folder.name.toLowerCase() === ROOT_FOLDER,
   );
   return match?.path ?? null;
-}
+});
 
 function titleCase(slug: string): string {
   return slug
@@ -187,24 +222,56 @@ export async function getAlbums(): Promise<GalleryAlbum[]> {
     );
 }
 
-/** The newest photos across every album — used on the landing page. */
+/**
+ * The newest photos across every album — used on the landing page.
+ *
+ * One request, not 2 + 2M.
+ *
+ * This used to call getAlbums() (which itself fetches every photo of every
+ * album, purely to count them and pick a cover) and then fetch every photo of
+ * every album a second time, downloading up to 200 resource records per album
+ * in order to display six. Cloudinary's search endpoint does the sorting and
+ * the limiting server-side, which is what it is for.
+ *
+ * Falls back to the old walk if search is unavailable — it is not offered on
+ * every Cloudinary plan, and a landing page losing its gallery strip is a
+ * worse outcome than an inefficient one.
+ */
 export async function getLatestPhotos(limit: number): Promise<
   (GalleryPhoto & { albumName: string; albumSlug: string })[]
 > {
+  const root = await resolveRootFolder();
+  if (!root) return [];
+
+  const searched = (await adminPost("/resources/search", {
+    expression: `folder="${root}/*" AND resource_type:image`,
+    sort_by: [{ created_at: "desc" }],
+    max_results: limit,
+    with_field: ["context"],
+  })) as { resources?: (RawResource & { asset_folder?: string })[] } | null;
+
+  if (searched?.resources?.length) {
+    return searched.resources.map((raw) => {
+      // The album is the last path segment of the folder the asset lives in.
+      const folder =
+        raw.asset_folder ?? raw.public_id.split("/").slice(0, -1).join("/");
+      const slug = folder.split("/").pop() ?? "";
+      return {
+        ...toPhoto(raw),
+        albumName: titleCase(slug),
+        albumSlug: slug,
+      };
+    });
+  }
+
+  // Fallback: the original walk. Still correct, just chattier.
   const albums = await getAlbums();
-
-  const tagged = await Promise.all(
-    albums.map(async (album) => {
-      const photos = await getAlbumPhotos(album.slug);
-      return photos.map((photo) => ({
-        ...photo,
-        albumName: album.name,
-        albumSlug: album.slug,
-      }));
-    }),
+  const tagged = albums.flatMap((album) =>
+    album.cover
+      ? [{ ...album.cover, albumName: album.name, albumSlug: album.slug }]
+      : [],
   );
-
-  return tagged.flat().sort(newestFirst).slice(0, limit);
+  return tagged.sort(newestFirst).slice(0, limit);
 }
 
 /** Delivery URL with automatic format/quality and smart-cropped width. */

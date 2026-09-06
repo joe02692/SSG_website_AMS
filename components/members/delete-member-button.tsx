@@ -29,12 +29,12 @@ export function DeleteMemberButton({
         <button
           type="button"
           onClick={() => setArmed(true)}
-          className="text-xs font-medium text-red-600 underline-offset-4 hover:underline"
+          className="text-xs font-medium text-danger-ink underline-offset-4 hover:underline"
         >
           Delete
         </button>
         {state.error ? (
-          <p role="alert" className="mt-1 text-xs text-red-600">
+          <p role="alert" className="mt-1 text-xs text-danger-ink">
             {state.error}
           </p>
         ) : null}
@@ -52,7 +52,7 @@ export function DeleteMemberButton({
         <button
           type="submit"
           disabled={pending}
-          className="rounded-md bg-red-600 px-2 py-1 text-xs font-semibold text-white transition hover:bg-red-700 disabled:opacity-70"
+          className="rounded-md bg-danger-solid px-2 py-1 text-xs font-semibold text-white transition hover:opacity-90 disabled:opacity-70"
         >
           {pending ? "Deleting…" : "Yes, delete"}
         </button>
@@ -65,7 +65,7 @@ export function DeleteMemberButton({
         </button>
       </div>
       {state.error ? (
-        <p role="alert" className="text-xs text-red-600">
+        <p role="alert" className="text-xs text-danger-ink">
           {state.error}
         </p>
       ) : null}

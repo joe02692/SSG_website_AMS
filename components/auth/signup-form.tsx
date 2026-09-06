@@ -45,7 +45,7 @@ export function SignupForm() {
       {state.notice ? (
         <p
           role="status"
-          className="rounded-lg border border-brand-200 bg-brand-50 px-3 py-2.5 text-sm text-brand-900"
+          className="rounded-lg border border-success-line bg-success-surface px-3 py-2.5 text-sm text-success-ink"
         >
           {state.notice}
         </p>
@@ -54,7 +54,7 @@ export function SignupForm() {
       {state.error ? (
         <p
           role="alert"
-          className="rounded-lg border border-red-200 bg-red-50 px-3 py-2.5 text-sm text-red-800"
+          className="rounded-lg border border-danger-line bg-danger-surface px-3 py-2.5 text-sm text-danger-ink"
         >
           {state.error}
         </p>
@@ -74,7 +74,12 @@ export function SignupForm() {
                   choice.disabled
                     ? "cursor-not-allowed border-line bg-surface opacity-60"
                     : selected
-                      ? "cursor-pointer border-brand-500 bg-brand-50/60 ring-1 ring-brand-500/30"
+                      ? // bg-brand-50/60 was a fixed light mint at 60% opacity. Over a
+                        // dark card that composites to a muddy grey-green (#939f97),
+                        // and text-ink on it measured 2.38:1 — the selected option
+                        // became the least readable one. Semantic surfaces instead of
+                        // a blended fixed colour.
+                        "cursor-pointer border-brand-600 bg-brand-50 ring-1 ring-brand-600/30 dark:bg-brand-950"
                       : "cursor-pointer border-line bg-surface-raised hover:border-brand-300"
                 }`}
               >
@@ -113,7 +118,7 @@ export function SignupForm() {
           })}
         </div>
         {state.fieldErrors?.role ? (
-          <p className="text-xs font-medium text-red-600">
+          <p className="text-xs font-medium text-danger-ink">
             {state.fieldErrors.role}
           </p>
         ) : null}
@@ -195,7 +200,7 @@ export function SignupForm() {
         Already registered?{" "}
         <Link
           href="/login"
-          className="font-medium text-brand-700 underline-offset-4 hover:underline"
+          className="font-medium text-brand-ink underline-offset-4 hover:underline"
         >
           Sign in
         </Link>

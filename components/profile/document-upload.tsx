@@ -181,7 +181,7 @@ export function DocumentUpload({ currentPath }: { currentPath: string | null }) 
       {notice ? (
         <p
           role="status"
-          className="rounded-lg border border-brand-200 bg-brand-50 px-3 py-2.5 text-sm text-brand-900 dark:border-brand-800 dark:bg-brand-950 dark:text-brand-200"
+          className="rounded-lg border border-success-line bg-success-surface px-3 py-2.5 text-sm text-success-ink"
         >
           {notice}
         </p>
@@ -190,7 +190,7 @@ export function DocumentUpload({ currentPath }: { currentPath: string | null }) 
       {message ? (
         <p
           role="alert"
-          className="rounded-lg border border-red-200 bg-red-50 px-3 py-2.5 text-sm text-red-800"
+          className="rounded-lg border border-danger-line bg-danger-surface px-3 py-2.5 text-sm text-danger-ink"
         >
           {message}
         </p>
@@ -206,7 +206,7 @@ export function DocumentUpload({ currentPath }: { currentPath: string | null }) 
               name="mode"
               value="view"
               disabled={linking}
-              className="text-sm font-medium text-brand-700 underline-offset-4 hover:underline disabled:opacity-60 dark:text-brand-300"
+              className="text-sm font-medium text-brand-ink underline-offset-4 hover:underline disabled:opacity-60"
             >
               {linking ? "…" : "View"}
             </button>
@@ -218,7 +218,7 @@ export function DocumentUpload({ currentPath }: { currentPath: string | null }) 
               name="mode"
               value="download"
               disabled={linking}
-              className="text-sm font-medium text-brand-700 underline-offset-4 hover:underline disabled:opacity-60 dark:text-brand-300"
+              className="text-sm font-medium text-brand-ink underline-offset-4 hover:underline disabled:opacity-60"
             >
               Download
             </button>
@@ -228,7 +228,7 @@ export function DocumentUpload({ currentPath }: { currentPath: string | null }) 
             <button
               type="submit"
               disabled={removing}
-              className="text-xs font-medium text-red-600 underline-offset-4 hover:underline disabled:opacity-60"
+              className="text-xs font-medium text-danger-ink underline-offset-4 hover:underline disabled:opacity-60"
             >
               {removing ? "Removing…" : "Remove"}
             </button>

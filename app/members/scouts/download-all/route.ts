@@ -61,29 +61,54 @@ export async function GET() {
   let added = 0;
   const failed: string[] = [];
 
-  for (const row of rows) {
-    const path = row.document_path as string;
-    const bytes = await getObjectBytes(path);
+  // Fetch in small parallel batches rather than one at a time.
+  //
+  // This loop used to be strictly serial. At ~300ms per Backblaze GET, 200
+  // certificates is a full minute of waiting before the ZIP even starts
+  // compressing — comfortably past a serverless timeout, so the feature broke
+  // exactly when it was most needed (a big export) and worked fine in testing
+  // with three files.
+  //
+  // Eight at a time, not unbounded: 200 concurrent reads would hold 200
+  // response bodies in a function with finite memory, which trades a timeout
+  // for an OOM. The budget is checked between batches, so the early abort is
+  // slightly less prompt than before — it can overshoot by at most one batch,
+  // which is the price of not waiting a minute.
+  const CONCURRENCY = 8;
 
-    if (!bytes) {
-      failed.push(row.profiles?.full_name ?? path);
-      continue;
+  for (let i = 0; i < rows.length; i += CONCURRENCY) {
+    const batch = rows.slice(i, i + CONCURRENCY);
+    const fetched = await Promise.all(
+      batch.map(async (row) => ({
+        row,
+        bytes: await getObjectBytes(row.document_path as string),
+      })),
+    );
+
+    for (const { row, bytes } of fetched) {
+      const path = row.document_path as string;
+
+      if (!bytes) {
+        failed.push(row.profiles?.full_name ?? path);
+        continue;
+      }
+
+      totalBytes += bytes.byteLength;
+
+      const extension = path.split(".").pop() ?? "jpg";
+      const folder = nameSlug(row.stages?.name_en ?? "Unassigned");
+      const person = nameSlug(row.profiles?.full_name);
+      // Same name twice would silently overwrite inside the archive.
+      zip.file(`${folder}/${person}-${added + 1}.${extension}`, bytes);
+      added += 1;
     }
 
-    totalBytes += bytes.byteLength;
     if (totalBytes > MAX_TOTAL_BYTES) {
       return new Response(
         "These documents add up to more than 150 MB. Download by stage instead.",
         { status: 413 },
       );
     }
-
-    const extension = path.split(".").pop() ?? "jpg";
-    const folder = nameSlug(row.stages?.name_en ?? "Unassigned");
-    const person = nameSlug(row.profiles?.full_name);
-    // Same name twice would silently overwrite inside the archive.
-    zip.file(`${folder}/${person}-${added + 1}.${extension}`, bytes);
-    added += 1;
   }
 
   if (failed.length > 0) {

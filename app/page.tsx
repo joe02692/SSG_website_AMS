@@ -71,7 +71,7 @@ export default function HomePage() {
 
             <h1 className="mt-5 text-4xl font-semibold tracking-tight text-ink sm:text-6xl">
               Character, service and friendship
-              <span className="block text-brand-700 dark:text-brand-300">
+              <span className="block text-brand-ink">
                 since 1968
               </span>
             </h1>
@@ -122,7 +122,7 @@ export default function HomePage() {
         <div className="mx-auto max-w-6xl px-4 sm:px-6">
           <div className="grid gap-12 lg:grid-cols-[minmax(0,26rem)_1fr]">
             <div>
-              <p className="text-sm font-semibold uppercase tracking-wider text-brand-700">
+              <p className="text-sm font-semibold uppercase tracking-wider text-brand-ink">
                 Our history
               </p>
               <h2
@@ -145,7 +145,7 @@ export default function HomePage() {
                     aria-hidden
                     className="absolute -left-[1.9rem] top-1.5 grid size-3 place-items-center rounded-full border-2 border-canvas bg-brand-600"
                   />
-                  <p className="font-mono text-xs font-medium text-brand-700 dark:text-brand-300">
+                  <p className="font-mono text-xs font-medium text-brand-ink">
                     {milestone.year}
                   </p>
                   <h3 className="mt-1 text-lg font-semibold text-ink">

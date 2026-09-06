@@ -44,7 +44,7 @@ export default async function AlbumPage(props: {
         <div className="mb-8">
           <Link
             href="/gallery"
-            className="text-sm text-brand-700 underline-offset-4 hover:underline dark:text-brand-300"
+            className="text-sm text-brand-ink underline-offset-4 hover:underline dark:text-brand-300"
           >
             ← All albums
           </Link>

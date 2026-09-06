@@ -24,11 +24,20 @@ export const metadata: Metadata = {
 
 export default async function ProfilePage() {
   const user = await requireUser();
-  const profile = await getCurrentProfile();
+
+  // Both at once. The scout_details lookup used to be gated on the role, which
+  // made it a third sequential round trip on the critical path for scouts —
+  // who are almost everyone. getScoutDetails() only needs the user id and
+  // already returns null for staff, who have no row, so firing it speculatively
+  // costs one wasted lookup for a handful of accounts and saves a full hop for
+  // the rest. Both are cache()d, so nothing is fetched twice.
+  const [profile, scout] = await Promise.all([
+    getCurrentProfile(),
+    getScoutDetails(),
+  ]);
   const isScout = usesScoutDetails(profile?.role);
-  const scout = isScout ? await getScoutDetails() : null;
   const answers = isScout ? scoutAnswers(scout) : (profile?.details ?? {});
-  const age = scout ? ageFromDateOfBirth(scout.date_of_birth) : null;
+  const age = isScout && scout ? ageFromDateOfBirth(scout.date_of_birth) : null;
 
   // No signed URL is minted here on purpose. One signed at render time expires
   // 60 seconds later — usually before anyone clicks View — and until then it is
@@ -40,7 +49,7 @@ export default async function ProfilePage() {
       <div className="mx-auto max-w-2xl px-4 py-12 sm:px-6 sm:py-16">
         <Link
           href="/dashboard"
-          className="text-sm text-brand-700 underline-offset-4 hover:underline dark:text-brand-300"
+          className="text-sm text-brand-ink underline-offset-4 hover:underline dark:text-brand-300"
         >
           ← Dashboard
         </Link>
@@ -116,7 +125,7 @@ export default async function ProfilePage() {
             To change your password, use{" "}
             <Link
               href="/reset-password"
-              className="font-medium text-brand-700 underline-offset-4 hover:underline dark:text-brand-300"
+              className="font-medium text-brand-ink underline-offset-4 hover:underline dark:text-brand-300"
             >
               set a new password
             </Link>

@@ -82,9 +82,21 @@ export function storageConfigured(): boolean {
   return missingStorageEnv().length === 0;
 }
 
-function client() {
+/**
+ * One S3Client for the whole process, built on first use.
+ *
+ * It used to be constructed on every call. That is invisible for a single
+ * upload and expensive for the bulk ZIP, which reads up to 200 objects: 200
+ * clients, 200 HTTP agents, and therefore 200 fresh TLS handshakes with no
+ * connection reuse whatsoever. The client holds no per-request state — the
+ * credentials are the app's, not the member's — so sharing it is safe.
+ */
+let cached: S3Client | null = null;
+
+function client(): S3Client {
+  if (cached) return cached;
   const { keyId, appKey, endpoint, region } = config();
-  return new S3Client({
+  cached = new S3Client({
     region,
     endpoint,
     credentials: { accessKeyId: keyId, secretAccessKey: appKey },
@@ -121,6 +133,7 @@ function client() {
     requestChecksumCalculation: "WHEN_REQUIRED",
     responseChecksumValidation: "WHEN_REQUIRED",
   });
+  return cached;
 }
 
 export function bucketName(): string {

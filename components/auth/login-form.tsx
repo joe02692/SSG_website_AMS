@@ -24,7 +24,7 @@ export function LoginForm({ redirectTo }: { redirectTo?: string }) {
       {state.error ? (
         <p
           role="alert"
-          className="rounded-lg border border-red-200 bg-red-50 px-3 py-2.5 text-sm text-red-800"
+          className="rounded-lg border border-danger-line bg-danger-surface px-3 py-2.5 text-sm text-danger-ink"
         >
           {state.error}
         </p>
@@ -56,7 +56,7 @@ export function LoginForm({ redirectTo }: { redirectTo?: string }) {
       <p className="-mt-2 text-right">
         <Link
           href="/forgot-password"
-          className="text-xs font-medium text-brand-700 underline-offset-4 hover:underline"
+          className="text-xs font-medium text-brand-ink underline-offset-4 hover:underline"
         >
           Forgot password?
         </Link>
@@ -70,7 +70,7 @@ export function LoginForm({ redirectTo }: { redirectTo?: string }) {
         New to the group?{" "}
         <Link
           href="/signup"
-          className="font-medium text-brand-700 underline-offset-4 hover:underline"
+          className="font-medium text-brand-ink underline-offset-4 hover:underline"
         >
           Create an account
         </Link>

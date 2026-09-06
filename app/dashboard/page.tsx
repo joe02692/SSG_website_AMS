@@ -31,7 +31,7 @@ export default async function DashboardPage({
         {pw === "updated" ? (
           <p
             role="status"
-            className="mb-6 rounded-lg border border-brand-200 bg-brand-50 px-3 py-2.5 text-sm text-brand-900"
+            className="mb-6 rounded-lg border border-success-line bg-success-surface px-3 py-2.5 text-sm text-success-ink"
           >
             Your password has been updated.
           </p>
@@ -40,7 +40,7 @@ export default async function DashboardPage({
         {denied ? (
           <p
             role="alert"
-            className="mb-6 rounded-lg border border-amber-200 bg-amber-50 px-3 py-2.5 text-sm text-amber-900"
+            className="mb-6 rounded-lg border border-warning-line bg-warning-surface px-3 py-2.5 text-sm text-warning-ink"
           >
             You don&apos;t have access to that area.
           </p>
@@ -120,7 +120,7 @@ export default async function DashboardPage({
         </dl>
 
         {!profile ? (
-          <p className="mt-6 rounded-lg border border-amber-200 bg-amber-50 px-3 py-2.5 text-sm text-amber-900">
+          <p className="mt-6 rounded-lg border border-warning-line bg-warning-surface px-3 py-2.5 text-sm text-warning-ink">
             No profile row was found for this account. Run the migration in
             <code className="mx-1 font-mono text-xs">
               supabase/migrations/0001_profiles_and_roles.sql

@@ -21,7 +21,7 @@ export function InviteForm() {
       {state.error ? (
         <p
           role="alert"
-          className="rounded-lg border border-red-200 bg-red-50 px-3 py-2.5 text-sm text-red-800"
+          className="rounded-lg border border-danger-line bg-danger-surface px-3 py-2.5 text-sm text-danger-ink"
         >
           {state.error}
         </p>
@@ -30,9 +30,9 @@ export function InviteForm() {
       {state.code ? (
         <div
           role="status"
-          className="rounded-lg border border-brand-200 bg-brand-50 p-3 dark:border-brand-800 dark:bg-brand-950"
+          className="rounded-lg border border-success-line bg-success-surface p-3"
         >
-          <p className="text-sm text-brand-900 dark:text-brand-200">
+          <p className="text-sm text-success-ink">
             {state.notice}
           </p>
           <p className="mt-2 flex items-center gap-2">

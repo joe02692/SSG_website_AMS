@@ -30,6 +30,9 @@ function formatDate(value: string): string {
   });
 }
 
+/** Backstop on the roster query — see the note where it is issued. */
+const MAX_ROWS = 1000;
+
 export default async function ScoutsPage() {
   // Site-level staff only. The RLS policy "scout_details: site admins read all"
   // enforces the same rule at the database, so a stage leader who guessed this
@@ -37,19 +40,23 @@ export default async function ScoutsPage() {
   await requireSiteAdmin();
 
   const supabase = await createClient();
+  // Ordered and capped by Postgres, not by JavaScript afterwards.
+  //
+  // Sorting in Node worked at this size but quietly rules out pagination: you
+  // cannot page through rows whose order is decided after they arrive. Doing it
+  // in the query keeps that door open. The limit is a backstop — the group
+  // expects ~400 scouts, and an un-paginated table of several thousand would be
+  // unusable long before it was slow.
   const { data } = await supabase
     .from("scout_details")
     .select(
       "profile_id, date_of_birth, address, national_id, personal_phone, parent_phone, document_path, profiles(full_name), stages(name_en, name_ar, sort)",
-    );
+    )
+    .order("sort", { referencedTable: "stages", ascending: true })
+    .order("profile_id", { ascending: true })
+    .limit(MAX_ROWS);
 
-  const rows = ((data ?? []) as unknown as ScoutRow[]).sort((a, b) => {
-    const stageDelta = (a.stages?.sort ?? 99) - (b.stages?.sort ?? 99);
-    if (stageDelta !== 0) return stageDelta;
-    return (a.profiles?.full_name ?? "").localeCompare(
-      b.profiles?.full_name ?? "",
-    );
-  });
+  const rows = (data ?? []) as unknown as ScoutRow[];
 
   const withDocument = rows.filter((r) => r.document_path).length;
 
@@ -58,7 +65,7 @@ export default async function ScoutsPage() {
       <div className="mx-auto max-w-7xl px-4 py-12 sm:px-6 sm:py-16">
         <Link
           href="/members"
-          className="text-sm text-brand-700 underline-offset-4 hover:underline dark:text-brand-300"
+          className="text-sm text-brand-ink underline-offset-4 hover:underline dark:text-brand-300"
         >
           ← Members
         </Link>
@@ -102,7 +109,7 @@ export default async function ScoutsPage() {
           </p>
         ) : null}
 
-        <p className="mt-6 rounded-lg border border-amber-200 bg-amber-50 px-3 py-2.5 text-sm text-amber-900">
+        <p className="mt-6 rounded-lg border border-warning-line bg-warning-surface px-3 py-2.5 text-sm text-warning-ink">
           This page shows children&apos;s home addresses, ID numbers and
           parents&apos; phone numbers. Please don&apos;t leave it open on a
           shared screen, and don&apos;t export it without a reason.

@@ -1,56 +1,129 @@
 @import "tailwindcss";
 
-/* ---------------------------------------------------------------
-   El-Salam Scouting Group — "modern civic" palette
-   Tailwind v4 is CSS-first: tokens declared in @theme become
-   utilities (bg-brand-600, text-ink, border-line, ...).
-   --------------------------------------------------------------- */
+/* ---------------------------------------------------------------------------
+   El-Salam Scouting Group — white ground, green accents.
+
+   Tailwind v4 is CSS-first: tokens declared in @theme become utilities
+   (bg-brand-600, text-ink, border-line, ...). Two blocks, on purpose:
+
+     @theme        — fixed values that never change with the colour scheme
+     :root / @media — semantic values that DO change, as plain variables
+     @theme inline — exposes those variables as utilities
+
+   The raw variables are deliberately named WITHOUT the `--color-` prefix so
+   that `@theme inline` can point at them without defining a variable in terms
+   of itself (`--color-canvas: var(--color-canvas)` silently resolves to
+   nothing and every surface goes transparent).
+   --------------------------------------------------------------------------- */
 
 @theme {
-  /* Brand — civic blue */
-  --color-brand-50: #eff6ff;
-  --color-brand-100: #dbeafe;
-  --color-brand-200: #bfdbfe;
-  --color-brand-300: #93c5fd;
-  --color-brand-400: #60a5fa;
-  --color-brand-500: #3b82f6;
-  --color-brand-600: #2563eb;
-  --color-brand-700: #1d4ed8;
-  --color-brand-800: #1e40af;
-  --color-brand-900: #17356f;
-  --color-brand-950: #0f2350;
+  /* Brand — scouting green.
+     NOT Tailwind's stock green. Every primary button in this app is white text
+     on brand-600, and stock green-600 (#16a34a) scores 3.30:1 against white —
+     below the 4.5:1 WCAG AA needs for body text. The scale is shifted darker
+     from 500 down so that brand-600 lands at 5.02:1 and stays legible for
+     someone reading a phone in daylight at camp. Measured, not guessed. */
+  --color-brand-50: #f0fdf4;
+  --color-brand-100: #dcfce7;
+  --color-brand-200: #b7ebca;
+  --color-brand-300: #7fd7a1;
+  --color-brand-400: #45bd77;
+  --color-brand-500: #1f9d55;
+  --color-brand-600: #15803d; /* white text: 5.02:1 */
+  --color-brand-700: #116631; /* white text: 7.07:1 */
+  --color-brand-800: #0e5228;
+  --color-brand-900: #0c4322;
+  --color-brand-950: #052e16;
 
-  /* Warm accent — used sparingly for badges and highlights */
-  --color-accent-400: #fbbf24;
-  --color-accent-500: #f59e0b;
-  --color-accent-600: #d97706;
+  /* Accent — a warmer, lighter green for small decorative marks (status dots,
+     rule highlights). Never carries text, so it is free to be bright. */
+  --color-accent-300: #a7e8c0;
+  --color-accent-400: #6fd49b;
+  --color-accent-500: #34c27b;
 
   --font-sans: var(--font-geist-sans), ui-sans-serif, system-ui, sans-serif;
   --font-mono: var(--font-geist-mono), ui-monospace, monospace;
 }
 
-/* Semantic surfaces. Raw variables are deliberately named WITHOUT the
-   `--color-` prefix, so the `@theme inline` block below can point at them
-   without defining a variable in terms of itself. */
+/* ---------------------------------------------------------------------------
+   Semantic surfaces — light (the default, and the one the group actually uses)
+   --------------------------------------------------------------------------- */
 :root {
+  color-scheme: light;
+
   --canvas: #ffffff;
-  --surface: #f8fafc;
+  /* Barely-there green wash. Enough to separate a panel from the page without
+     the grey cast that made the old palette feel like an admin console. */
+  --surface: #f5faf7;
   --surface-raised: #ffffff;
-  --ink: #0f172a;
-  --ink-muted: #475569;
-  --ink-subtle: #64748b;
-  --line: #e2e8f0;
+
+  --ink: #0b1a12;
+  --ink-muted: #40564a;
+  --ink-subtle: #5c7367;
+
+  /* Two border weights, because they answer different rules.
+     --line is decorative (dividers, card edges) and stays soft.
+     --line-strong is for anything a person operates — input borders, in
+     particular — where WCAG 1.4.11 requires 3:1 against the background.
+     Using one token for both means either invisible inputs or heavy-handed
+     dividers everywhere. */
+  --line: #dfeae3;
+  --line-strong: #6f9182; /* 3.47:1 on white */
+
+  /* Feedback. Previously these were hardcoded Tailwind reds and ambers in a
+     dozen components with no dark variants, so every error message rendered
+     as a glaring pink box on a dark page. Tokens fix it in one place. */
+  --danger-surface: #fef2f2;
+  --danger-line: #fecaca;
+  --danger-ink: #991b1b;
+  --danger-solid: #b91c1c;
+
+  --warning-surface: #fffbeb;
+  --warning-line: #fde68a;
+  --warning-ink: #854d0e;
+
+  --success-surface: #f0fdf4;
+  --success-line: #b7ebca;
+  --success-ink: #0e5228;
+
+  /* Brand colour used as TEXT — links, eyebrow labels, inline emphasis.
+     Separate from the brand scale because the scale is fixed and text has to
+     invert: brand-700 is 7.07:1 on white and 2.7:1 on the dark canvas, so
+     using the scale directly for text silently fails WCAG in dark mode. That
+     is exactly what axe found on two section labels here. One token means the
+     next person to write a green link cannot reintroduce it. */
+  --brand-ink: #116631;
 }
 
 @media (prefers-color-scheme: dark) {
   :root {
-    --canvas: #0b1220;
-    --surface: #0f172a;
-    --surface-raised: #16213a;
-    --ink: #e8edf6;
-    --ink-muted: #a3b1c6;
-    --ink-subtle: #8496ae;
-    --line: #23304a;
+    color-scheme: dark;
+
+    --canvas: #08110c;
+    --surface: #0d1a13;
+    --surface-raised: #12241a;
+
+    --ink: #e6f2ea;
+    --ink-muted: #a6bcaf;
+    --ink-subtle: #87a094;
+
+    --line: #1e3427;
+    --line-strong: #4f705b; /* 3.47:1 on the dark canvas */
+
+    --danger-surface: #2a0f0f;
+    --danger-line: #5c1f1f;
+    --danger-ink: #fca5a5;
+    --danger-solid: #ef4444;
+
+    --warning-surface: #2a1f06;
+    --warning-line: #5c4410;
+    --warning-ink: #fcd34d;
+
+    --success-surface: #062313;
+    --success-line: #14532d;
+    --success-ink: #7fd7a1;
+
+    --brand-ink: #7fd7a1; /* 11.08:1 on the dark canvas */
   }
 }
 
@@ -62,11 +135,43 @@
   --color-ink-muted: var(--ink-muted);
   --color-ink-subtle: var(--ink-subtle);
   --color-line: var(--line);
+  --color-line-strong: var(--line-strong);
+
+  --color-danger-surface: var(--danger-surface);
+  --color-danger-line: var(--danger-line);
+  --color-danger-ink: var(--danger-ink);
+  --color-danger-solid: var(--danger-solid);
+
+  --color-warning-surface: var(--warning-surface);
+  --color-warning-line: var(--warning-line);
+  --color-warning-ink: var(--warning-ink);
+
+  --color-success-surface: var(--success-surface);
+  --color-success-line: var(--success-line);
+  --color-success-ink: var(--success-ink);
+
+  --color-brand-ink: var(--brand-ink);
 }
 
 body {
   background: var(--canvas);
   color: var(--ink);
+}
+
+/* One focus ring for the whole app, on the element itself rather than per
+   component. Keyboard users were previously relying on browser defaults, which
+   a green-on-white design renders nearly invisible. :focus-visible means mouse
+   users never see it. */
+:where(a, button, input, select, textarea, summary, [tabindex]):focus-visible {
+  outline: 2px solid var(--color-brand-600);
+  outline-offset: 2px;
+  border-radius: 0.375rem;
+}
+
+@media (prefers-color-scheme: dark) {
+  :where(a, button, input, select, textarea, summary, [tabindex]):focus-visible {
+    outline-color: var(--color-brand-400);
+  }
 }
 
 /* Respect users who ask for reduced motion */

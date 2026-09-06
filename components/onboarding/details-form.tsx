@@ -35,7 +35,7 @@ export function DetailsForm({
       {state.notice ? (
         <p
           role="status"
-          className="rounded-lg border border-brand-200 bg-brand-50 px-3 py-2.5 text-sm text-brand-900 dark:border-brand-800 dark:bg-brand-950 dark:text-brand-200"
+          className="rounded-lg border border-success-line bg-success-surface px-3 py-2.5 text-sm text-success-ink"
         >
           {state.notice}
         </p>
@@ -44,7 +44,7 @@ export function DetailsForm({
       {state.error ? (
         <p
           role="alert"
-          className="rounded-lg border border-red-200 bg-red-50 px-3 py-2.5 text-sm text-red-800"
+          className="rounded-lg border border-danger-line bg-danger-surface px-3 py-2.5 text-sm text-danger-ink"
         >
           {state.error}
         </p>

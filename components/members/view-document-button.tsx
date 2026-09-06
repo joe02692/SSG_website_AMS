@@ -68,7 +68,7 @@ export function ViewDocumentButton({
           name="mode"
           value="view"
           disabled={pending}
-          className="text-xs font-medium text-brand-700 underline-offset-4 hover:underline disabled:opacity-60 dark:text-brand-300"
+          className="text-xs font-medium text-brand-ink underline-offset-4 hover:underline disabled:opacity-60"
         >
           {pending ? "…" : "View"}
         </button>
@@ -80,12 +80,12 @@ export function ViewDocumentButton({
           name="mode"
           value="download"
           disabled={pending}
-          className="text-xs font-medium text-brand-700 underline-offset-4 hover:underline disabled:opacity-60 dark:text-brand-300"
+          className="text-xs font-medium text-brand-ink underline-offset-4 hover:underline disabled:opacity-60"
         >
           Download
         </button>
         {state.error ? (
-          <span role="alert" className="text-xs text-red-600">
+          <span role="alert" className="text-xs text-danger-ink">
             {state.error}
           </span>
         ) : null}

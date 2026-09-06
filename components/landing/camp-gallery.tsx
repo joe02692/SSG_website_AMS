@@ -43,7 +43,7 @@ function PlaceholderTile({
             fill="none"
             stroke="currentColor"
             strokeWidth="1.25"
-            className="size-9 text-brand-700/50 dark:text-brand-300/40"
+            className="size-9 text-brand-ink/50 dark:text-brand-300/40"
           >
             <path d="M3 5.5A1.5 1.5 0 0 1 4.5 4h15A1.5 1.5 0 0 1 21 5.5v13a1.5 1.5 0 0 1-1.5 1.5h-15A1.5 1.5 0 0 1 3 18.5v-13Z" />
             <path d="m3 16 5-4 4 3 3.5-3L21 16" />
@@ -72,7 +72,7 @@ export async function CampGallery() {
       <div className="mx-auto max-w-6xl px-4 sm:px-6">
         <div className="mb-10 flex flex-wrap items-end justify-between gap-4">
           <div className="max-w-2xl">
-            <p className="text-sm font-semibold uppercase tracking-wider text-brand-700">
+            <p className="text-sm font-semibold uppercase tracking-wider text-brand-ink">
               Camp gallery
             </p>
             <h2

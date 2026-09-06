@@ -17,7 +17,15 @@ export const metadata: Metadata = {
 
 export default async function OnboardingPage() {
   await requireUser();
-  const profile = await getCurrentProfile();
+
+  // Fired together rather than in sequence. getScoutDetails() needs only the
+  // user id, so it does not depend on the profile; awaiting the profile first
+  // just to decide whether to ask was an extra round trip on a page every new
+  // member sees before they can do anything else.
+  const [profile, scout] = await Promise.all([
+    getCurrentProfile(),
+    getScoutDetails(),
+  ]);
 
   // Already answered — nothing to do here. Without this, the dashboard
   // layout's redirect and this page could bounce a member back and forth.
@@ -25,9 +33,7 @@ export default async function OnboardingPage() {
 
   // Scouts answer into real columns; staff still use the JSONB blob.
   const isScout = usesScoutDetails(profile?.role);
-  const answers = isScout
-    ? scoutAnswers(await getScoutDetails())
-    : (profile?.details ?? {});
+  const answers = isScout ? scoutAnswers(scout) : (profile?.details ?? {});
 
   return (
     <div className="flex min-h-dvh flex-col bg-surface">
@@ -51,7 +57,7 @@ export default async function OnboardingPage() {
       <main className="flex flex-1 items-center justify-center px-4 py-10 sm:py-16">
         <div className="w-full max-w-lg rounded-2xl border border-line bg-canvas p-6 shadow-sm sm:p-8">
           <div className="mb-6 space-y-1.5">
-            <p className="text-xs font-semibold uppercase tracking-wider text-brand-700 dark:text-brand-300">
+            <p className="text-xs font-semibold uppercase tracking-wider text-brand-ink">
               One last step
             </p>
             <h1 className="text-2xl font-semibold tracking-tight text-ink">

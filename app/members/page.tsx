@@ -1,7 +1,7 @@
 import type { Metadata } from "next";
 import Link from "next/link";
 import { SiteShell } from "@/components/site-shell";
-import { PROFILE_COLUMNS, requireSiteAdmin, type Profile } from "@/lib/dal";
+import { requireSiteAdmin } from "@/lib/dal";
 import { ROLE_LABELS, isHeadSiteAdminRole, type Role } from "@/lib/roles";
 import { createClient } from "@/lib/supabase/server";
 import { InviteForm } from "@/components/members/invite-form";
@@ -31,7 +31,7 @@ const ROLE_BADGE: Record<Role, string> = {
   stage_admin:
     "bg-brand-100 text-brand-800 dark:bg-brand-950 dark:text-brand-200",
   stage_leader:
-    "bg-brand-50 text-brand-700 dark:bg-brand-950/60 dark:text-brand-300",
+    "bg-brand-50 text-brand-ink dark:bg-brand-950/60",
   leader: "bg-brand-100 text-brand-800 dark:bg-brand-950 dark:text-brand-200",
   scout: "bg-surface text-ink-muted",
   parent: "bg-accent-500/15 text-accent-600 dark:bg-accent-500/10",
@@ -62,6 +62,17 @@ function inviteStatus(invite: Invite): "used" | "expired" | "active" {
   return "active";
 }
 
+/** Exactly the columns the table renders — see the query below. */
+type MemberRow = {
+  id: string;
+  full_name: string | null;
+  role: Role;
+  created_at: string;
+};
+
+/** Ceiling on both list queries — see the note where they are issued. */
+const MAX_ROWS = 500;
+
 export default async function MembersPage() {
   // The real gate. proxy.ts only checked that *a* session exists.
   // Site-level staff only — stage admins and stage leaders are redirected;
@@ -72,20 +83,36 @@ export default async function MembersPage() {
 
   const supabase = await createClient();
 
+  // Explicit column lists, not PROFILE_COLUMNS.
+  //
+  // PROFILE_COLUMNS is shaped for the single-row getCurrentProfile(); reusing
+  // it here dragged `details` — the onboarding answers JSONB — across the wire
+  // for every member on the site, to render a table that only ever reads name,
+  // role and join date. Personal data should not travel to a page that has no
+  // use for it.
+  //
+  // The limits are not decoration either. Neither query had one, and
+  // leader_invites in particular only ever grows: every code ever minted, used
+  // or expired, was being fetched forever. 500 is far above the ~400 members
+  // the group expects and far below the point where an un-paginated table
+  // becomes unusable; if either is ever hit, that is the signal to paginate
+  // rather than the moment it silently falls over.
   const [{ data: memberRows }, { data: inviteRows }] = await Promise.all([
     supabase
       .from("profiles")
-      .select(PROFILE_COLUMNS)
-      .order("created_at", { ascending: true }),
+      .select("id, full_name, role, created_at")
+      .order("created_at", { ascending: true })
+      .limit(MAX_ROWS),
     supabase
       .from("leader_invites")
       .select(
         "code, note, created_at, expires_at, used_by, used_at, grants_role",
       )
-      .order("created_at", { ascending: false }),
+      .order("created_at", { ascending: false })
+      .limit(MAX_ROWS),
   ]);
 
-  const members = (memberRows ?? []) as Profile[];
+  const members = (memberRows ?? []) as MemberRow[];
   const invites = (inviteRows ?? []) as Invite[];
 
   const nameById = new Map(members.map((m) => [m.id, m.full_name]));
