@@ -7,6 +7,7 @@ import { createClient } from "@/lib/supabase/server";
 import { InviteForm } from "@/components/members/invite-form";
 import { CopyButton } from "@/components/members/copy-button";
 import { DeleteMemberButton } from "@/components/members/delete-member-button";
+import { RecoveryLinkButton } from "@/components/members/recovery-link-button";
 import { DeleteInviteButton } from "@/components/members/delete-invite-button";
 
 export const metadata: Metadata = {
@@ -205,10 +206,20 @@ export default async function MembersPage() {
                       <td className="px-4 py-3">
                         {member.id === viewer.id ||
                         member.role === "head_site_admin" ? null : (
-                          <DeleteMemberButton
-                            memberId={member.id}
-                            name={member.full_name ?? "this member"}
-                          />
+                          <div className="flex flex-col items-end gap-2">
+                            {/* Password reset by link, because there is no
+                                working mailer until the group has a domain —
+                                see Tasks/email-setup.md. Without this a member
+                                who forgets their password has no way back. */}
+                            <RecoveryLinkButton
+                              memberId={member.id}
+                              name={member.full_name ?? "this member"}
+                            />
+                            <DeleteMemberButton
+                              memberId={member.id}
+                              name={member.full_name ?? "this member"}
+                            />
+                          </div>
                         )}
                       </td>
                     ) : null}

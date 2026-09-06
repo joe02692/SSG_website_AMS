@@ -1,9 +1,12 @@
 "use server";
 
 import { redirect } from "next/navigation";
+import { after } from "next/server";
 import { revalidatePath } from "next/cache";
 import { createClient } from "@/lib/supabase/server";
 import { getCurrentProfile } from "@/lib/dal";
+import { ROLE_LABELS } from "@/lib/roles";
+import { notifyRegistrationComplete } from "@/lib/email";
 import {
   APPLICANT_STATUSES,
   MAX_ANSWER_LENGTH,
@@ -431,6 +434,25 @@ export async function completeOnboardingAction(
 ): Promise<DetailsState> {
   const result = await saveDetails(formData, true);
   if (result.error) return result;
+
+  // Tell the admins, but not on the member's time.
+  //
+  // after() runs once the response has been sent, so a slow or unreachable
+  // Resend never delays somebody finishing registration. Awaiting the send
+  // here would put a network round trip between "Save" and the dashboard, and
+  // firing it without awaiting at all risks the serverless function being torn
+  // down mid-request. Does nothing when Resend isn't configured.
+  const profile = await getCurrentProfile();
+  if (profile) {
+    after(async () => {
+      await notifyRegistrationComplete({
+        fullName: profile.full_name,
+        roleLabel: ROLE_LABELS[profile.role],
+        profileId: profile.id,
+      });
+    });
+  }
+
   // redirect() throws a control-flow exception; nothing after it runs.
   redirect("/dashboard");
 }

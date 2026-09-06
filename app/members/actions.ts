@@ -211,3 +211,126 @@ export async function deleteMemberAction(
   revalidatePath("/members");
   return {};
 }
+
+export type RecoveryLinkState = {
+  error?: string;
+  /** The one-time link, shown once so it can be copied and sent. */
+  link?: string;
+  /** Who it belongs to, so a crowded table can't be misread. */
+  forName?: string;
+};
+
+/**
+ * Mints a one-time password-recovery link for another member.
+ *
+ * Why this exists: password reset normally arrives by email, and this project
+ * has no working mailer until the group buys a domain (Resend cannot send to
+ * arbitrary recipients without a verified one — see Tasks/email-setup.md).
+ * Until then a member who forgets their password has no way back into their
+ * account at all.
+ *
+ * Deliberately a LINK and not a password. An admin setting a temporary
+ * password means an admin knows a member's password, and temporary passwords
+ * get reused, written down and pasted into group chats. A recovery link is
+ * single-use, expires on its own, and nobody — including the head admin —
+ * learns the member's actual credentials. The admin passes it on however they
+ * already talk to that person.
+ *
+ * This stays useful after the domain arrives: someone whose email bounces or
+ * who mistyped their address still needs a route back.
+ *
+ * Head site admin only. It is, in effect, temporary access to someone else's
+ * account, so it sits with the same person who can delete accounts and mint
+ * invite codes — not with every site admin.
+ */
+export async function createRecoveryLinkAction(
+  _prevState: RecoveryLinkState,
+  formData: FormData,
+): Promise<RecoveryLinkState> {
+  const admin = await requireHeadAdmin();
+  if (!admin) {
+    return { error: "Only the head site admin can issue recovery links." };
+  }
+
+  const memberId = formData.get("memberId");
+  if (typeof memberId !== "string" || !memberId) {
+    return { error: "No member selected." };
+  }
+
+  const supabase = await createClient();
+  const { data: target } = await supabase
+    .from("profiles")
+    .select("id, full_name, role")
+    .eq("id", memberId)
+    .single();
+
+  if (!target) return { error: "That member no longer exists." };
+
+  // One head admin must not be able to take over another's account. Mirrors
+  // the same guard on deleteMemberAction.
+  if (target.role === "head_site_admin" && target.id !== admin.id) {
+    return { error: "You can't issue a recovery link for another head admin." };
+  }
+
+  let adminClient;
+  try {
+    adminClient = createAdminSupabase();
+  } catch {
+    return {
+      error:
+        "Recovery links aren't configured on this deployment — SUPABASE_SERVICE_ROLE_KEY is missing.",
+    };
+  }
+
+  // The email address is the one on auth.users, not anything submitted — the
+  // form only ever carries a profile id.
+  const { data: userData, error: lookupError } =
+    await adminClient.auth.admin.getUserById(memberId);
+
+  const email = userData?.user?.email;
+  if (lookupError || !email) {
+    console.error("[recovery] could not read the member's email", lookupError);
+    return { error: "Could not find an email address for that member." };
+  }
+
+  const site =
+    process.env.NEXT_PUBLIC_SITE_URL ?? "https://ssg-website-ams.vercel.app";
+
+  const { data, error } = await adminClient.auth.admin.generateLink({
+    type: "recovery",
+    email,
+  });
+
+  const hashedToken = data?.properties?.hashed_token;
+  if (error || !hashedToken) {
+    console.error("[recovery] could not generate a link", error);
+    return {
+      error: `Could not create a recovery link (${error?.code ?? error?.message ?? "unknown"}).`,
+    };
+  }
+
+  // Built from hashed_token, NOT from properties.action_link.
+  //
+  // action_link points at Supabase's own /auth/v1/verify, which on success
+  // redirects with the session in the URL *fragment* (#access_token=…).
+  // A fragment never reaches the server, so our /auth/confirm route would see
+  // neither a code nor a token_hash and bounce the member to
+  // /login?error=invalid_confirmation_link — a link that looks right and
+  // always fails.
+  //
+  // Pointing at our own route with token_hash instead means verifyOtp() runs
+  // server-side, the session cookie is set properly, and the member lands on
+  // /reset-password ready to choose a password. That is the second flow
+  // app/auth/confirm/route.ts already documents and handles.
+  const link = new URL("/auth/confirm", site);
+  link.searchParams.set("token_hash", hashedToken);
+  link.searchParams.set("type", "recovery");
+  link.searchParams.set("next", "/reset-password");
+
+  // Not logged, not stored, not revalidated into a cache — returned once, to
+  // the admin who asked, and then it is gone from the server's side.
+  return {
+    link: link.toString(),
+    forName: target.full_name ?? "this member",
+  };
+}
