@@ -29,10 +29,13 @@ Migrations `0001`–`0003` already created:
   **`profiles.role` is the single authoritative role.** It's written only by the `handle_new_user()`
   SECURITY DEFINER trigger on signup, and a `prevent_role_escalation()` trigger blocks any client
   update to it. Don't design around reading role from anywhere else (not JWT metadata).
-- `public.leader_invites` — single-use signup codes. Each code carries `grants_role`, which decides
-  whether redeeming it produces a `stage_admin` or a `stage_leader`; the trigger reads that column,
-  so the role is never taken from what the person signing up sends. Used codes are kept as permanent
-  audit records, not deleted.
+- `public.leader_invites` — **retired 8 Sep 2026.** The table is still there and still holds the
+  codes that were issued, kept as an audit record, but nothing reads it any more. Leaders now sign
+  up by *request*: `handle_new_user()` gives them the `pending_leader` role, which grants nothing,
+  and the head site admin picks their real role when approving (migrations `0016`/`0017`). The
+  principle is unchanged and worth restating — the role is never taken from what the person signing
+  up sends; the browser only sends `requested_role` and `requested_stage`, which are a request, not
+  a grant.
 - `public.current_user_role()` — SECURITY DEFINER helper returning the caller's role.
 - `public.is_leader()` — SECURITY DEFINER helper, true for any leader-level role. **Use this in new
   policies** rather than comparing against a specific role: `stage_admin` and `stage_leader` are

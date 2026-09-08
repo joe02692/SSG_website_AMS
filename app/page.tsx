@@ -179,8 +179,8 @@ export default function HomePage() {
               Ready to join us?
             </h2>
             <p className="mx-auto mt-3 max-w-xl text-brand-100">
-              Create your scout account in a minute. Leaders join with an
-              invite code from the group — parent accounts are coming soon.
+              Create your scout account in a minute. Leaders send a request
+              the group approves — parent accounts are coming soon.
             </p>
             <div className="mt-7 flex flex-wrap justify-center gap-3">
               <Link

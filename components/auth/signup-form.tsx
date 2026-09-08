@@ -4,15 +4,16 @@ import { useActionState, useId, useState } from "react";
 import Link from "next/link";
 import { signUpAction, type AuthState } from "@/app/auth/actions";
 import { ROLE_DESCRIPTIONS, ROLE_LABELS, type Role } from "@/lib/roles";
+import { SCOUT_STAGES } from "@/lib/onboarding";
 import { Field, inputClass } from "@/components/ui/field";
 import { SubmitButton } from "@/components/ui/submit-button";
 
 const initialState: AuthState = {};
 
 /**
- * scout is self-serve; leader is gated behind an invite code; parent is
- * shown but not open yet in this version. The `disabled` flag here is a
- * UI convenience only — signUpAction rejects a parent signup server-side.
+ * scout is self-serve; leader creates a REQUEST that a head admin approves;
+ * parent is shown but not open yet. The `disabled` flag is a UI convenience
+ * only — signUpAction rejects a parent signup server-side.
  */
 const CHOICES: {
   value: Role;
@@ -21,16 +22,19 @@ const CHOICES: {
 }[] = [
   { value: "scout", badge: null, disabled: false },
   { value: "parent", badge: "Coming soon", disabled: true },
-  { value: "leader", badge: "Invite only", disabled: false },
+  { value: "leader", badge: "Needs approval", disabled: false },
 ];
 
 /**
- * The signup form offers one "Leader" choice. Which leader role you actually
- * get — Stage Admin or Stage Leader — is decided by the invite code you
- * redeem, in the database, not by anything chosen here.
+ * One "Leader" choice, and it does not name a role.
+ *
+ * Which role an approved leader ends up with — Stage Leader, Stage Admin,
+ * Site Admin — is chosen by the head admin at approval time. Offering that
+ * choice here would let the applicant propose their own privileges, which is
+ * the mistake the invite-code system made in a different shape.
  */
 const LEADER_CHOICE_DESCRIPTION =
-  "Runs or oversees a stage. Requires an invite code from the group.";
+  "Runs or oversees a stage. Your request goes to the group for approval.";
 
 export function SignupForm() {
   const [state, formAction, pending] = useActionState(
@@ -174,26 +178,41 @@ export function SignupForm() {
       </Field>
 
       {role === "leader" ? (
-        <Field
-          label="Leader invite code"
-          htmlFor={`${id}-invite`}
-          hint="Ask an existing group leader for a code."
-          error={state.fieldErrors?.inviteCode}
-        >
-          <input
-            id={`${id}-invite`}
-            name="inviteCode"
-            type="text"
-            autoComplete="off"
-            spellCheck={false}
-            className={`${inputClass} font-mono uppercase`}
-            placeholder="ELSALAM-XXXX-XXXX"
-          />
-        </Field>
+        <>
+          <Field
+            label="Which stage do you work with?"
+            htmlFor={`${id}-stage`}
+            hint="So the group knows who you are when they review your request."
+            error={state.fieldErrors?.requestedStage}
+          >
+            <select
+              id={`${id}-stage`}
+              name="requestedStage"
+              defaultValue=""
+              className={inputClass}
+            >
+              <option value="">Choose a stage…</option>
+              {SCOUT_STAGES.map((stage) => (
+                <option key={stage.value} value={stage.value}>
+                  {stage.label}
+                </option>
+              ))}
+            </select>
+          </Field>
+
+          <p className="rounded-lg border border-line bg-surface px-3 py-2.5 text-sm text-ink-muted">
+            Your account is created straight away but stays locked until the
+            group approves it. You&apos;ll be able to sign in and check the
+            status at any time.
+          </p>
+        </>
       ) : null}
 
-      <SubmitButton pending={pending} pendingLabel="Creating account…">
-        Create account
+      <SubmitButton
+        pending={pending}
+        pendingLabel={role === "leader" ? "Sending request…" : "Creating account…"}
+      >
+        {role === "leader" ? "Send request" : "Create account"}
       </SubmitButton>
 
       <p className="text-center text-sm text-ink-muted">

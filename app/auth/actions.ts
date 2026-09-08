@@ -4,7 +4,10 @@ import { redirect } from "next/navigation";
 import { revalidatePath } from "next/cache";
 import { headers } from "next/headers";
 import { createClient } from "@/lib/supabase/server";
+import { SCOUT_STAGES } from "@/lib/onboarding";
 import { COMING_SOON_ROLES, SELF_SERVE_ROLES } from "@/lib/roles";
+
+const STAGE_CODES: string[] = SCOUT_STAGES.map((stage) => stage.value);
 
 export type AuthState = {
   error?: string;
@@ -41,7 +44,7 @@ export async function signUpAction(
   const password = str(formData, "password");
   const fullName = str(formData, "fullName");
   const requestedRole = str(formData, "role");
-  const inviteCode = str(formData, "inviteCode");
+  const requestedStage = str(formData, "requestedStage");
 
   const fieldErrors: Record<string, string> = {};
 
@@ -51,9 +54,10 @@ export async function signUpAction(
     fieldErrors.password = `Use at least ${MIN_PASSWORD_LENGTH} characters.`;
   }
 
-  // "leader" is deliberately absent from SELF_SERVE_ROLES. A leader signup is
-  // only ever the result of a valid invite code, and the decision is made in
-  // Postgres (handle_new_user), not here — this check is just good UX.
+  // "leader" is deliberately absent from SELF_SERVE_ROLES. Choosing it creates
+  // a REQUEST, not a leader: handle_new_user() in Postgres can only ever write
+  // `pending_leader`, which grants nothing. This check is UX, not security —
+  // the guarantee lives in the database, where a crafted POST cannot reach it.
   const isSelfServe = (SELF_SERVE_ROLES as readonly string[]).includes(
     requestedRole,
   );
@@ -69,26 +73,13 @@ export async function signUpAction(
   } else if (!isSelfServe && requestedRole !== "leader") {
     fieldErrors.role = "Choose how you're joining.";
   }
-  // Codes are generated in upper case; accept whatever case is typed.
-  const normalisedCode = inviteCode.toUpperCase();
-
   const supabase = await createClient();
 
-  if (requestedRole === "leader") {
-    if (!normalisedCode) {
-      fieldErrors.inviteCode = "Leader accounts need an invite code.";
-    } else {
-      // Check the code BEFORE creating anything. Without this the account is
-      // created first and the database trigger rejects it, which works but
-      // gives the person a failed request instead of a clear message.
-      const { data: valid } = await supabase.rpc("invite_code_is_valid", {
-        code: normalisedCode,
-      });
-      if (!valid) {
-        fieldErrors.inviteCode =
-          "That code isn't valid — it may be mistyped, expired, or already used.";
-      }
-    }
+  // Asking to lead means telling us which stage, so the head admin reviewing a
+  // list of names has something to recognise them by.
+  const isLeaderRequest = requestedRole === "leader";
+  if (isLeaderRequest && !STAGE_CODES.includes(requestedStage)) {
+    fieldErrors.requestedStage = "Choose the stage you work with.";
   }
 
   if (Object.keys(fieldErrors).length > 0) {
@@ -106,31 +97,28 @@ export async function signUpAction(
         full_name: fullName,
         // Named "requested_" on purpose: it is a hint the database trigger
         // may override. It is never the authoritative role.
-        requested_role: isSelfServe ? requestedRole : "scout",
-        ...(normalisedCode ? { leader_invite_code: normalisedCode } : {}),
+        requested_role: isLeaderRequest
+          ? "leader"
+          : isSelfServe
+            ? requestedRole
+            : "scout",
+        ...(isLeaderRequest ? { requested_stage: requestedStage } : {}),
       },
     },
   });
 
-  if (error) {
-    // The trigger raises when a code is unusable. That normally can't happen
-    // — it was checked a moment ago — but it does if someone else redeems the
-    // last-but-one use in between, so translate it rather than showing a raw
-    // database error.
-    const message = `${error.message} ${error.code ?? ""}`;
-    if (
-      message.includes("ELSALAM_INVALID_INVITE") ||
-      message.includes("Database error saving new user")
-    ) {
-      return {
-        fieldErrors: {
-          inviteCode:
-            "That code was just used or is no longer valid. Ask for a new one.",
-        },
-        error: "Please fix the highlighted fields.",
-      };
-    }
-    return { error: error.message };
+  if (error) return { error: error.message };
+
+  // A leader request never goes to the dashboard, session or not. The account
+  // exists but holds `pending_leader`, which grants nothing — sending them to
+  // /dashboard would bounce them straight back out and read as a bug rather
+  // than as "we have your request".
+  if (isLeaderRequest) {
+    if (data.session) revalidatePath("/", "layout");
+    return {
+      notice:
+        "Your request has been sent. We're waiting for an admin to approve it — you'll be able to sign in and check the status any time.",
+    };
   }
 
   // When "Confirm email" is switched off in the Supabase dashboard, signUp

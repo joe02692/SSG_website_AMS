@@ -259,8 +259,8 @@ export default async function ScoutsPage() {
           <div className="mt-6 rounded-2xl border border-dashed border-line bg-surface p-10 text-center">
             <p className="text-lg font-medium text-ink">No leaders yet</p>
             <p className="mt-2 text-sm text-ink-muted">
-              Leaders appear here once they join with an invite code and finish
-              the details form.
+              Leaders appear here once their request is approved and they
+              finish the details form.
             </p>
           </div>
         ) : (

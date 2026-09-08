@@ -1,7 +1,12 @@
 import { Suspense } from "react";
 import Link from "next/link";
 import { getCurrentProfile } from "@/lib/dal";
-import { ROLE_LABELS, isSiteAdminRole, isStageRole } from "@/lib/roles";
+import {
+  ROLE_LABELS,
+  isPendingRole,
+  isSiteAdminRole,
+  isStageRole,
+} from "@/lib/roles";
 import { signOutAction } from "@/app/auth/actions";
 
 const NAV = [
@@ -32,6 +37,32 @@ const primaryButton =
  */
 async function HeaderAuth() {
   const profile = await getCurrentProfile();
+
+  // A pending account gets a link to its own status page and nothing else —
+  // no Dashboard, no Members. Those would only bounce them back here.
+  if (profile && isPendingRole(profile.role)) {
+    return (
+      <>
+        <span className="hidden text-right text-xs leading-tight sm:block">
+          <span className="block font-medium text-ink">
+            {profile.full_name ?? "Member"}
+          </span>
+          <span className="block text-ink-subtle">Awaiting approval</span>
+        </span>
+        <Link href="/pending" className={primaryButton}>
+          Request status
+        </Link>
+        <form action={signOutAction}>
+          <button
+            type="submit"
+            className="rounded-lg border border-line px-3 py-2 text-sm text-ink-muted transition hover:border-brand-300 hover:text-ink"
+          >
+            Sign out
+          </button>
+        </form>
+      </>
+    );
+  }
 
   if (!profile) {
     return (

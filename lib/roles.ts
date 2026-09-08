@@ -2,6 +2,7 @@
 export const ROLES = [
   "scout",
   "parent",
+  "pending_leader",
   "stage_leader",
   "stage_admin",
   "site_admin",
@@ -18,7 +19,17 @@ export type Role = (typeof ROLES)[number];
 export const SELF_SERVE_ROLES = ["scout"] as const;
 
 /**
- * Roles shown in the signup UI but not open yet. Listed separately (rather
+ * Someone who has asked to lead and has not been approved.
+ *
+ * This role appears in no other list in this file, and that is the entire
+ * security model behind it: isStaffRole, isStageRole and isSiteAdminRole all
+ * return false, so a pending account has exactly the access of a stranger.
+ * Adding it to any of those lists would grant access to anyone who can fill
+ * in a signup form.
+ */
+export const PENDING_ROLE = "pending_leader" as const;
+
+/** Roles shown in the signup UI but not open yet. Listed separately (rather
  * than removed) so the option still appears with a "Coming soon" badge —
  * and so the server can reject it explicitly instead of falling through to
  * the generic "choose how you're joining" error.
@@ -31,7 +42,7 @@ export const COMING_SOON_ROLES = ["parent"] as const;
  *   stage_leader     runs sessions for one stage
  *   stage_admin      oversees one stage
  *   site_admin       the website team — reads every member
- *   head_site_admin  one account — also issues invite codes
+ *   head_site_admin  one account — approves requests and assigns roles
  *
  * stage_leader and stage_admin are still identical in permissions; the
  * distinction is recorded, not yet enforced.
@@ -51,23 +62,27 @@ export const STAGE_ROLES = ["stage_leader", "stage_admin"] as const;
 export const SITE_ADMIN_ROLES = ["site_admin", "head_site_admin"] as const;
 
 /**
- * Roles an invite code can grant.
+ * Roles the head site admin can assign — on approving a request, or when
+ * changing an existing member's role.
  *
- * head_site_admin is deliberately absent: that role is assigned by hand from
- * the SQL editor, so no code — however it leaks — can ever mint a second one.
- * Only the head site admin can create codes at all (is_head_site_admin() RLS).
+ * head_site_admin is deliberately absent. There is exactly one, it is set by
+ * hand in the SQL editor, and keeping it out of this list means no bug in the
+ * approval UI can ever mint a second one. `scout` is present so a leader who
+ * steps down can be moved back rather than deleted.
  */
-export const INVITABLE_ROLES = [
+export const ASSIGNABLE_ROLES = [
   "site_admin",
   "stage_admin",
   "stage_leader",
+  "scout",
 ] as const;
 
-export type InvitableRole = (typeof INVITABLE_ROLES)[number];
+export type AssignableRole = (typeof ASSIGNABLE_ROLES)[number];
 
 export const ROLE_LABELS: Record<Role, string> = {
   scout: "Scout",
   parent: "Parent / Guardian",
+  pending_leader: "Awaiting approval",
   stage_leader: "Stage Leader",
   stage_admin: "Stage Admin",
   site_admin: "Site Admin",
@@ -78,10 +93,13 @@ export const ROLE_LABELS: Record<Role, string> = {
 export const ROLE_DESCRIPTIONS: Record<Role, string> = {
   scout: "A member of the group taking part in meetings and camps.",
   parent: "A parent or guardian following a scout in the group.",
+  pending_leader:
+    "Has asked to join as a leader and is waiting for the head site admin to approve it. No access until then.",
   stage_leader: "Runs sessions and activities for a stage.",
   stage_admin: "Oversees a stage — its members, records and season plan.",
   site_admin: "Manages the website and can view every member.",
-  head_site_admin: "Runs the system and is the only account that issues invite codes.",
+  head_site_admin:
+    "Runs the system, approves leader requests and sets everyone\u2019s role.",
   leader: "Runs sections, manages records and approves members.",
 };
 
@@ -111,9 +129,14 @@ export function isHeadSiteAdminRole(role: Role | null | undefined): boolean {
   return role === "head_site_admin";
 }
 
-export function isInvitableRole(value: unknown): value is InvitableRole {
+export function isAssignableRole(value: unknown): value is AssignableRole {
   return (
     typeof value === "string" &&
-    (INVITABLE_ROLES as readonly string[]).includes(value)
+    (ASSIGNABLE_ROLES as readonly string[]).includes(value)
   );
+}
+
+/** Asked to lead, not yet approved. No access to anything. */
+export function isPendingRole(role: Role | null | undefined): boolean {
+  return role === PENDING_ROLE;
 }

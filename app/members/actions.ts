@@ -1,41 +1,30 @@
 "use server";
 
-import { randomBytes } from "node:crypto";
 import { revalidatePath } from "next/cache";
 import { createClient } from "@/lib/supabase/server";
 import { createAdminSupabase } from "@/lib/supabase/admin";
 import { getCurrentProfile } from "@/lib/dal";
-import { isHeadSiteAdminRole, isInvitableRole } from "@/lib/roles";
+import { ROLE_LABELS } from "@/lib/roles";
+import {
+  isAssignableRole,
+  isHeadSiteAdminRole,
+  isPendingRole,
+  type AssignableRole,
+} from "@/lib/roles";
 
-export type InviteState = {
-  error?: string;
-  notice?: string;
-  /** The freshly minted code, echoed back so the UI can display it big. */
-  code?: string;
-};
+/* The invite-code actions lived here — createInviteAction, deleteInviteAction
+ * and the code generator. Leader access is now requested and approved, so
+ * there is nothing to mint. The leader_invites table survives as a record of
+ * how the current leaders joined; see migration 0017. */
 
-/**
- * Codes avoid 0/O/1/I/L so they survive being read out loud at a group
- * meeting or scribbled on paper.
- */
-const CODE_ALPHABET = "ABCDEFGHJKMNPQRSTUVWXYZ23456789";
-
-function generateCode(): string {
-  const bytes = randomBytes(8);
-  let out = "";
-  for (let i = 0; i < 8; i++) {
-    out += CODE_ALPHABET[bytes[i] % CODE_ALPHABET.length];
-    if (i === 3) out += "-";
-  }
-  return `ELSALAM-${out}`;
-}
+export type DeleteState = { error?: string };
 
 /**
- * Issuing and revoking codes belongs to the head site admin alone — a site
- * admin can read the member list but must not be able to hand out staff
- * access. Re-checked here because Server Actions are reachable by direct
- * POST; the is_head_site_admin() RLS policy would refuse anyway, but this
- * turns a silent database rejection into an honest error message.
+ * The gate on every action in this file.
+ *
+ * Returns the profile so callers can compare ids — several of these refuse to
+ * act on the admin's own account, and doing that needs to know who they are,
+ * not merely that they are allowed.
  */
 async function requireHeadAdmin() {
   const profile = await getCurrentProfile();
@@ -43,107 +32,6 @@ async function requireHeadAdmin() {
   return profile;
 }
 
-// ---------------------------------------------------------------------------
-// Mint a new leader invite
-// ---------------------------------------------------------------------------
-export async function createInviteAction(
-  _prevState: InviteState,
-  formData: FormData,
-): Promise<InviteState> {
-  const admin = await requireHeadAdmin();
-  if (!admin) {
-    return { error: "Only the head site admin can create invite codes." };
-  }
-
-  const rawNote = formData.get("note");
-  const note =
-    typeof rawNote === "string" ? rawNote.trim().slice(0, 200) : "";
-
-  const grantsRole = formData.get("grantsRole");
-  if (!isInvitableRole(grantsRole)) {
-    return { error: "Choose which kind of leader this code creates." };
-  }
-
-  const rawDays = formData.get("expiresDays");
-  const days =
-    typeof rawDays === "string" && rawDays !== "" ? Number(rawDays) : null;
-  if (days !== null && (!Number.isInteger(days) || days < 1 || days > 365)) {
-    return { error: "Choose a valid expiry." };
-  }
-
-  const code = generateCode();
-  const expiresAt =
-    days === null
-      ? null
-      : new Date(Date.now() + days * 24 * 60 * 60 * 1000).toISOString();
-
-  const supabase = await createClient();
-  const { error } = await supabase.from("leader_invites").insert({
-    code,
-    note: note || null,
-    created_by: admin.id,
-    expires_at: expiresAt,
-    // The database reads this back in handle_new_user() to decide the role —
-    // it is not re-derived from anything the new member sends at signup.
-    grants_role: grantsRole,
-  });
-
-  if (error) {
-    return { error: "Could not create the invite. Try again." };
-  }
-
-  revalidatePath("/members");
-  return {
-    notice: "Invite created. Share this code with the new leader:",
-    code,
-  };
-}
-
-// ---------------------------------------------------------------------------
-// Delete an invite code
-// ---------------------------------------------------------------------------
-export type DeleteState = { error?: string };
-
-/**
- * Removes a code row entirely — used or unused.
- *
- * An unused code: this is a straightforward revoke, and the code can never be
- * redeemed afterwards.
- *
- * A used code: the row is the only record of who joined with which invite, so
- * deleting it discards that link. The member's account is untouched — their
- * role already lives on their profile and does not depend on this row.
- *
- * Note the code string becomes free to mint again afterwards. That is not a
- * way to "recycle" codes and there is no need to: codes are 8 random
- * characters from a 31-character alphabet, so the supply is effectively
- * unlimited. Deleting is for tidiness, not capacity.
- */
-export async function deleteInviteAction(
-  _prevState: DeleteState,
-  formData: FormData,
-): Promise<DeleteState> {
-  const admin = await requireHeadAdmin();
-  if (!admin) return { error: "Only the head site admin can delete codes." };
-
-  const code = formData.get("code");
-  if (typeof code !== "string" || !code) return { error: "Nothing to delete." };
-
-  const supabase = await createClient();
-  const { error } = await supabase
-    .from("leader_invites")
-    .delete()
-    .eq("code", code);
-
-  if (error) return { error: "Could not delete that code. Try again." };
-
-  revalidatePath("/members");
-  return {};
-}
-
-// ---------------------------------------------------------------------------
-// Delete a member's account
-// ---------------------------------------------------------------------------
 /**
  * Permanently removes an account.
  *
@@ -332,5 +220,211 @@ export async function createRecoveryLinkAction(
   return {
     link: link.toString(),
     forName: target.full_name ?? "this member",
+  };
+}
+
+
+export type ReviewState = { error?: string; notice?: string };
+
+/**
+ * Approves a pending leader request and assigns their role.
+ *
+ * Why this runs through the service role rather than an ordinary query:
+ * prevent_role_escalation() (migration 0004) raises on ANY change to
+ * profiles.role coming from a client connection, and it checks the JWT claim
+ * as well as current_user — so even a SECURITY DEFINER function called by a
+ * signed-in admin is refused. That guard is the thing standing between a
+ * member and self-promotion, so the answer is to satisfy it honestly, not to
+ * weaken it: the service role is a different connection, and the authorisation
+ * decision lives here, in code that has already established who is asking.
+ *
+ * The role comes from a fixed list that excludes head_site_admin. There is
+ * exactly one head admin, set by hand in SQL, and no approval — however
+ * malformed the request — can mint a second.
+ */
+export async function approveRequestAction(
+  _prevState: ReviewState,
+  formData: FormData,
+): Promise<ReviewState> {
+  const admin = await requireHeadAdmin();
+  if (!admin) return { error: "Only the head site admin can approve requests." };
+
+  const memberId = formData.get("memberId");
+  const role = formData.get("role");
+
+  if (typeof memberId !== "string" || !memberId) {
+    return { error: "No request selected." };
+  }
+  if (!isAssignableRole(role)) {
+    return { error: "Choose a role to give them." };
+  }
+
+  const supabase = await createClient();
+  const { data: target } = await supabase
+    .from("profiles")
+    .select("id, role, full_name")
+    .eq("id", memberId)
+    .single();
+
+  if (!target) return { error: "That request no longer exists." };
+  if (!isPendingRole(target.role)) {
+    return { error: "That account has already been reviewed." };
+  }
+
+  let adminClient;
+  try {
+    adminClient = createAdminSupabase();
+  } catch {
+    return {
+      error:
+        "Approvals aren't configured on this deployment — SUPABASE_SERVICE_ROLE_KEY is missing.",
+    };
+  }
+
+  const { error } = await adminClient
+    .from("profiles")
+    .update({
+      role: role as AssignableRole,
+      reviewed_by: admin.id,
+      reviewed_at: new Date().toISOString(),
+    })
+    .eq("id", memberId)
+    // Re-checking the role in the WHERE clause closes the gap between reading
+    // the row above and writing it here: two admins approving at once cannot
+    // both succeed.
+    .eq("role", "pending_leader");
+
+  if (error) {
+    console.error("[requests] could not approve", error);
+    return {
+      error: `Could not approve that request (${error.code ?? "unknown"}: ${error.message}).`,
+    };
+  }
+
+  revalidatePath("/members");
+  return {
+    notice: `${target.full_name ?? "That member"} is now a ${ROLE_LABELS[role]}.`,
+  };
+}
+
+/**
+ * Rejects a request by deleting the account outright.
+ *
+ * This is what was chosen over keeping a rejected record, and it is worth
+ * knowing what it costs: nothing stops the same person signing up again the
+ * next minute, and there is no trace that they were already refused. The UI
+ * therefore asks twice, because this cannot be undone.
+ */
+export async function rejectRequestAction(
+  _prevState: ReviewState,
+  formData: FormData,
+): Promise<ReviewState> {
+  const admin = await requireHeadAdmin();
+  if (!admin) return { error: "Only the head site admin can reject requests." };
+
+  const memberId = formData.get("memberId");
+  if (typeof memberId !== "string" || !memberId) {
+    return { error: "No request selected." };
+  }
+  if (memberId === admin.id) return { error: "That's your own account." };
+
+  const supabase = await createClient();
+  const { data: target } = await supabase
+    .from("profiles")
+    .select("id, role, full_name")
+    .eq("id", memberId)
+    .single();
+
+  if (!target) return { error: "That request no longer exists." };
+  // Only ever deletes an unapproved account. Without this check the same
+  // action could be pointed at an established leader.
+  if (!isPendingRole(target.role)) {
+    return { error: "That account has already been approved — delete it from the members table instead." };
+  }
+
+  let adminClient;
+  try {
+    adminClient = createAdminSupabase();
+  } catch {
+    return {
+      error:
+        "Rejections aren't configured on this deployment — SUPABASE_SERVICE_ROLE_KEY is missing.",
+    };
+  }
+
+  const { error } = await adminClient.auth.admin.deleteUser(memberId);
+  if (error) {
+    console.error("[requests] could not delete", error);
+    return { error: "Could not remove that account. Please try again." };
+  }
+
+  revalidatePath("/members");
+  return { notice: `${target.full_name ?? "That request"} was rejected and removed.` };
+}
+
+/**
+ * Changes an existing member's role.
+ *
+ * Same service-role path and the same fixed list as approval. Two guards worth
+ * naming: the head admin cannot change their own role, because demoting
+ * yourself leaves the group with no head admin and no way back except SQL; and
+ * no other head admin can be touched from here.
+ */
+export async function changeRoleAction(
+  _prevState: ReviewState,
+  formData: FormData,
+): Promise<ReviewState> {
+  const admin = await requireHeadAdmin();
+  if (!admin) return { error: "Only the head site admin can change roles." };
+
+  const memberId = formData.get("memberId");
+  const role = formData.get("role");
+
+  if (typeof memberId !== "string" || !memberId) return { error: "No member selected." };
+  if (!isAssignableRole(role)) return { error: "Choose a role." };
+  if (memberId === admin.id) {
+    return { error: "You can't change your own role — that would lock you out." };
+  }
+
+  const supabase = await createClient();
+  const { data: target } = await supabase
+    .from("profiles")
+    .select("id, role, full_name")
+    .eq("id", memberId)
+    .single();
+
+  if (!target) return { error: "That member no longer exists." };
+  if (target.role === "head_site_admin") {
+    return { error: "Head site admin accounts can't be changed from here." };
+  }
+  if (target.role === role) {
+    return { notice: `${target.full_name ?? "They"} is already a ${ROLE_LABELS[role]}.` };
+  }
+
+  let adminClient;
+  try {
+    adminClient = createAdminSupabase();
+  } catch {
+    return {
+      error:
+        "Role changes aren't configured on this deployment — SUPABASE_SERVICE_ROLE_KEY is missing.",
+    };
+  }
+
+  const { error } = await adminClient
+    .from("profiles")
+    .update({ role: role as AssignableRole })
+    .eq("id", memberId);
+
+  if (error) {
+    console.error("[roles] could not change role", error);
+    return {
+      error: `Could not change that role (${error.code ?? "unknown"}: ${error.message}).`,
+    };
+  }
+
+  revalidatePath("/members");
+  return {
+    notice: `${target.full_name ?? "That member"} is now a ${ROLE_LABELS[role]}.`,
   };
 }

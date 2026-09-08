@@ -3,7 +3,7 @@ import "server-only";
 import { cache } from "react";
 import { redirect } from "next/navigation";
 import { createClient } from "@/lib/supabase/server";
-import { SITE_ADMIN_ROLES, type Role } from "@/lib/roles";
+import { SITE_ADMIN_ROLES, isPendingRole, type Role } from "@/lib/roles";
 
 export type Profile = {
   id: string;
@@ -205,9 +205,28 @@ export async function requireUser() {
  * questions. Called from the dashboard layout so every page under it is
  * covered by one check.
  */
+/**
+ * Sends a member with no approved role to the waiting page.
+ *
+ * Belt and braces rather than the only defence — `pending_leader` appears in
+ * no role list, so isStaffRole, isSiteAdminRole and the RLS policies all
+ * refuse it anyway. This exists so those accounts see an explanation instead
+ * of an empty dashboard or a redirect loop, which reads as a broken site
+ * rather than as "we have your request".
+ */
+export async function requireApproved(): Promise<Profile> {
+  const profile = await getCurrentProfile();
+  if (!profile) redirect("/login");
+  if (isPendingRole(profile.role)) redirect("/pending");
+  return profile;
+}
+
 export async function requireCompletedDetails(): Promise<Profile> {
   const profile = await getCurrentProfile();
   if (!profile) redirect("/login");
+  // Approval comes before onboarding: an unapproved account has no business
+  // filling in registration details.
+  if (isPendingRole(profile.role)) redirect("/pending");
   if (!profile.details_completed_at) redirect("/onboarding");
   return profile;
 }

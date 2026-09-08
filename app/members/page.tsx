@@ -4,24 +4,20 @@ import { SiteShell } from "@/components/site-shell";
 import { requireSiteAdmin } from "@/lib/dal";
 import { ROLE_LABELS, isHeadSiteAdminRole, type Role } from "@/lib/roles";
 import { createClient } from "@/lib/supabase/server";
-import { InviteForm } from "@/components/members/invite-form";
-import { CopyButton } from "@/components/members/copy-button";
 import { DeleteMemberButton } from "@/components/members/delete-member-button";
+import { RequestReview } from "@/components/members/request-review";
+import { ChangeRole } from "@/components/members/change-role";
 import { RecoveryLinkButton } from "@/components/members/recovery-link-button";
-import { DeleteInviteButton } from "@/components/members/delete-invite-button";
 
 export const metadata: Metadata = {
   title: "Members",
 };
 
-type Invite = {
-  code: string;
-  note: string | null;
-  created_at: string;
-  expires_at: string | null;
-  used_by: string | null;
-  used_at: string | null;
-  grants_role: Role;
+type RequestRow = {
+  id: string;
+  full_name: string | null;
+  requested_at: string | null;
+  stages: { name_en: string; name_ar: string } | null;
 };
 
 const ROLE_BADGE: Record<Role, string> = {
@@ -34,6 +30,8 @@ const ROLE_BADGE: Record<Role, string> = {
   stage_leader:
     "bg-brand-50 text-brand-ink dark:bg-brand-950/60",
   leader: "bg-brand-100 text-brand-800 dark:bg-brand-950 dark:text-brand-200",
+  pending_leader:
+    "bg-warning-surface text-warning-ink border border-warning-line",
   scout: "bg-surface text-ink-muted",
   parent: "bg-accent-500/15 text-accent-600 dark:bg-accent-500/10",
 };
@@ -55,13 +53,6 @@ function formatDate(value: string | null): string {
   });
 }
 
-function inviteStatus(invite: Invite): "used" | "expired" | "active" {
-  if (invite.used_at) return "used";
-  if (invite.expires_at && new Date(invite.expires_at) < new Date()) {
-    return "expired";
-  }
-  return "active";
-}
 
 /** Exactly the columns the table renders — see the query below. */
 type MemberRow = {
@@ -79,8 +70,9 @@ export default async function MembersPage() {
   // Site-level staff only — stage admins and stage leaders are redirected;
   // /dashboard/stage is their page.
   const viewer = await requireSiteAdmin();
-  // Issuing and revoking codes is narrower still: the head site admin alone.
-  const canManageInvites = isHeadSiteAdminRole(viewer.role);
+  // Deciding who becomes a leader — and changing anyone's role afterwards —
+  // is narrower still: the head site admin alone.
+  const canDecideRoles = isHeadSiteAdminRole(viewer.role);
 
   const supabase = await createClient();
 
@@ -93,30 +85,29 @@ export default async function MembersPage() {
   // use for it.
   //
   // The limits are not decoration either. Neither query had one, and
-  // leader_invites in particular only ever grows: every code ever minted, used
-  // or expired, was being fetched forever. 500 is far above the ~400 members
+  // 500 is far above the ~400 members
   // the group expects and far below the point where an un-paginated table
   // becomes unusable; if either is ever hit, that is the signal to paginate
   // rather than the moment it silently falls over.
-  const [{ data: memberRows }, { data: inviteRows }] = await Promise.all([
+  const [{ data: memberRows }, { data: requestRows }] = await Promise.all([
     supabase
       .from("profiles")
       .select("id, full_name, role, created_at")
       .order("created_at", { ascending: true })
       .limit(MAX_ROWS),
+    // Pending requests, oldest first — whoever has waited longest is decided
+    // on first.
     supabase
-      .from("leader_invites")
-      .select(
-        "code, note, created_at, expires_at, used_by, used_at, grants_role",
-      )
-      .order("created_at", { ascending: false })
+      .from("profiles")
+      .select("id, full_name, requested_at, stages:requested_stage_id(name_en, name_ar)")
+      .eq("role", "pending_leader")
+      .order("requested_at", { ascending: true })
       .limit(MAX_ROWS),
   ]);
 
   const members = (memberRows ?? []) as MemberRow[];
-  const invites = (inviteRows ?? []) as Invite[];
+  const requests = (requestRows ?? []) as unknown as RequestRow[];
 
-  const nameById = new Map(members.map((m) => [m.id, m.full_name]));
   const counts = members.reduce<Record<string, number>>((acc, m) => {
     acc[m.role] = (acc[m.role] ?? 0) + 1;
     return acc;
@@ -129,8 +120,8 @@ export default async function MembersPage() {
           Members
         </h1>
         <p className="mt-2 text-ink-muted">
-          Everyone registered in the system, and the invite codes that grant
-          leader access.
+          Everyone registered in the system, and the leader requests waiting for
+          your decision.
         </p>
 
         <p className="mt-4">
@@ -179,7 +170,7 @@ export default async function MembersPage() {
                   <th scope="col" className="px-4 py-3 font-medium">
                     Joined
                   </th>
-                  {canManageInvites ? (
+                  {canDecideRoles ? (
                     <th scope="col" className="px-4 py-3 font-medium">
                       <span className="sr-only">Actions</span>
                     </th>
@@ -202,11 +193,16 @@ export default async function MembersPage() {
                     <td className="px-4 py-3 text-ink-muted">
                       {formatDate(member.created_at)}
                     </td>
-                    {canManageInvites ? (
+                    {canDecideRoles ? (
                       <td className="px-4 py-3">
                         {member.id === viewer.id ||
                         member.role === "head_site_admin" ? null : (
                           <div className="flex flex-col items-end gap-2">
+                            <ChangeRole
+                              memberId={member.id}
+                              name={member.full_name ?? "this member"}
+                              current={member.role}
+                            />
                             {/* Password reset by link, because there is no
                                 working mailer until the group has a domain —
                                 see Tasks/email-setup.md. Without this a member
@@ -230,125 +226,76 @@ export default async function MembersPage() {
           </div>
         </section>
 
-        {/* Invites — head site admin only. An unused code on screen is
-            effectively an invitation, so site admins don't see this section
-            at all rather than seeing codes they can't issue. */}
-        {canManageInvites ? (
-        <section
-          aria-labelledby="invites-heading"
-          className="mt-12 grid gap-8 lg:grid-cols-[minmax(0,22rem)_1fr]"
-        >
-          <div>
+        {/* Requests — head site admin only.
+            Replaces the invite-code section. A code was a bearer token: whoever
+            held it became a leader, and you learned who afterwards. Here the
+            person is named before they have any access at all. */}
+        {canDecideRoles ? (
+          <section aria-labelledby="requests-heading" className="mt-12">
             <h2
-              id="invites-heading"
+              id="requests-heading"
               className="text-xl font-semibold tracking-tight text-ink"
             >
-              Leader invites
+              Leader requests
+              {requests.length > 0 ? (
+                <span className="ml-2 rounded-full bg-brand-600 px-2 py-0.5 align-middle text-xs font-semibold text-white">
+                  {requests.length}
+                </span>
+              ) : null}
             </h2>
-            <p className="mt-2 text-sm text-ink-muted">
-              A code is single-use: once someone signs up with it, it&apos;s
-              spent. The expiry is a deadline for <em>redeeming</em> it — it
-              never affects an account that already exists.
+            <p className="mt-1 text-sm text-ink-muted">
+              People who have asked to join as leaders. They have no access to
+              anything until you approve them, and you choose the role.
             </p>
-            <div className="mt-5 rounded-xl border border-line bg-surface-raised p-5">
-              <InviteForm />
-            </div>
-          </div>
 
-          <div className="overflow-x-auto rounded-xl border border-line self-start">
-            <table className="w-full min-w-150 text-left text-sm">
-              <thead className="border-b border-line bg-surface text-xs uppercase tracking-wider text-ink-subtle">
-                <tr>
-                  <th scope="col" className="px-4 py-3 font-medium">
-                    Code
-                  </th>
-                  <th scope="col" className="px-4 py-3 font-medium">
-                    Grants
-                  </th>
-                  <th scope="col" className="px-4 py-3 font-medium">
-                    For
-                  </th>
-                  <th scope="col" className="px-4 py-3 font-medium">
-                    Status
-                  </th>
-                  <th scope="col" className="px-4 py-3 font-medium">
-                    <span className="sr-only">Actions</span>
-                  </th>
-                </tr>
-              </thead>
-              <tbody className="divide-y divide-line bg-surface-raised">
-                {invites.length === 0 ? (
-                  <tr>
-                    <td
-                      colSpan={5}
-                      className="px-4 py-6 text-center text-ink-subtle"
-                    >
-                      No invite codes yet — create the first one on the left.
-                    </td>
-                  </tr>
-                ) : (
-                  invites.map((invite) => {
-                    const status = inviteStatus(invite);
-                    return (
-                      <tr key={invite.code}>
-                        <td className="px-4 py-3">
-                          <span className="flex items-center gap-2">
-                            <code className="font-mono text-xs font-semibold text-ink">
-                              {invite.code}
-                            </code>
-                            {status === "active" ? (
-                              <CopyButton text={invite.code} />
-                            ) : null}
-                          </span>
+            {requests.length === 0 ? (
+              <div className="mt-4 rounded-2xl border border-dashed border-line bg-surface p-8 text-center">
+                <p className="text-sm text-ink-muted">
+                  No requests waiting.
+                </p>
+              </div>
+            ) : (
+              <div className="mt-4 overflow-x-auto rounded-xl border border-line">
+                <table className="w-full min-w-150 text-left text-sm">
+                  <thead className="border-b border-line bg-surface text-xs uppercase tracking-wider text-ink-subtle">
+                    <tr>
+                      <th scope="col" className="px-4 py-3 font-medium">Name</th>
+                      <th scope="col" className="px-4 py-3 font-medium">Stage</th>
+                      <th scope="col" className="px-4 py-3 font-medium">Asked</th>
+                      <th scope="col" className="px-4 py-3 text-right font-medium">
+                        Decision
+                      </th>
+                    </tr>
+                  </thead>
+                  <tbody className="divide-y divide-line bg-surface-raised">
+                    {requests.map((request) => (
+                      <tr key={request.id}>
+                        <td className="px-4 py-3 font-medium text-ink">
+                          {request.full_name ?? "—"}
+                        </td>
+                        <td className="whitespace-nowrap px-4 py-3 text-ink-muted">
+                          {request.stages
+                            ? `${request.stages.name_en} — ${request.stages.name_ar}`
+                            : "—"}
+                        </td>
+                        <td className="whitespace-nowrap px-4 py-3 text-ink-muted">
+                          {request.requested_at
+                            ? formatDate(request.requested_at)
+                            : "—"}
                         </td>
                         <td className="px-4 py-3">
-                          <span
-                            className={`whitespace-nowrap rounded-full px-2.5 py-1 text-xs font-medium ${ROLE_BADGE[invite.grants_role]}`}
-                          >
-                            {ROLE_LABELS[invite.grants_role]}
-                          </span>
-                        </td>
-                        <td className="max-w-40 truncate px-4 py-3 text-ink-muted">
-                          {invite.note ?? "—"}
-                        </td>
-                        <td className="px-4 py-3">
-                          {status === "used" ? (
-                            <span className="text-xs text-ink-muted">
-                              Used by{" "}
-                              <span className="font-medium text-ink">
-                                {nameById.get(invite.used_by ?? "") ??
-                                  "a member"}
-                              </span>{" "}
-                              on {formatDate(invite.used_at)}
-                            </span>
-                          ) : status === "expired" ? (
-                            <span className="rounded-full bg-surface px-2.5 py-1 text-xs text-ink-subtle">
-                              Expired {formatDate(invite.expires_at)}
-                            </span>
-                          ) : (
-                            <span className="rounded-full bg-brand-100 px-2.5 py-1 text-xs font-medium text-brand-800 dark:bg-brand-950 dark:text-brand-200">
-                              Active
-                              {invite.expires_at
-                                ? ` until ${formatDate(invite.expires_at)}`
-                                : ""}
-                            </span>
-                          )}
-                        </td>
-                        <td className="px-4 py-3 text-right">
-                          <DeleteInviteButton
-                            code={invite.code}
-                            used={status === "used"}
-                            usedByName={nameById.get(invite.used_by ?? "")}
+                          <RequestReview
+                            memberId={request.id}
+                            name={request.full_name ?? "this person"}
                           />
                         </td>
                       </tr>
-                    );
-                  })
-                )}
-              </tbody>
-            </table>
-          </div>
-        </section>
+                    ))}
+                  </tbody>
+                </table>
+              </div>
+            )}
+          </section>
         ) : null}
       </div>
     </SiteShell>
