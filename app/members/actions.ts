@@ -20,6 +20,42 @@ import {
 export type DeleteState = { error?: string };
 
 /**
+ * Turns a PostgREST/Postgres error from an admin-client write into a sentence
+ * that names the actual cause.
+ *
+ * Same policy as describeSaveError() in app/onboarding/actions.ts, and it
+ * exists for the same reason: on 8 Sep 2026 approving a leader returned
+ * "42501: permission denied for table profiles" and it took a database replay
+ * to work out that `service_role` had never been granted anything — every
+ * GRANT in this repo targets `authenticated`. Nothing before this reached a
+ * table with the service key, so nobody had noticed. The database said exactly
+ * what was wrong; the app just passed the code through without saying what it
+ * meant.
+ */
+function describeAdminWriteError(
+  error: { code?: string; message: string },
+  what: string,
+): string {
+  const code = error.code ?? "unknown";
+
+  // 42501 from a service-role write is a missing GRANT, essentially always.
+  // RLS does not apply — service_role bypasses it — so there is only one gate
+  // left that can refuse, and it is the one migration 0018 opens.
+  if (code === "42501") {
+    return `Could not ${what}: the database refused the write (42501). The service role has no permission on that table — run migration 0018_service_role_grants.sql in the Supabase SQL editor.`;
+  }
+  // The column exists in the code but not in the database.
+  if (code === "PGRST204" || code === "42703") {
+    return `Could not ${what}: ${error.message} That column is missing — run migrations 0016 and 0017 (separately, in that order).`;
+  }
+  if (code === "PGRST205" || code === "42P01") {
+    return `Could not ${what}: ${error.message} That table is missing — check which migrations have been applied.`;
+  }
+  return `Could not ${what} (${code}: ${error.message}).`;
+}
+
+
+/**
  * The gate on every action in this file.
  *
  * Returns the profile so callers can compare ids — several of these refuse to
@@ -296,9 +332,7 @@ export async function approveRequestAction(
 
   if (error) {
     console.error("[requests] could not approve", error);
-    return {
-      error: `Could not approve that request (${error.code ?? "unknown"}: ${error.message}).`,
-    };
+    return { error: describeAdminWriteError(error, "approve that request") };
   }
 
   revalidatePath("/members");
@@ -418,9 +452,7 @@ export async function changeRoleAction(
 
   if (error) {
     console.error("[roles] could not change role", error);
-    return {
-      error: `Could not change that role (${error.code ?? "unknown"}: ${error.message}).`,
-    };
+    return { error: describeAdminWriteError(error, "change that role") };
   }
 
   revalidatePath("/members");
