@@ -55,7 +55,7 @@ export default async function OnboardingPage() {
             <p className="text-xs font-semibold uppercase tracking-wider text-brand-ink">
               One last step
             </p>
-            <h1 className="text-3xl text-maroon">Your details</h1>
+            <h1 className="text-2xl sm:text-[28px] text-maroon">Your details</h1>
             <p className="text-sm text-ink-muted">
               A few questions so leaders have what they need. You can change any
               of these later from your dashboard.

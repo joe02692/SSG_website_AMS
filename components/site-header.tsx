@@ -13,12 +13,13 @@ import { NavLink } from "@/components/nav-link";
 
 const NAV = [
   { href: "/", label: "Home" },
-  { href: "/#history", label: "Our History" },
+  { href: "/history", label: "Our History" },
+  { href: "/stages", label: "Stages" },
   { href: "/gallery", label: "Activities" },
   { href: "/signup", label: "Join Us" },
 ];
 
-const navLink = "whitespace-nowrap font-bold text-white transition hover:text-butter";
+const navLink = "whitespace-nowrap text-[15px] font-bold text-white transition hover:text-butter";
 
 /* Yellow button, forest text. The design had white text here, which is
    1.34:1 on this yellow — unreadable. Forest is 8.18:1. */
@@ -29,7 +30,7 @@ const ghostButton =
   "whitespace-nowrap rounded-md border-2 border-white/40 px-3 py-2 text-sm font-bold text-white transition hover:border-white";
 
 const menuLink =
-  "block w-full rounded-lg p-3 text-left text-lg text-cream transition hover:bg-cream/10";
+  "block w-full rounded-lg px-3 py-2.5 text-left text-base text-cream transition hover:bg-cream/10";
 
 /**
  * The auth-dependent corner of the header.
@@ -60,7 +61,7 @@ async function HeaderAuth() {
           <span className="sm:hidden">Status</span>
           <span className="hidden sm:inline">Request status</span>
         </Link>
-        <SignOutButton className={`hidden md:block ${ghostButton}`} />
+        <SignOutButton className={`hidden lg:block ${ghostButton}`} />
       </>
     );
   }
@@ -70,7 +71,7 @@ async function HeaderAuth() {
       <Link href="/dashboard" className={sunButton}>
         Dashboard
       </Link>
-      <SignOutButton className={`hidden md:block ${ghostButton}`} />
+      <SignOutButton className={`hidden lg:block ${ghostButton}`} />
     </>
   );
 }
@@ -167,11 +168,11 @@ export function SiteHeader() {
         Skip to content
       </a>
 
-      <div className="mx-auto flex h-20 max-w-[1200px] items-center justify-between gap-2 px-3 min-[380px]:px-5 sm:gap-4 sm:px-8">
+      <div className="mx-auto flex h-[72px] max-w-[1200px] items-center justify-between gap-2 px-3 min-[380px]:px-5 sm:gap-4 sm:px-8">
         <BrandLogo />
 
         <div className="flex items-center gap-2 sm:gap-4">
-          <nav aria-label="Main" className="hidden items-center gap-5 md:flex">
+          <nav aria-label="Main" className="hidden items-center gap-5 lg:flex">
             {NAV.map((item) => (
               <NavLink key={item.href} href={item.href} className={navLink}>
                 {item.label}

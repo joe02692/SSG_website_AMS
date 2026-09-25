@@ -55,10 +55,10 @@ export default async function DashboardPage({
       <section className="on-dark relative overflow-hidden bg-forest text-cream">
         <div aria-hidden className="absolute inset-x-0 bottom-0 h-1.5 bg-sun" />
         <div className="mx-auto max-w-6xl px-5 py-10 sm:px-8 sm:py-12">
-          <p className="font-display text-lg text-sun">
+          <p className="font-display text-base text-sun">
             <span lang="ar" dir="rtl">أهلاً</span> · Welcome back
           </p>
-          <h1 className="mt-1 text-[clamp(28px,5vw,42px)] leading-tight text-white">
+          <h1 className="mt-1 text-[clamp(24px,4vw,34px)] leading-tight text-white">
             {firstName ? `Hello, ${firstName}` : "Hello"}
           </h1>
           <p className="mt-2 max-w-xl text-cream/85">
@@ -92,7 +92,7 @@ export default async function DashboardPage({
           </p>
         ) : null}
 
-        <h2 className="text-2xl text-maroon">Where to next</h2>
+        <h2 className="text-xl text-maroon">Where to next</h2>
         <ul className="mt-4 grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
           {actions.map((a) => (
             <li key={a.href}>
@@ -101,7 +101,7 @@ export default async function DashboardPage({
                 className="group flex h-full flex-col rounded-2xl border-2 border-line bg-surface-raised p-5 transition hover:-translate-y-0.5 hover:border-leaf hover:shadow-md"
               >
                 <span className="flex items-center justify-between gap-3">
-                  <span className="font-display text-xl text-forest">{a.title}</span>
+                  <span className="font-display text-lg text-forest">{a.title}</span>
                   <span
                     aria-hidden
                     className="grid size-8 place-items-center rounded-full bg-sun text-forest transition group-hover:translate-x-0.5"
@@ -115,14 +115,14 @@ export default async function DashboardPage({
           ))}
         </ul>
 
-        <h2 className="mt-10 text-2xl text-maroon">Your account</h2>
+        <h2 className="mt-10 text-xl text-maroon">Your account</h2>
         <dl className="mt-4 grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
           <div className="rounded-2xl border-2 border-line bg-surface-raised p-5">
             <dt className="text-xs font-semibold uppercase tracking-wider text-ink-subtle">
               Role
             </dt>
             <dd className="mt-1.5">
-              <span className="block font-display text-xl text-ink">
+              <span className="block font-display text-lg text-ink">
                 {profile ? ROLE_LABELS[profile.role] : "—"}
               </span>
               {profile ? (
@@ -137,7 +137,7 @@ export default async function DashboardPage({
             <dt className="text-xs font-semibold uppercase tracking-wider text-ink-subtle">
               Email
             </dt>
-            <dd className="mt-1.5 truncate font-display text-xl text-ink">
+            <dd className="mt-1.5 truncate font-display text-lg text-ink">
               {user.email}
             </dd>
           </div>
@@ -146,7 +146,7 @@ export default async function DashboardPage({
             <dt className="text-xs font-semibold uppercase tracking-wider text-ink-subtle">
               Member since
             </dt>
-            <dd className="mt-1.5 font-display text-xl text-ink">
+            <dd className="mt-1.5 font-display text-lg text-ink">
               {profile
                 ? new Date(profile.created_at).toLocaleDateString("en-GB", {
                     day: "numeric",

@@ -21,9 +21,9 @@ export function BrandLogo({ className = "" }: { className?: string }) {
         alt=""
         priority
         sizes="64px"
-        className="h-9 w-auto min-[380px]:h-11 sm:h-[55px]"
+        className="h-9 w-auto min-[380px]:h-10 sm:h-12"
       />
-      <span className="flex flex-col text-[0.65rem] font-semibold leading-tight min-[380px]:text-[0.7rem] sm:text-[0.95rem]">
+      <span className="flex flex-col text-[0.65rem] font-semibold leading-tight min-[380px]:text-[0.7rem] sm:text-[0.875rem]">
         <span lang="ar" dir="rtl">
           مجموعة السلام الكشفية
         </span>

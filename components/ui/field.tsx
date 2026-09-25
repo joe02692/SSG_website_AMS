@@ -56,7 +56,7 @@ export function Field({
     <div className="space-y-1.5">
       <label
         htmlFor={htmlFor}
-        className="block font-display text-lg font-medium text-brand-ink"
+        className="block font-display text-base font-medium text-brand-ink"
       >
         {label}
       </label>
@@ -90,7 +90,7 @@ export function Field({
  * <textarea> in the registration form and a fixed 50px would crush it.
  */
 export const inputClass =
-  "w-full min-h-[50px] rounded-xl border-2 border-line-strong bg-surface-raised px-[18px] py-3 " +
+  "w-full min-h-[46px] rounded-xl border-2 border-line-strong bg-surface-raised px-4 py-2.5 " +
   "text-sm font-medium text-ink placeholder:text-leaf outline-none transition " +
   "hover:border-brand-700 " +
   "focus:border-forest focus:ring-4 focus:ring-leaf/15 " +

@@ -4,7 +4,7 @@ import { useEffect, useRef, type ReactNode } from "react";
 import { LIGHT_DISMISS, lightDismissFallback } from "@/components/ui/dialog-utils";
 
 /**
- * The slide-in menu for screens narrower than 768px — a native modal <dialog>.
+ * The slide-in menu for screens narrower than 1024px — a native modal <dialog>.
  *
  * Using the platform's dialog rather than a hand-built overlay gets several
  * things for free that the earlier version had to fake or didn't do at all:
@@ -25,7 +25,7 @@ export function MobileMenu({ children }: { children: ReactNode }) {
   }, []);
 
   return (
-    <div className="md:hidden">
+    <div className="lg:hidden">
       <button
         type="button"
         aria-label="Open menu"
@@ -56,7 +56,7 @@ export function MobileMenu({ children }: { children: ReactNode }) {
       >
         <div className="flex h-full flex-col p-6">
           <div className="flex items-center justify-between">
-            <h2 className="text-[22px] text-sun">Menu</h2>
+            <h2 className="text-xl text-sun">Menu</h2>
             <form method="dialog">
               <button
                 aria-label="Close menu"

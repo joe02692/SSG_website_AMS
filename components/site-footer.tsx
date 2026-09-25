@@ -3,9 +3,9 @@ import { BrandLogo } from "@/components/brand-logo";
 import { FOUNDED } from "@/lib/site-content";
 
 const EXPLORE = [
-  { href: "/#history", label: "Our History" },
+  { href: "/history", label: "Our History" },
+  { href: "/stages", label: "Our Stages" },
   { href: "/gallery", label: "Camp Gallery" },
-  { href: "/#stages", label: "Our Stages" },
   { href: "/signup", label: "Join Us" },
 ];
 
@@ -32,7 +32,7 @@ export function SiteFooter() {
         </div>
 
         <nav aria-labelledby="footer-explore">
-          <h2 id="footer-explore" className="text-lg text-sun">
+          <h2 id="footer-explore" className="text-base text-sun">
             Explore
           </h2>
           <ul className="mt-3 space-y-2 text-sm">
@@ -47,7 +47,7 @@ export function SiteFooter() {
         </nav>
 
         <nav aria-labelledby="footer-members">
-          <h2 id="footer-members" className="text-lg text-sun">
+          <h2 id="footer-members" className="text-base text-sun">
             Members
           </h2>
           <ul className="mt-3 space-y-2 text-sm">

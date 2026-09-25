@@ -48,7 +48,7 @@ export default async function AlbumPage(props: {
           >
             ← All albums
           </Link>
-          <h1 className="mt-3 text-3xl font-semibold tracking-tight text-ink sm:text-4xl">
+          <h1 className="mt-3 text-2xl font-semibold tracking-tight text-ink sm:text-[28px]">
             {titleFromSlug(slug)}
           </h1>
           <p className="mt-2 text-sm text-ink-subtle">

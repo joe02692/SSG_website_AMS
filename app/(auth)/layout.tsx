@@ -15,7 +15,7 @@ export default function AuthLayout({ children }: { children: ReactNode }) {
   const photo = HERO_SLIDES[0];
   return (
     <SiteShell>
-      <div className="lg:grid lg:min-h-[calc(100dvh-5rem)] lg:grid-cols-[minmax(0,1fr)_minmax(0,1fr)]">
+      <div className="lg:grid lg:min-h-[calc(100dvh-72px)] lg:grid-cols-[minmax(0,1fr)_minmax(0,1fr)]">
         <aside
           aria-hidden
           className="on-dark relative hidden overflow-hidden bg-forest lg:block"
@@ -30,11 +30,11 @@ export default function AuthLayout({ children }: { children: ReactNode }) {
           />
           <div className="absolute inset-0 bg-linear-to-t from-forest via-forest/40 to-forest/10" />
           <div className="absolute inset-x-10 bottom-12 text-cream">
-            <p lang="ar" dir="rtl" className="w-fit font-display text-5xl text-sun">
+            <p lang="ar" dir="rtl" className="w-fit font-display text-4xl text-sun">
               كن مستعدًا
             </p>
-            <p className="mt-2 font-display text-3xl">Be prepared.</p>
-            <p className="mt-4 max-w-sm text-cream/85">
+            <p className="mt-2 font-display text-2xl">Be prepared.</p>
+            <p className="mt-3 max-w-sm text-[15px] text-cream/85">
               Four hundred scouts, leaders and families — one group, since{" "}
               {FOUNDED}.
             </p>

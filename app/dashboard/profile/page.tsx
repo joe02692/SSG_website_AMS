@@ -59,7 +59,7 @@ export default async function ProfilePage() {
           ← Dashboard
         </Link>
 
-        <h1 className="mt-3 text-3xl font-semibold tracking-tight text-ink">
+        <h1 className="mt-3 text-2xl sm:text-[28px] font-semibold tracking-tight text-ink">
           Your details
         </h1>
         <p className="mt-2 text-ink-muted">

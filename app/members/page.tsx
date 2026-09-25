@@ -116,7 +116,7 @@ export default async function MembersPage() {
   return (
     <SiteShell>
       <div className="mx-auto max-w-6xl px-4 py-12 sm:px-6 sm:py-16">
-        <h1 className="text-3xl font-semibold tracking-tight text-ink">
+        <h1 className="text-2xl sm:text-[28px] font-semibold tracking-tight text-ink">
           Members
         </h1>
         <p className="mt-2 text-ink-muted">

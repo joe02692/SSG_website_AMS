@@ -55,7 +55,7 @@ export function GalleryGrid({ albums }: { albums: Album[] }) {
                 className="absolute inset-0 bg-linear-to-t from-forest/90 via-forest/35 via-40% to-forest/5"
               />
               <span className="absolute inset-x-3.5 bottom-3 z-10 flex items-end justify-between gap-2">
-                <span className="text-[clamp(16px,4vw,20px)] font-semibold tracking-[0.04em] text-white">
+                <span className="text-[clamp(15px,3vw,17px)] font-semibold tracking-[0.03em] text-white">
                   {album.name}
                 </span>
                 <span

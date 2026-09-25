@@ -1,6 +1,7 @@
 import type { Metadata } from "next";
 import { SiteShell } from "@/components/site-shell";
 import { GalleryGrid } from "@/components/gallery/gallery-grid";
+import { PageBanner } from "@/components/page-banner";
 import { GALLERY } from "@/lib/site-content";
 
 export const metadata: Metadata = {
@@ -21,19 +22,10 @@ export const metadata: Metadata = {
 export default function GalleryPage() {
   return (
     <SiteShell>
-      <section className="bg-surface">
-        <div className="mx-auto w-[calc(100%-40px)] max-w-[1100px] pb-10 pt-10">
-          <p className="font-display text-lg text-brand-ink">
-            <span lang="ar" dir="rtl">معرض الصور</span>
-          </p>
-          <h1 className="mt-1 text-[clamp(30px,6vw,44px)] leading-tight text-maroon">
-            Camp Gallery
-          </h1>
-          <p className="mt-2 max-w-2xl text-[clamp(20px,4.2vw,26px)] font-medium leading-snug text-forest">
-            Every camp, hike and event — one album at a time.
-          </p>
-        </div>
-      </section>
+      <PageBanner title="Camp Gallery" arabic="معرض الصور">
+        Every camp, hike and event — one album at a time. Tap a photo to see
+        it full size.
+      </PageBanner>
       <section className="mx-auto w-[calc(100%-40px)] max-w-[1100px] pb-16">
         <GalleryGrid albums={GALLERY} />
       </section>

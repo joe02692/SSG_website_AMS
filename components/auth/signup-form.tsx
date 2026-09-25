@@ -65,7 +65,7 @@ export function SignupForm() {
       ) : null}
 
       <fieldset className="pb-4">
-        <legend className="mb-2 font-display text-lg font-medium text-brand-ink">
+        <legend className="mb-2 font-display text-base font-medium text-brand-ink">
           Are you a...
         </legend>
         <div className="grid gap-2">
@@ -77,7 +77,7 @@ export function SignupForm() {
                 // The radio itself is visually hidden (the whole card is the
                 // target, as in the design), so the card has to show keyboard
                 // focus on the radio's behalf — has-[:focus-visible].
-                className={`relative flex min-h-[68px] items-center rounded-xl px-4 py-3 transition
+                className={`relative flex min-h-[60px] items-center rounded-xl px-4 py-2.5 transition
                   has-[:focus-visible]:outline-2 has-[:focus-visible]:outline-offset-2 has-[:focus-visible]:outline-forest sm:px-[18px] ${
                   choice.disabled
                     ? "cursor-not-allowed border-2 border-[#6b706d] text-[#6b706d]"
@@ -97,7 +97,7 @@ export function SignupForm() {
                 />
                 <span className="min-w-0">
                   <span className="flex flex-wrap items-center gap-2 sm:gap-3">
-                    <strong className="font-display text-lg font-medium leading-tight sm:text-[21px]">
+                    <strong className="font-display text-base font-medium leading-tight sm:text-lg">
                       {choice.value === "leader" ? "Leader" : ROLE_LABELS[choice.value]}
                     </strong>
                     {choice.badge ? (

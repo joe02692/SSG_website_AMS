@@ -30,10 +30,10 @@ export default async function PendingPage() {
     <SiteShell>
       <div className="mx-auto max-w-xl px-4 py-14 sm:px-6 sm:py-20">
         <div className="rounded-3xl border-2 border-line bg-surface-raised p-7 sm:p-9">
-          <p className="font-display text-lg text-leaf">
+          <p className="font-display text-base text-leaf">
             <span lang="ar" dir="rtl">طلبك قيد المراجعة</span>
           </p>
-          <h1 className="mt-1 text-[clamp(26px,5vw,34px)] leading-tight text-maroon">
+          <h1 className="mt-1 text-[clamp(22px,4vw,28px)] leading-tight text-maroon">
             Your request has been sent
           </h1>
           <p className="mt-3 text-ink-muted">
@@ -67,7 +67,7 @@ export default async function PendingPage() {
                   {step.state === "done" ? "✓" : i + 1}
                 </span>
                 <span>
-                  <span className="block font-display text-lg text-forest">
+                  <span className="block font-display text-base text-forest">
                     {step.title}
                     {step.state === "current" ? (
                       <span className="ml-2 align-middle text-xs font-semibold uppercase tracking-wider text-maroon">
