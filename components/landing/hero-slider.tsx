@@ -4,7 +4,7 @@ import Image from "next/image";
 import { useEffect, useState, useSyncExternalStore } from "react";
 import type { Photo } from "@/lib/site-content";
 
-const INTERVAL_MS = 3000;
+const INTERVAL_MS = 5000;
 const REDUCED = "(prefers-reduced-motion: reduce)";
 
 // Read the OS "reduce motion" setting as an external store rather than
@@ -17,19 +17,17 @@ function subscribeReduced(onChange: () => void) {
 }
 
 /**
- * The homepage's sliding photo strip, as in the design: a new photo every
- * three seconds, sliding left.
+ * The homepage's photo strip.
  *
- * Two things the design's script didn't do, both required rather than nice:
+ * Crossfades rather than sliding (calmer behind text, and cheaper — only
+ * opacity changes), with a slow zoom on the photo that is showing. Dots let
+ * a visitor jump to any photo, and the pause button satisfies WCAG 2.2.2:
+ * anything that moves on its own for more than five seconds needs a way to
+ * stop it.
  *
- *   • A pause button. Content that moves on its own for more than five
- *     seconds needs a way to stop it (WCAG 2.2.2) — for anyone who finds the
- *     motion distracting, and for anyone zoomed in who can't see a whole photo
- *     before it moves away.
- *   • It never starts for people whose device asks for reduced motion.
- *
- * It also stops while the tab is hidden, so a phone with the site open in a
- * background tab isn't decoding a 2000px photo every three seconds for nobody.
+ * It never auto-advances for people whose device asks for reduced motion, and
+ * stops while the tab is hidden so a phone isn't decoding 2000px photos for
+ * nobody.
  */
 export function HeroSlider({ slides }: { slides: Photo[] }) {
   const [index, setIndex] = useState(0);
@@ -39,65 +37,79 @@ export function HeroSlider({ slides }: { slides: Photo[] }) {
     () => window.matchMedia(REDUCED).matches,
     () => false,
   );
+  const auto = !paused && !reduced && slides.length > 1;
 
   useEffect(() => {
-    if (paused || reduced || slides.length < 2) return;
+    if (!auto) return;
     const timer = window.setInterval(() => {
       if (document.visibilityState === "visible") {
         setIndex((current) => (current + 1) % slides.length);
       }
     }, INTERVAL_MS);
     return () => window.clearInterval(timer);
-  }, [paused, reduced, slides.length]);
+  }, [auto, slides.length, index]);
 
   return (
     <div className="absolute inset-0 overflow-hidden">
-      <div
-        className="flex h-full transition-transform duration-1000 ease-in-out motion-reduce:transition-none"
-        style={{
-          width: `${slides.length * 100}%`,
-          transform: `translateX(-${(index * 100) / slides.length}%)`,
-        }}
-      >
-        {slides.map((slide, i) => (
-          <div
-            key={slide.src.src}
-            className="relative h-full shrink-0"
-            style={{ width: `${100 / slides.length}%` }}
-            // Off-screen slides are hidden from screen readers so the page
-            // doesn't announce three photos where a sighted visitor sees one.
-            aria-hidden={i !== index}
-          >
-            <Image
-              src={slide.src}
-              alt={slide.alt}
-              fill
-              priority={i === 0}
-              sizes="100vw"
-              placeholder="blur"
-              className="object-cover object-[center_35%]"
-            />
-          </div>
-        ))}
-      </div>
-
-      {slides.length > 1 && !reduced ? (
-        <button
-          type="button"
-          onClick={() => setPaused((p) => !p)}
-          aria-label={paused ? "Play slideshow" : "Pause slideshow"}
-          className="on-dark absolute bottom-3 right-3 z-20 grid size-9 place-items-center rounded-full bg-black/35 text-white backdrop-blur-sm transition hover:bg-black/55"
+      {slides.map((slide, i) => (
+        <div
+          key={slide.src.src}
+          className={`absolute inset-0 transition-opacity duration-1000 ease-in-out ${
+            i === index ? "opacity-100" : "opacity-0"
+          }`}
+          // Only the showing photo is exposed to screen readers.
+          aria-hidden={i !== index}
         >
-          {paused ? (
-            <svg aria-hidden viewBox="0 0 16 16" className="size-3.5 fill-current">
-              <path d="M4 2.5v11l9-5.5z" />
-            </svg>
-          ) : (
-            <svg aria-hidden viewBox="0 0 16 16" className="size-3.5 fill-current">
-              <path d="M4 2.5h3v11H4zM9 2.5h3v11H9z" />
-            </svg>
-          )}
-        </button>
+          <Image
+            src={slide.src}
+            alt={slide.alt}
+            fill
+            priority={i === 0}
+            sizes="100vw"
+            placeholder="blur"
+            className={`object-cover object-[center_35%] ${i === index ? "ken-burns" : ""}`}
+          />
+        </div>
+      ))}
+
+      {slides.length > 1 ? (
+        <div className="on-dark absolute bottom-4 right-4 z-20 flex items-center gap-2 rounded-full bg-black/35 px-2.5 py-1.5 backdrop-blur-sm sm:bottom-6 sm:right-6">
+          {slides.map((slide, i) => (
+            <button
+              key={slide.src.src}
+              type="button"
+              onClick={() => setIndex(i)}
+              aria-label={`Show photo ${i + 1} of ${slides.length}`}
+              aria-current={i === index ? "true" : undefined}
+              className="grid size-6 place-items-center"
+            >
+              <span
+                aria-hidden
+                className={`block h-2 rounded-full transition-all duration-300 ${
+                  i === index ? "w-6 bg-sun" : "w-2 bg-white/70"
+                }`}
+              />
+            </button>
+          ))}
+          {!reduced ? (
+            <button
+              type="button"
+              onClick={() => setPaused((p) => !p)}
+              aria-label={paused ? "Play slideshow" : "Pause slideshow"}
+              className="ml-1 grid size-7 place-items-center rounded-full text-white transition hover:bg-white/15"
+            >
+              {paused ? (
+                <svg aria-hidden viewBox="0 0 16 16" className="size-3.5 fill-current">
+                  <path d="M4 2.5v11l9-5.5z" />
+                </svg>
+              ) : (
+                <svg aria-hidden viewBox="0 0 16 16" className="size-3.5 fill-current">
+                  <path d="M4 2.5h3v11H4zM9 2.5h3v11H9z" />
+                </svg>
+              )}
+            </button>
+          ) : null}
+        </div>
       ) : null}
     </div>
   );

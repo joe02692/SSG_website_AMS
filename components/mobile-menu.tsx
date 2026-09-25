@@ -1,47 +1,37 @@
 "use client";
 
-import { useEffect, useId, useState, type ReactNode } from "react";
+import { useEffect, useRef, type ReactNode } from "react";
+import { LIGHT_DISMISS, lightDismissFallback } from "@/components/ui/dialog-utils";
 
 /**
- * The slide-in menu from the design, for screens narrower than 768px.
+ * The slide-in menu for screens narrower than 768px — a native modal <dialog>.
  *
- * A client component only because it has to open and close. Its contents are
- * passed in as children, so the links — and the signed-in / signed-out state,
+ * Using the platform's dialog rather than a hand-built overlay gets several
+ * things for free that the earlier version had to fake or didn't do at all:
+ * focus is trapped inside while it's open and returned to the ☰ button when it
+ * closes, Escape closes it, the page behind is inert to screen readers, and it
+ * renders in the top layer above everything. A tap on the dimmed backdrop
+ * closes it too (`closedby="any"`, with a fallback for Safari).
+ *
+ * Its contents arrive as children, so the links — and the signed-in state,
  * which needs the session — are still rendered on the server.
- *
- * Closes on: the × button, a tap on the dimmed overlay, Escape, and any link
- * or button inside it. That last one matters in Next.js — a <Link> changes the
- * page without a reload, so without it the menu would stay open on top of the
- * page you just navigated to.
  */
 export function MobileMenu({ children }: { children: ReactNode }) {
-  const [open, setOpen] = useState(false);
-  const panelId = useId();
+  const ref = useRef<HTMLDialogElement>(null);
 
   useEffect(() => {
-    if (!open) return;
-    const onKey = (event: KeyboardEvent) => {
-      if (event.key === "Escape") setOpen(false);
-    };
-    // Stop the page scrolling underneath the open panel.
-    const previous = document.body.style.overflow;
-    document.body.style.overflow = "hidden";
-    window.addEventListener("keydown", onKey);
-    return () => {
-      document.body.style.overflow = previous;
-      window.removeEventListener("keydown", onKey);
-    };
-  }, [open]);
+    const dialog = ref.current;
+    return dialog ? lightDismissFallback(dialog) : undefined;
+  }, []);
 
   return (
     <div className="md:hidden">
       <button
         type="button"
         aria-label="Open menu"
-        aria-expanded={open}
-        aria-controls={panelId}
-        onClick={() => setOpen(true)}
-        className="grid size-10 place-items-center rounded-md bg-leaf"
+        aria-haspopup="dialog"
+        onClick={() => ref.current?.showModal()}
+        className="grid size-10 place-items-center rounded-md bg-leaf transition hover:bg-brand-500"
       >
         <span aria-hidden className="flex flex-col gap-[5px]">
           <span className="block h-[3px] w-6 rounded-sm bg-cream" />
@@ -50,43 +40,43 @@ export function MobileMenu({ children }: { children: ReactNode }) {
         </span>
       </button>
 
-      {open ? (
-        <>
-          <button
-            type="button"
-            aria-label="Close menu"
-            tabIndex={-1}
-            onClick={() => setOpen(false)}
-            className="fixed inset-0 z-[60] bg-forest/50"
-          />
-          <div
-            id={panelId}
-            role="dialog"
-            aria-modal="true"
-            aria-label="Menu"
-            className="on-dark fixed inset-y-0 right-0 z-[61] flex w-[min(100%,20rem)] flex-col bg-forest p-6 text-cream"
-            onClick={(event) => {
-              if ((event.target as HTMLElement).closest("a, button[type=submit]")) {
-                setOpen(false);
-              }
-            }}
-          >
+      <dialog
+        ref={ref}
+        {...LIGHT_DISMISS}
+        aria-label="Menu"
+        className="menu-sheet on-dark bg-forest p-0 text-cream"
+        // Any link or sign-out button inside closes the sheet. In Next.js a
+        // <Link> changes page without a reload, so without this the menu
+        // would stay open over the page you just went to.
+        onClick={(event) => {
+          if ((event.target as HTMLElement).closest("a, button[type=submit]")) {
+            ref.current?.close();
+          }
+        }}
+      >
+        <div className="flex h-full flex-col p-6">
+          <div className="flex items-center justify-between">
             <h2 className="text-[22px] text-sun">Menu</h2>
-            <button
-              type="button"
-              aria-label="Close menu"
-              autoFocus
-              onClick={() => setOpen(false)}
-              className="absolute right-4 top-4 grid size-10 place-items-center text-[28px] leading-none text-cream"
-            >
-              ×
-            </button>
-            <nav aria-label="Main" className="mt-10 flex flex-col gap-1">
-              {children}
-            </nav>
+            <form method="dialog">
+              <button
+                aria-label="Close menu"
+                className="grid size-10 place-items-center rounded-md text-[28px] leading-none text-cream transition hover:bg-cream/10"
+              >
+                ×
+              </button>
+            </form>
           </div>
-        </>
-      ) : null}
+          <nav aria-label="Main" className="mt-8 flex flex-col gap-1">
+            {children}
+          </nav>
+          <p className="mt-auto border-t border-cream/15 pt-5 text-sm text-cream/70">
+            <span lang="ar" dir="rtl" className="block font-display">
+              مجموعة السلام الكشفية
+            </span>
+            Character, Service &amp; Friendship
+          </p>
+        </div>
+      </dialog>
     </div>
   );
 }

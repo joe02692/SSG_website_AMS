@@ -187,3 +187,139 @@ body {
     scroll-behavior: auto !important;
   }
 }
+
+/* ---------------------------------------------------------------------------
+   Motion
+   Everything below is decoration layered on top of a page that is complete
+   without it: if a browser can't do it, or the visitor has asked their device
+   for less motion, the content simply sits still and fully visible.
+   --------------------------------------------------------------------------- */
+
+/* Scroll reveal — `.reveal` fades and lifts an element as it scrolls into
+   view. Pure CSS scroll-driven animation: runs off the main thread, needs no
+   IntersectionObserver, and does nothing at all where unsupported (Firefox
+   today), which is fine for an effect that is only decorative. The
+   `animation-range: entry` check filters out partial implementations. */
+@media (prefers-reduced-motion: no-preference) {
+  @supports ((animation-timeline: view()) and (animation-range: entry)) {
+    @keyframes reveal-up {
+      from {
+        opacity: 0;
+        translate: 0 2rem;
+      }
+    }
+    .reveal {
+      animation: reveal-up linear both;
+      animation-timeline: view();
+      animation-range: entry 0% entry 70%;
+    }
+
+    /* The sticky header gains a shadow once the page has scrolled — driven
+       by the document's scroll position, no scroll listener. */
+    @keyframes header-lift {
+      to {
+        box-shadow: 0 6px 24px rgb(15 36 21 / 0.35);
+      }
+    }
+    .header-lift {
+      animation: header-lift linear both;
+      animation-timeline: scroll(root);
+      animation-range: 0 80px;
+    }
+  }
+}
+
+/* Slow zoom on the hero photo that is showing. Restarted each time a slide
+   becomes active (the class is applied only to the current one). */
+@media (prefers-reduced-motion: no-preference) {
+  @keyframes ken-burns {
+    from {
+      scale: 1;
+    }
+    to {
+      scale: 1.07;
+    }
+  }
+  .ken-burns {
+    animation: ken-burns 7s ease-out both;
+  }
+}
+
+/* ---------------------------------------------------------------------------
+   Dialogs — the mobile menu and the photo lightbox are native <dialog>s.
+   Entry and exit are animated with @starting-style + allow-discrete, and
+   `overlay` keeps them in the top layer while they animate out. Browsers
+   without these simply show and hide instantly.
+   --------------------------------------------------------------------------- */
+dialog.menu-sheet {
+  margin: 0 0 0 auto;
+  height: 100dvh;
+  max-height: none;
+  width: min(100%, 20rem);
+  translate: 100% 0;
+  transition-property: translate, display, overlay;
+  transition-duration: 0.3s;
+  transition-timing-function: ease-out;
+  transition-behavior: allow-discrete;
+}
+dialog.menu-sheet[open] {
+  translate: 0 0;
+  @starting-style {
+    translate: 100% 0;
+  }
+}
+
+dialog.lightbox {
+  opacity: 0;
+  scale: 0.96;
+  transition-property: opacity, scale, display, overlay;
+  transition-duration: 0.25s;
+  transition-timing-function: ease-out;
+  transition-behavior: allow-discrete;
+}
+dialog.lightbox[open] {
+  opacity: 1;
+  scale: 1;
+  @starting-style {
+    opacity: 0;
+    scale: 0.96;
+  }
+}
+
+dialog.menu-sheet::backdrop,
+dialog.lightbox::backdrop {
+  background-color: rgb(15 36 21 / 0);
+  transition:
+    display 0.3s allow-discrete,
+    overlay 0.3s allow-discrete,
+    background-color 0.3s ease-out;
+}
+dialog.menu-sheet[open]::backdrop {
+  background-color: rgb(15 36 21 / 0.55);
+  @starting-style {
+    background-color: rgb(15 36 21 / 0);
+  }
+}
+dialog.lightbox[open]::backdrop {
+  background-color: rgb(10 20 14 / 0.95);
+  @starting-style {
+    background-color: rgb(10 20 14 / 0);
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  dialog.menu-sheet,
+  dialog.lightbox {
+    translate: 0 0;
+    scale: 1;
+    transition-duration: 0.1s;
+  }
+  @starting-style {
+    dialog.menu-sheet[open] {
+      translate: 0 0;
+    }
+    dialog.lightbox[open] {
+      scale: 1;
+    }
+  }
+}

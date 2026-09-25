@@ -14,16 +14,16 @@ export function BrandLogo({ className = "" }: { className?: string }) {
   return (
     <Link
       href="/"
-      className={`flex shrink-0 items-center gap-2.5 text-white ${className}`}
+      className={`flex shrink-0 items-center gap-2 text-white sm:gap-2.5 ${className}`}
     >
       <Image
         src={logo}
         alt=""
         priority
         sizes="64px"
-        className="h-11 w-auto sm:h-[55px]"
+        className="h-9 w-auto min-[380px]:h-11 sm:h-[55px]"
       />
-      <span className="flex flex-col text-[0.7rem] font-semibold leading-tight sm:text-[0.95rem]">
+      <span className="flex flex-col text-[0.65rem] font-semibold leading-tight min-[380px]:text-[0.7rem] sm:text-[0.95rem]">
         <span lang="ar" dir="rtl">
           مجموعة السلام الكشفية
         </span>

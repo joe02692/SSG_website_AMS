@@ -11,8 +11,10 @@
  *   • every milestone except 1977 and 2026
  *   • the photo captions in ACTIVITIES — these describe what is visible in
  *     each picture; they are not the real names of those trips or events.
+ *   • the one-line descriptions under each of the three VALUES.
  */
 import type { StaticImageData } from "next/image";
+import { SCOUT_STAGES } from "@/lib/onboarding";
 
 import hero1 from "@/public/images/hero-1.jpg";
 import hero2 from "@/public/images/hero-2.jpg";
@@ -38,7 +40,41 @@ export const HERO_SLIDES: Photo[] = [
 export const STATS = [
   { value: "400+", label: "Active Members" },
   { value: "50+", label: "Camps" },
+  // Counted from the registration form's list, so it can't drift from it.
+  { value: String(SCOUT_STAGES.length), label: "Stages" },
+  { value: String(FOUNDED), label: "Founded" },
 ];
+
+/** The three words of the tagline, each with a line of what it means. */
+export const VALUES = [
+  {
+    title: "Character",
+    body: "Keeping a promise, owning a mistake, leading a patrol — confidence built one camp at a time.",
+    icon: "compass",
+  },
+  {
+    title: "Service",
+    body: "Clean-ups, charity drives and helping at community events. Scouts learn that a good turn is a habit.",
+    icon: "hands",
+  },
+  {
+    title: "Friendship",
+    body: "Patrols, campfires and trips that turn classmates into friends for life — across every age group.",
+    icon: "tent",
+  },
+] as const;
+
+/**
+ * The stages, split into their English and Arabic names. Taken straight from
+ * the list the registration form and the database use.
+ *
+ * ⚠️ The group has not settled this list yet (7 English names in the DBMS
+ * handoff vs these 8). Whatever it becomes, this section follows it.
+ */
+export const STAGES = SCOUT_STAGES.map((stage) => {
+  const [en, ar] = stage.label.split(" — ");
+  return { value: stage.value, en, ar };
+});
 
 export const MILESTONES = [
   {

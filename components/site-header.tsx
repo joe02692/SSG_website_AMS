@@ -9,6 +9,7 @@ import {
 import { signOutAction } from "@/app/auth/actions";
 import { BrandLogo } from "@/components/brand-logo";
 import { MobileMenu } from "@/components/mobile-menu";
+import { NavLink } from "@/components/nav-link";
 
 const NAV = [
   { href: "/", label: "Home" },
@@ -17,12 +18,12 @@ const NAV = [
   { href: "/signup", label: "Join Us" },
 ];
 
-const navLink = "whitespace-nowrap font-bold text-white transition hover:opacity-75";
+const navLink = "whitespace-nowrap font-bold text-white transition hover:text-butter";
 
 /* Yellow button, forest text. The design had white text here, which is
    1.34:1 on this yellow — unreadable. Forest is 8.18:1. */
 const sunButton =
-  "whitespace-nowrap rounded-md bg-sun px-4 py-2.5 font-bold text-forest transition hover:opacity-85 sm:px-[22px]";
+  "whitespace-nowrap rounded-md bg-sun px-3 py-2 text-sm font-bold text-forest transition hover:opacity-85 sm:px-[22px] sm:py-2.5 sm:text-base";
 
 const ghostButton =
   "whitespace-nowrap rounded-md border-2 border-white/40 px-3 py-2 text-sm font-bold text-white transition hover:border-white";
@@ -55,7 +56,9 @@ async function HeaderAuth() {
     return (
       <>
         <Link href="/pending" className={sunButton}>
-          Request status
+          {/* The full label doesn't fit beside the logo on a 320px phone. */}
+          <span className="sm:hidden">Status</span>
+          <span className="hidden sm:inline">Request status</span>
         </Link>
         <SignOutButton className={`hidden md:block ${ghostButton}`} />
       </>
@@ -79,14 +82,14 @@ async function StaffLinks() {
   return (
     <>
       {isStageRole(profile.role) ? (
-        <Link href="/dashboard/stage" className={navLink}>
+        <NavLink href="/dashboard/stage" className={navLink}>
           Stage
-        </Link>
+        </NavLink>
       ) : null}
       {isSiteAdminRole(profile.role) ? (
-        <Link href="/members" className={navLink}>
+        <NavLink href="/members" className={navLink}>
           Members
-        </Link>
+        </NavLink>
       ) : null}
     </>
   );
@@ -152,7 +155,7 @@ function AuthPlaceholder() {
 
 export function SiteHeader() {
   return (
-    <header className="on-dark sticky top-0 z-50 w-full bg-forest">
+    <header className="header-lift on-dark sticky top-0 z-50 w-full bg-forest">
       {/* Keyboard and screen-reader users can jump the navigation entirely.
           Visible only when focused. */}
       <a
@@ -164,15 +167,15 @@ export function SiteHeader() {
         Skip to content
       </a>
 
-      <div className="mx-auto flex h-20 max-w-[1200px] items-center justify-between gap-4 px-5 sm:px-8">
+      <div className="mx-auto flex h-20 max-w-[1200px] items-center justify-between gap-2 px-3 min-[380px]:px-5 sm:gap-4 sm:px-8">
         <BrandLogo />
 
-        <div className="flex items-center gap-4">
+        <div className="flex items-center gap-2 sm:gap-4">
           <nav aria-label="Main" className="hidden items-center gap-5 md:flex">
             {NAV.map((item) => (
-              <Link key={item.href} href={item.href} className={navLink}>
+              <NavLink key={item.href} href={item.href} className={navLink}>
                 {item.label}
-              </Link>
+              </NavLink>
             ))}
             <Suspense fallback={null}>
               <StaffLinks />
