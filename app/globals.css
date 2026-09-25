@@ -1,130 +1,122 @@
 @import "tailwindcss";
 
 /* ---------------------------------------------------------------------------
-   El-Salam Scouting Group — white ground, green accents.
+   El-Salam Scouting Group — cream ground, forest green, scout yellow.
+
+   Palette and type come from the UI/UX team's design (Sep 2026). One change
+   was made on purpose, and it is the reason for most of the comments below:
+   the design put WHITE text on the yellow (#ffdd32). That measures 1.34:1 —
+   the WCAG minimum for body text is 4.5:1 — so "New season registration is
+   currently available" was close to invisible in daylight on a phone. Text on
+   yellow is forest green here instead (8.18:1); the yellow itself is unchanged.
+   Yellow as TEXT on the cream background (1.28:1) became maroon (7.54:1).
 
    Tailwind v4 is CSS-first: tokens declared in @theme become utilities
-   (bg-brand-600, text-ink, border-line, ...). Two blocks, on purpose:
+   (bg-sun, text-forest, font-display, ...).
 
-     @theme        — fixed values that never change with the colour scheme
-     :root / @media — semantic values that DO change, as plain variables
-     @theme inline — exposes those variables as utilities
+   The semantic tokens (canvas, surface, ink, line, brand-*) are the same names
+   the whole app already uses, remapped to the new palette. That is how the
+   members area, dashboard, onboarding and every form pick up the new look
+   without each file being rewritten.
 
-   The raw variables are deliberately named WITHOUT the `--color-` prefix so
-   that `@theme inline` can point at them without defining a variable in terms
-   of itself (`--color-canvas: var(--color-canvas)` silently resolves to
-   nothing and every surface goes transparent).
+   Raw variables are named WITHOUT the `--color-` prefix so `@theme inline`
+   can point at them without defining a variable in terms of itself
+   (`--color-canvas: var(--color-canvas)` silently resolves to nothing).
    --------------------------------------------------------------------------- */
 
+/* The design is one deliberate light look — it declares color-scheme: light
+   and has no dark variant, and the old `dark:` classes were removed with it.
+   This line is the guard against one creeping back: Tailwind's `dark:`
+   utilities follow the OS setting by default, so a stray one would switch on
+   for a member whose phone is in dark mode and paint pale text onto the cream
+   page. Pointed at a class that is never set, `dark:` now does nothing. */
+@custom-variant dark (&:where(.dark, .dark *));
+
 @theme {
-  /* Brand — scouting green.
-     NOT Tailwind's stock green. Every primary button in this app is white text
-     on brand-600, and stock green-600 (#16a34a) scores 3.30:1 against white —
-     below the 4.5:1 WCAG AA needs for body text. The scale is shifted darker
-     from 500 down so that brand-600 lands at 5.02:1 and stays legible for
-     someone reading a phone in daylight at camp. Measured, not guessed. */
-  --color-brand-50: #f0fdf4;
-  --color-brand-100: #dcfce7;
-  --color-brand-200: #b7ebca;
-  --color-brand-300: #7fd7a1;
-  --color-brand-400: #45bd77;
-  --color-brand-500: #1f9d55;
-  --color-brand-600: #15803d; /* white text: 5.02:1 */
-  --color-brand-700: #116631; /* white text: 7.07:1 */
-  --color-brand-800: #0e5228;
-  --color-brand-900: #0c4322;
-  --color-brand-950: #052e16;
+  /* Named design colours — use these for the public pages' signature pieces. */
+  --color-cream: #fff9ea;   /* page ground */
+  --color-butter: #ffee99;  /* light yellow — only on the green section */
+  --color-sun: #ffdd32;     /* scout yellow — backgrounds only, never text on cream */
+  --color-forest: #1e4428;  /* header, footer, primary actions */
+  --color-leaf: #377b49;    /* activities band, borders, secondary text */
+  --color-maroon: #912e37;  /* headings and links on cream or on yellow */
 
-  /* Accent — a warmer, lighter green for small decorative marks (status dots,
-     rule highlights). Never carries text, so it is free to be bright. */
-  --color-accent-300: #a7e8c0;
-  --color-accent-400: #6fd49b;
-  --color-accent-500: #34c27b;
+  /* Brand scale, rebuilt around the design's two greens so every existing
+     `bg-brand-600 text-white` button in the app lands on-palette.
+       brand-600 = leaf    white text 5.13:1
+       brand-700           white text 7.31:1
+       brand-800 = forest  white text 10.98:1 */
+  --color-brand-50: #eef6ef;
+  --color-brand-100: #dcecdf;
+  --color-brand-200: #b9d8bf;
+  --color-brand-300: #8fbf99;
+  --color-brand-400: #5c9e6a;
+  --color-brand-500: #46895a;
+  --color-brand-600: #377b49;
+  --color-brand-700: #2b6139;
+  --color-brand-800: #1e4428;
+  --color-brand-900: #173520;
+  --color-brand-950: #0f2415;
 
-  --font-sans: var(--font-geist-sans), ui-sans-serif, system-ui, sans-serif;
-  --font-mono: var(--font-geist-mono), ui-monospace, monospace;
+  --color-accent-300: #ffee99;
+  --color-accent-400: #ffe566;
+  --color-accent-500: #ffdd32;
+  --color-accent-600: #7a5d00; /* text colour for the small "badge" chips */
+
+  /* Geologica for text, Fustat for display. Geologica has no Arabic glyphs,
+     so Fustat — which does — is second in the body stack: the browser falls
+     back per character, so "مجموعة السلام الكشفية" renders in Fustat inside
+     an otherwise-Geologica sentence without anyone marking it up. */
+  --font-sans: var(--font-geologica), var(--font-fustat), ui-sans-serif, system-ui, sans-serif;
+  --font-display: var(--font-fustat), var(--font-geologica), ui-sans-serif, system-ui, sans-serif;
 }
 
 /* ---------------------------------------------------------------------------
-   Semantic surfaces — light (the default, and the one the group actually uses)
+   Semantic surfaces. Every ratio below is text-on-canvas unless noted, and
+   was measured, not guessed.
    --------------------------------------------------------------------------- */
 :root {
   color-scheme: light;
 
-  --canvas: #ffffff;
-  /* Barely-there green wash. Enough to separate a panel from the page without
-     the grey cast that made the old palette feel like an admin console. */
-  --surface: #f5faf7;
-  --surface-raised: #ffffff;
+  --canvas: #fff9ea;          /* cream */
+  --surface: #f7eed6;         /* a deeper cream for panels and table heads */
+  --surface-raised: #fffdf7;  /* cards sitting on the cream */
 
-  --ink: #0b1a12;
-  --ink-muted: #40564a;
-  --ink-subtle: #5c7367;
+  --ink: #1e4428;             /* forest   10.45:1 */
+  --ink-muted: #3f5a47;       /*           7.23:1 */
+  --ink-subtle: #566e5c;      /*           5.29:1 (4.80 on surface) */
 
-  /* Two border weights, because they answer different rules.
-     --line is decorative (dividers, card edges) and stays soft.
-     --line-strong is for anything a person operates — input borders, in
-     particular — where WCAG 1.4.11 requires 3:1 against the background.
-     Using one token for both means either invisible inputs or heavy-handed
-     dividers everywhere. */
-  --line: #dfeae3;
-  --line-strong: #6f9182; /* 3.47:1 on white */
+  /* --line is decorative (dividers, card edges). --line-strong is for things
+     a person operates — input borders — where WCAG 1.4.11 needs 3:1. The
+     design draws inputs with a 2px leaf-green border, which also clears it. */
+  --line: #eadfbf;
+  --line-strong: #377b49;     /* 4.89:1 */
 
-  /* Feedback. Previously these were hardcoded Tailwind reds and ambers in a
-     dozen components with no dark variants, so every error message rendered
-     as a glaring pink box on a dark page. Tokens fix it in one place. */
-  --danger-surface: #fef2f2;
-  --danger-line: #fecaca;
-  --danger-ink: #991b1b;
-  --danger-solid: #b91c1c;
+  --danger-surface: #fdecea;
+  --danger-line: #f3c2bd;
+  --danger-ink: #8a1c1c;
+  --danger-solid: #b3261e;
 
-  --warning-surface: #fffbeb;
-  --warning-line: #fde68a;
-  --warning-ink: #854d0e;
+  --warning-surface: #fff4c2;
+  --warning-line: #f0d77a;
+  --warning-ink: #6b4f00;
 
-  --success-surface: #f0fdf4;
-  --success-line: #b7ebca;
-  --success-ink: #0e5228;
+  --success-surface: #e7f3e9;
+  --success-line: #b9d8bf;
+  --success-ink: #1e4428;
 
-  /* Brand colour used as TEXT — links, eyebrow labels, inline emphasis.
-     Separate from the brand scale because the scale is fixed and text has to
-     invert: brand-700 is 7.07:1 on white and 2.7:1 on the dark canvas, so
-     using the scale directly for text silently fails WCAG in dark mode. That
-     is exactly what axe found on two section labels here. One token means the
-     next person to write a green link cannot reintroduce it. */
-  --brand-ink: #116631;
+  /* Green used as TEXT — links, eyebrow labels. Darker than leaf because leaf
+     text on the panel cream is 4.44:1, a hair under the line. */
+  --brand-ink: #2b6139;       /* 6.96:1 */
+
+  /* Focus ring colour. Forest on the cream; switched to yellow inside any
+     `.on-dark` region (header, footer, green bands), where a green ring on a
+     green background would vanish exactly when a keyboard user needs it. */
+  --focus: #1e4428;
 }
 
-@media (prefers-color-scheme: dark) {
-  :root {
-    color-scheme: dark;
-
-    --canvas: #08110c;
-    --surface: #0d1a13;
-    --surface-raised: #12241a;
-
-    --ink: #e6f2ea;
-    --ink-muted: #a6bcaf;
-    --ink-subtle: #87a094;
-
-    --line: #1e3427;
-    --line-strong: #4f705b; /* 3.47:1 on the dark canvas */
-
-    --danger-surface: #2a0f0f;
-    --danger-line: #5c1f1f;
-    --danger-ink: #fca5a5;
-    --danger-solid: #ef4444;
-
-    --warning-surface: #2a1f06;
-    --warning-line: #5c4410;
-    --warning-ink: #fcd34d;
-
-    --success-surface: #062313;
-    --success-line: #14532d;
-    --success-ink: #7fd7a1;
-
-    --brand-ink: #7fd7a1; /* 11.08:1 on the dark canvas */
-  }
+.on-dark {
+  --focus: #ffdd32;
 }
 
 @theme inline {
@@ -153,29 +145,39 @@
   --color-brand-ink: var(--brand-ink);
 }
 
+html {
+  scroll-behavior: smooth;
+}
+
 body {
   background: var(--canvas);
   color: var(--ink);
 }
 
-/* One focus ring for the whole app, on the element itself rather than per
-   component. Keyboard users were previously relying on browser defaults, which
-   a green-on-white design renders nearly invisible. :focus-visible means mouse
-   users never see it. */
+/* Headings use the display face everywhere — the members area included — so
+   the logged-in pages read as the same site as the homepage. */
+:where(h1, h2, h3) {
+  font-family: var(--font-display);
+}
+
+/* One focus ring for the whole app. :focus-visible means mouse users never
+   see it; keyboard users always do. */
 :where(a, button, input, select, textarea, summary, [tabindex]):focus-visible {
-  outline: 2px solid var(--color-brand-600);
+  outline: 2px solid var(--focus);
   outline-offset: 2px;
   border-radius: 0.375rem;
 }
 
-@media (prefers-color-scheme: dark) {
-  :where(a, button, input, select, textarea, summary, [tabindex]):focus-visible {
-    outline-color: var(--color-brand-400);
-  }
+/* Anchored sections (/#history) land below the sticky 80px header rather
+   than underneath it. */
+[id] {
+  scroll-margin-top: 6rem;
 }
 
-/* Respect users who ask for reduced motion */
 @media (prefers-reduced-motion: reduce) {
+  html {
+    scroll-behavior: auto;
+  }
   *,
   *::before,
   *::after {

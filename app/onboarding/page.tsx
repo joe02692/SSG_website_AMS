@@ -1,6 +1,6 @@
 import type { Metadata } from "next";
 import { redirect } from "next/navigation";
-import Link from "next/link";
+import { BrandLogo } from "@/components/brand-logo";
 import {
   getCurrentProfile,
   getScoutDetails,
@@ -39,33 +39,23 @@ export default async function OnboardingPage() {
   const answers = isScout ? scoutAnswers(scout) : leaderAnswers(leader);
 
   return (
-    <div className="flex min-h-dvh flex-col bg-surface">
-      <header className="border-b border-line bg-canvas">
-        <div className="mx-auto flex max-w-6xl items-center px-4 py-4 sm:px-6">
-          <Link
-            href="/"
-            className="flex items-center gap-2.5 text-sm font-semibold text-ink"
-          >
-            <span
-              aria-hidden
-              className="grid size-8 place-items-center rounded-lg bg-brand-700 text-xs font-bold text-white"
-            >
-              ES
-            </span>
-            El-Salam Scouting Group
-          </Link>
+    <div className="flex min-h-dvh flex-col bg-canvas">
+      {/* The site's forest bar, logo only. Deliberately no navigation: this is
+          the one step between signing up and using the site, and every link
+          out of it would only be redirected straight back here. */}
+      <header className="on-dark bg-forest">
+        <div className="mx-auto flex h-20 max-w-[1200px] items-center px-5 sm:px-8">
+          <BrandLogo />
         </div>
       </header>
 
       <main className="flex flex-1 items-center justify-center px-4 py-10 sm:py-16">
-        <div className="w-full max-w-lg rounded-2xl border border-line bg-canvas p-6 shadow-sm sm:p-8">
+        <div className="w-full max-w-lg rounded-2xl border-2 border-line bg-surface-raised p-6 sm:p-8">
           <div className="mb-6 space-y-1.5">
             <p className="text-xs font-semibold uppercase tracking-wider text-brand-ink">
               One last step
             </p>
-            <h1 className="text-2xl font-semibold tracking-tight text-ink">
-              Your details
-            </h1>
+            <h1 className="text-3xl text-maroon">Your details</h1>
             <p className="text-sm text-ink-muted">
               A few questions so leaders have what they need. You can change any
               of these later from your dashboard.

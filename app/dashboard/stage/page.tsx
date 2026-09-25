@@ -18,7 +18,7 @@ export default async function StagePage() {
       <div className="mx-auto max-w-4xl px-4 py-12 sm:px-6 sm:py-16">
         <Link
           href="/dashboard"
-          className="text-sm text-brand-700 underline-offset-4 hover:underline dark:text-brand-300"
+          className="text-sm text-brand-700 underline-offset-4 hover:underline"
         >
           ← Dashboard
         </Link>

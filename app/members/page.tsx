@@ -22,18 +22,18 @@ type RequestRow = {
 
 const ROLE_BADGE: Record<Role, string> = {
   head_site_admin:
-    "bg-accent-500/20 text-accent-600 dark:bg-accent-500/15 dark:text-accent-400",
+    "bg-sun text-forest",
   site_admin:
-    "bg-brand-100 text-brand-800 dark:bg-brand-950 dark:text-brand-200",
+    "bg-brand-100 text-brand-800",
   stage_admin:
-    "bg-brand-100 text-brand-800 dark:bg-brand-950 dark:text-brand-200",
+    "bg-brand-100 text-brand-800",
   stage_leader:
-    "bg-brand-50 text-brand-ink dark:bg-brand-950/60",
-  leader: "bg-brand-100 text-brand-800 dark:bg-brand-950 dark:text-brand-200",
+    "bg-brand-50 text-brand-ink",
+  leader: "bg-brand-100 text-brand-800",
   pending_leader:
     "bg-warning-surface text-warning-ink border border-warning-line",
   scout: "bg-surface text-ink-muted",
-  parent: "bg-accent-500/15 text-accent-600 dark:bg-accent-500/10",
+  parent: "bg-butter text-forest",
 };
 
 /** Roles worth a headline count on this page. */

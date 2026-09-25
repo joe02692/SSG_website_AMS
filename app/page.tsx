@@ -1,201 +1,229 @@
+import Image from "next/image";
 import Link from "next/link";
 import type { Metadata } from "next";
 import { SiteShell } from "@/components/site-shell";
-import { CampGallery } from "@/components/landing/camp-gallery";
+import { HeroSlider } from "@/components/landing/hero-slider";
+import {
+  ACTIVITIES,
+  FOUNDED,
+  HERO_SLIDES,
+  MILESTONES,
+  STATS,
+} from "@/lib/site-content";
+import rope from "@/public/images/rope.jpg";
 
 export const metadata: Metadata = {
   title: "El-Salam Scouting Group",
   description:
-    "El-Salam Scouting Group — over 400 scouts, leaders and families building character, service and friendship.",
+    "El-Salam Scouting Group — over 400 scouts, leaders and families building character, service and friendship since 1977.",
 };
 
-/* ---------------------------------------------------------------------------
- * NOTE: the history copy and figures below are placeholders written to the
- * right shape and length. Replace them with the group's real dates and
- * numbers before this goes public.
- * ------------------------------------------------------------------------- */
+/* Colour notes for anyone editing this page — the design used yellow in two
+   places where it can't be read, and both were changed:
+     • text ON yellow is forest (8.18:1), not white (1.34:1)
+     • headings ON the cream are maroon (7.54:1), not yellow (1.28:1)
+   Yellow headings survive only on the green band, where they are large
+   enough (36px) for the 3:1 that large text needs; they measure 3.82:1. */
 
-const STATS = [
-  { value: "400+", label: "Active members" },
-  { value: "6", label: "Sections" },
-  { value: "1968", label: "Founded" },
-  { value: "50+", label: "Camps a year" },
-];
-
-const MILESTONES = [
-  {
-    year: "1968",
-    title: "The first troop",
-    body: "El-Salam begins with a single troop of twenty scouts meeting in a borrowed hall, led by volunteers from the neighbourhood.",
-  },
-  {
-    year: "1985",
-    title: "A permanent home",
-    body: "The group opens its own scout house, giving every section a place to store kit and plan expeditions year-round.",
-  },
-  {
-    year: "2004",
-    title: "Growing the sections",
-    body: "Cubs and Rovers are added alongside the original troop, opening the group to a much wider range of ages.",
-  },
-  {
-    year: "2026",
-    title: "Going digital",
-    body: "Records move off spreadsheets and paper into a single membership system, so leaders spend their time on scouting rather than admin.",
-  },
-];
+const years = new Date().getFullYear() - FOUNDED;
+const yearsInWords =
+  years >= 55 ? "Nearly sixty" : years >= 45 ? "Nearly fifty" : `${years}`;
 
 export default function HomePage() {
   return (
     <SiteShell>
       {/* ---------------------------------------------------------------- Hero */}
-      <section className="relative overflow-hidden border-b border-line">
+      <section className="relative h-[min(78vw,560px)] w-full overflow-hidden bg-forest">
+        <HeroSlider slides={HERO_SLIDES} />
         <div
           aria-hidden
-          className="absolute inset-0 bg-linear-to-b from-brand-50 to-canvas dark:from-brand-950/40 dark:to-canvas"
+          className="pointer-events-none absolute inset-x-0 bottom-0 z-10 h-[35%] bg-linear-to-t from-black/45 to-transparent"
         />
-        <div
-          aria-hidden
-          className="absolute -right-24 -top-24 size-96 rounded-full bg-brand-200/40 blur-3xl dark:bg-brand-800/20"
-        />
-
-        <div className="relative mx-auto max-w-6xl px-4 py-20 sm:px-6 sm:py-28">
-          <div className="max-w-2xl">
-            <span className="inline-flex items-center gap-2 rounded-full border border-brand-200 bg-brand-50 px-3 py-1 text-xs font-medium text-brand-800 dark:border-brand-800 dark:bg-brand-950 dark:text-brand-200">
-              <span
-                aria-hidden
-                className="size-1.5 rounded-full bg-accent-500"
-              />
-              Registrations are open for the new season
+        <div className="pointer-events-none absolute left-1/2 top-[80%] z-10 w-full -translate-x-1/2 -translate-y-1/2 px-4 text-center">
+          <h1>
+            <span className="mb-2.5 block whitespace-nowrap font-sans text-[clamp(0.95rem,4.7vw,40px)] leading-none tracking-[-0.02em] text-white [text-shadow:0_1px_10px_rgb(0_0_0/0.45)]">
+              Character, Service &amp; Friendship
             </span>
-
-            <h1 className="mt-5 text-4xl font-semibold tracking-tight text-ink sm:text-6xl">
-              Character, service and friendship
-              <span className="block text-brand-ink">
-                since 1968
-              </span>
-            </h1>
-
-            <p className="mt-5 max-w-xl text-lg text-ink-muted">
-              El-Salam Scouting Group brings together more than 400 scouts,
-              leaders and families. We hike, camp, serve our community — and
-              grow up a little braver for it.
-            </p>
-
-            <div className="mt-8 flex flex-wrap gap-3">
-              <Link
-                href="/signup"
-                className="rounded-lg bg-brand-600 px-5 py-3 text-sm font-semibold text-white shadow-sm transition hover:bg-brand-700 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-brand-600"
-              >
-                Join the group
-              </Link>
-              <Link
-                href="#history"
-                className="rounded-lg border border-line bg-canvas px-5 py-3 text-sm font-semibold text-ink transition hover:border-brand-300"
-              >
-                Our history
-              </Link>
-            </div>
-          </div>
-
-          <dl className="mt-14 grid grid-cols-2 gap-px overflow-hidden rounded-xl border border-line bg-line sm:grid-cols-4">
-            {STATS.map((stat) => (
-              <div key={stat.label} className="bg-canvas px-4 py-5">
-                <dt className="text-xs uppercase tracking-wider text-ink-subtle">
-                  {stat.label}
-                </dt>
-                <dd className="mt-1 text-2xl font-semibold text-ink">
-                  {stat.value}
-                </dd>
-              </div>
-            ))}
-          </dl>
+            <span className="block font-display text-[clamp(2.15rem,12vw,64px)] leading-none text-white [text-shadow:2px_0_var(--color-sun),-2px_0_var(--color-sun),0_2px_var(--color-sun),0_-2px_var(--color-sun)]">
+              SINCE {FOUNDED}
+            </span>
+          </h1>
         </div>
+      </section>
+
+      {/* --------------------------------------------------------------- Intro */}
+      <section className="mx-auto mt-8 w-[calc(100%-40px)] max-w-[760px]">
+        <p className="text-[clamp(20px,4vw,30px)] leading-snug text-[#141414]">
+          El-Salam Scouting Group brings together more than 400 scouts, leaders
+          and families. We hike, camp, serve our community — and grow up a
+          little braver for it.
+        </p>
+      </section>
+
+      {/* --------------------------------------------------------------- Stats */}
+      <dl className="mx-auto mt-8 grid w-[calc(100%-40px)] max-w-[760px] grid-cols-2 gap-3">
+        {STATS.map((stat) => (
+          <div
+            key={stat.label}
+            className="flex flex-col-reverse rounded-2xl border-2 border-sun px-3 py-6 text-center"
+          >
+            <dt className="mt-2 text-[15px] font-medium text-leaf">{stat.label}</dt>
+            <dd className="font-display text-[clamp(32px,8vw,48px)] font-semibold leading-none text-leaf">
+              {stat.value}
+            </dd>
+          </div>
+        ))}
+      </dl>
+
+      {/* ------------------------------------------------------ Register banner */}
+      <section className="mx-auto mt-8 w-[calc(100%-40px)] max-w-[760px] rounded-2xl bg-sun px-6 py-8 text-center text-forest">
+        <p className="text-[clamp(18px,3vw,22px)] font-medium leading-tight">
+          New season registration is currently available
+        </p>
+        <Link
+          href="/signup"
+          className="mt-5 inline-block rounded-md bg-leaf px-7 py-3 font-bold text-white transition hover:opacity-90"
+        >
+          Join Us
+        </Link>
       </section>
 
       {/* ------------------------------------------------------------- History */}
       <section
         id="history"
         aria-labelledby="history-heading"
-        className="py-16 sm:py-24"
+        className="mx-auto mt-12 w-[calc(100%-40px)] max-w-[760px] pb-4"
       >
-        <div className="mx-auto max-w-6xl px-4 sm:px-6">
-          <div className="grid gap-12 lg:grid-cols-[minmax(0,26rem)_1fr]">
-            <div>
-              <p className="text-sm font-semibold uppercase tracking-wider text-brand-ink">
-                Our history
-              </p>
-              <h2
-                id="history-heading"
-                className="mt-2 text-3xl font-semibold tracking-tight text-ink sm:text-4xl"
-              >
-                Nearly sixty years in the same neighbourhood
-              </h2>
-              <p className="mt-4 text-ink-muted">
-                What began as one troop in a borrowed hall is now six sections
-                and hundreds of families. The uniform has changed; the promise
-                hasn&apos;t.
-              </p>
-            </div>
+        <h2
+          id="history-heading"
+          className="text-[clamp(28px,6vw,36px)] text-maroon"
+        >
+          Our History
+        </h2>
+        <p className="mt-3 text-[clamp(20px,4vw,26px)] font-medium leading-tight text-leaf">
+          {yearsInWords} years in the same neighbourhood
+        </p>
+        <p className="mt-3 leading-relaxed text-[#141414]">
+          What began as one troop in a borrowed hall is now six sections and
+          hundreds of families. The uniform has changed; the promise hasn&apos;t.
+        </p>
 
-            <ol className="relative space-y-8 border-l border-line pl-6">
-              {MILESTONES.map((milestone) => (
-                <li key={milestone.year} className="relative">
-                  <span
-                    aria-hidden
-                    className="absolute -left-[1.9rem] top-1.5 grid size-3 place-items-center rounded-full border-2 border-canvas bg-brand-600"
-                  />
-                  <p className="font-mono text-xs font-medium text-brand-ink">
-                    {milestone.year}
-                  </p>
-                  <h3 className="mt-1 text-lg font-semibold text-ink">
-                    {milestone.title}
-                  </h3>
-                  <p className="mt-1.5 text-sm text-ink-muted">
-                    {milestone.body}
-                  </p>
-                </li>
-              ))}
-            </ol>
-          </div>
+        {/* The rope is decoration: the milestones are a real ordered list, so
+            a screen reader hears them in date order regardless of which side
+            of the rope each one sits on. */}
+        <div className="relative mx-auto mt-10 max-w-[832px]">
+          <Image
+            src={rope}
+            alt=""
+            className="pointer-events-none absolute left-1/2 top-0 z-0 h-full w-[72px] max-w-[22vw] -translate-x-1/2 object-fill mix-blend-multiply md:w-[88px]"
+          />
+        <ol className="relative grid grid-cols-[1fr_72px_1fr] gap-x-1.5 md:grid-cols-[1fr_88px_1fr] md:gap-x-3">
+          {MILESTONES.map((m, i) => {
+            const right = i % 2 === 0;
+            return (
+              <li
+                key={m.year}
+                style={{ gridRow: i + 1 }}
+                // Each milestone overlaps the one before it by ~60px, on the
+                // opposite side of the rope — the zigzag in the design, and
+                // it keeps the list from running a full phone-screen tall.
+                className={`relative z-10 flex min-h-[136px] flex-col justify-center ${
+                  i > 0 ? "-mt-14 sm:-mt-16" : ""
+                } ${
+                  right
+                    ? "col-start-3 pl-1.5 text-left"
+                    : "col-start-1 pr-1.5 text-right"
+                }`}
+              >
+                <p className="font-display text-[22px] font-semibold text-maroon">
+                  {m.year}
+                </p>
+                <h3 className="mt-1 font-sans text-lg font-bold text-[#141414]">
+                  {m.title}
+                </h3>
+                <p className="mt-1 text-sm leading-normal text-[#141414]/80">
+                  {m.body}
+                </p>
+              </li>
+            );
+          })}
+        </ol>
         </div>
       </section>
 
-      {/* ------------------------------------------------------------- Gallery */}
-      <CampGallery />
+      {/* ---------------------------------------------------------- Activities */}
+      <section
+        aria-labelledby="activities-heading"
+        className="on-dark mt-10 bg-leaf px-5 pb-12 pt-10"
+      >
+        <div className="mx-auto max-w-[1000px]">
+          <h2
+            id="activities-heading"
+            className="text-[clamp(28px,6vw,36px)] text-sun"
+          >
+            Our Activities
+          </h2>
+          {/* Never below 24px: butter on this green is 4.38:1, which passes only
+              as large text (3:1). At the design's 20px mobile size it failed. */}
+          <p className="mt-3 text-[clamp(24px,4vw,26px)] font-medium leading-tight text-butter">
+            Where the learning actually happens
+          </p>
+          <p className="mt-3 max-w-[640px] leading-relaxed text-cream">
+            Weekend hikes, summer camps and service projects — a look at what a
+            year with El-Salam involves.
+          </p>
+          <div className="mt-5 flex justify-end">
+            <Link
+              href="/gallery"
+              className="rounded-md bg-sun px-[22px] py-2.5 text-[15px] font-bold text-forest transition hover:opacity-90"
+            >
+              See All
+            </Link>
+          </div>
+          <ul className="mt-6 grid grid-cols-2 gap-3 lg:grid-cols-3">
+            {ACTIVITIES.map((photo) => (
+              <li key={photo.name}>
+                <Image
+                  src={photo.src}
+                  alt={photo.alt}
+                  placeholder="blur"
+                  sizes="(min-width: 1024px) 330px, 50vw"
+                  className="aspect-4/3 w-full rounded-lg object-cover"
+                />
+              </li>
+            ))}
+          </ul>
+        </div>
+      </section>
 
       {/* ---------------------------------------------------------------- Join */}
-      <section
-        id="join"
-        aria-labelledby="join-heading"
-        className="py-16 sm:py-24"
-      >
-        <div className="mx-auto max-w-6xl px-4 sm:px-6">
-          <div className="rounded-2xl border border-line bg-linear-to-br from-brand-700 to-brand-900 px-6 py-12 text-center sm:px-12">
+      <section id="join" aria-labelledby="join-heading" className="px-5 pb-10 pt-8">
+        <div className="mx-auto flex max-w-[1000px] flex-col items-start justify-between gap-4 rounded-3xl bg-sun px-6 py-7 sm:flex-row sm:items-center">
+          <div>
             <h2
               id="join-heading"
-              className="text-3xl font-semibold tracking-tight text-white sm:text-4xl"
+              className="text-[clamp(22px,5vw,30px)] text-maroon"
             >
               Ready to join us?
             </h2>
-            <p className="mx-auto mt-3 max-w-xl text-brand-100">
-              Create your scout account in a minute. Leaders send a request
-              the group approves — parent accounts are coming soon.
+            <p className="mt-3 max-w-[440px] text-sm leading-relaxed text-forest">
+              Create your scout account in a minute. Leaders send a request the
+              group approves — parent accounts are coming soon.
             </p>
-            <div className="mt-7 flex flex-wrap justify-center gap-3">
-              <Link
-                href="/signup"
-                className="rounded-lg bg-white px-5 py-3 text-sm font-semibold text-brand-800 shadow-sm transition hover:bg-brand-50"
-              >
-                Create an account
+          </div>
+          <div className="flex shrink-0 flex-col items-start gap-2 sm:items-end">
+            <Link
+              href="/signup"
+              className="rounded-md border-2 border-forest px-[26px] py-3 font-bold text-forest transition hover:bg-forest/10"
+            >
+              Sign Up
+            </Link>
+            <p className="text-sm leading-snug text-maroon">
+              Already have an account?{" "}
+              <Link href="/login" className="underline underline-offset-2">
+                Log in
               </Link>
-              <Link
-                href="/login"
-                className="rounded-lg border border-white/30 px-5 py-3 text-sm font-semibold text-white transition hover:bg-white/10"
-              >
-                Sign in
-              </Link>
-            </div>
+            </p>
           </div>
         </div>
       </section>

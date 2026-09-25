@@ -1,4 +1,5 @@
 import type { Metadata } from "next";
+import { AuthIntro } from "@/components/auth/auth-intro";
 import { LoginForm } from "@/components/auth/login-form";
 
 export const metadata: Metadata = {
@@ -25,26 +26,21 @@ export default async function LoginPage({
   const notice = error ? ERROR_MESSAGES[error] : undefined;
 
   return (
-    <div className="rounded-2xl border border-line bg-canvas p-6 shadow-sm sm:p-8">
-      <div className="mb-6 space-y-1.5">
-        <h1 className="text-2xl font-semibold tracking-tight text-ink">
-          Welcome back
-        </h1>
-        <p className="text-sm text-ink-muted">
-          Sign in to reach your section, records and camp bookings.
-        </p>
-      </div>
+    <>
+      <AuthIntro title="Welcome Back">
+        Sign in to reach your section, records and camp bookings.
+      </AuthIntro>
 
       {notice ? (
         <p
           role="alert"
-          className="mb-5 rounded-lg border border-amber-200 bg-amber-50 px-3 py-2.5 text-sm text-amber-900"
+          className="mb-5 rounded-lg border border-warning-line bg-warning-surface px-3 py-2.5 text-sm text-warning-ink"
         >
           {notice}
         </p>
       ) : null}
 
       <LoginForm redirectTo={redirectTo} />
-    </div>
+    </>
   );
 }

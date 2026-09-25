@@ -1,29 +1,19 @@
-import Link from "next/link";
 import type { ReactNode } from "react";
+import { SiteShell } from "@/components/site-shell";
 
+/**
+ * Sign in, sign up, forgot and reset password.
+ *
+ * The design gives these the full site header and footer — the same bar as
+ * the homepage, not a stripped-down one — with the form sitting directly on
+ * the cream, no card around it, in a 480px column.
+ */
 export default function AuthLayout({ children }: { children: ReactNode }) {
   return (
-    <div className="flex min-h-dvh flex-col bg-surface">
-      <header className="border-b border-line bg-canvas">
-        <div className="mx-auto flex max-w-6xl items-center px-4 py-4 sm:px-6">
-          <Link
-            href="/"
-            className="flex items-center gap-2.5 text-sm font-semibold text-ink"
-          >
-            <span
-              aria-hidden
-              className="grid size-8 place-items-center rounded-lg bg-brand-700 text-xs font-bold text-white"
-            >
-              ES
-            </span>
-            El-Salam Scouting Group
-          </Link>
-        </div>
-      </header>
-
-      <main className="flex flex-1 items-center justify-center px-4 py-10 sm:py-16">
-        <div className="w-full max-w-md">{children}</div>
-      </main>
-    </div>
+    <SiteShell>
+      <div className="px-4 pb-11 pt-8 sm:px-5 sm:pt-9">
+        <div className="mx-auto w-full max-w-[480px]">{children}</div>
+      </div>
+    </SiteShell>
   );
 }

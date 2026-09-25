@@ -79,7 +79,7 @@ export default async function ScoutsPage() {
       <div className="mx-auto max-w-7xl px-4 py-12 sm:px-6 sm:py-16">
         <Link
           href="/members"
-          className="text-sm text-brand-ink underline-offset-4 hover:underline dark:text-brand-300"
+          className="text-sm text-brand-ink underline-offset-4 hover:underline"
         >
           ← Members
         </Link>

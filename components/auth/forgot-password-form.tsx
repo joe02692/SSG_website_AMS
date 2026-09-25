@@ -35,7 +35,7 @@ export function ForgotPasswordForm() {
         </p>
       ) : null}
 
-      <Field label="Email address" htmlFor={`${id}-email`}>
+      <Field label="Email Address" htmlFor={`${id}-email`}>
         <input
           id={`${id}-email`}
           name="email"
@@ -51,11 +51,11 @@ export function ForgotPasswordForm() {
         Email me a reset link
       </SubmitButton>
 
-      <p className="text-center text-sm text-ink-muted">
+      <p className="text-center font-display text-[15px] font-medium text-brand-ink">
         Remembered it?{" "}
         <Link
           href="/login"
-          className="font-medium text-brand-ink underline-offset-4 hover:underline"
+          className="text-maroon underline underline-offset-4 hover:opacity-75"
         >
           Sign in
         </Link>

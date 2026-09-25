@@ -1,78 +1,59 @@
 import type { Metadata } from "next";
 import Image from "next/image";
-import Link from "next/link";
 import { SiteShell } from "@/components/site-shell";
-import { cloudinaryConfigured, getAlbums, photoUrl } from "@/lib/cloudinary";
+import { GALLERY } from "@/lib/site-content";
 
 export const metadata: Metadata = {
-  title: "Camp gallery",
+  title: "Camp Gallery",
   description:
-    "Photo albums from El-Salam Scouting Group camps, hikes and events.",
+    "Photos from El-Salam Scouting Group camps, hikes and events.",
 };
 
-export default async function GalleryPage() {
-  const albums = cloudinaryConfigured() ? await getAlbums() : [];
-
+/**
+ * The design's Camp Gallery: a grid of photo cards, fixed for now.
+ *
+ * These are the eight photos the design shipped with, served from /public.
+ * The Cloudinary connection this page used to read albums from is still in
+ * the codebase — lib/cloudinary.ts and /gallery/[album] — so switching back
+ * to live albums later means changing where GALLERY comes from, not
+ * rebuilding the integration.
+ */
+export default function GalleryPage() {
   return (
     <SiteShell>
-      <div className="mx-auto max-w-6xl px-4 py-12 sm:px-6 sm:py-16">
-        <div className="mb-10 max-w-2xl">
-          <p className="text-sm font-semibold uppercase tracking-wider text-brand-ink">
-            Camp gallery
-          </p>
-          <h1 className="mt-2 text-3xl font-semibold tracking-tight text-ink sm:text-4xl">
-            Albums
-          </h1>
-          <p className="mt-3 text-ink-muted">
-            Every camp, hike and event — one album at a time.
-          </p>
-        </div>
+      <section className="mx-auto w-[calc(100%-40px)] max-w-[1000px] pb-14 pt-7">
+        <h1 className="text-[clamp(28px,6vw,36px)] leading-tight text-maroon">
+          Camp Gallery
+        </h1>
+        <p className="mt-2.5 text-[clamp(20px,4.2vw,26px)] font-medium leading-snug text-forest">
+          Every camp, hike and event — one album at a time.
+        </p>
 
-        {albums.length === 0 ? (
-          <div className="rounded-2xl border border-line bg-surface p-10 text-center">
-            <p className="text-lg font-medium text-ink">No albums yet</p>
-            <p className="mx-auto mt-2 max-w-md text-sm text-ink-muted">
-              Photos will appear here automatically once they&apos;re added to
-              the group&apos;s photo library. Check back after the next camp!
-            </p>
-          </div>
-        ) : (
-          <ul
-            role="list"
-            className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3"
-          >
-            {albums.map((album) => (
-              <li key={album.path}>
-                <Link
-                  href={`/gallery/${encodeURIComponent(album.slug)}`}
-                  className="group block overflow-hidden rounded-xl border border-line bg-surface-raised transition hover:border-brand-300 hover:shadow-md"
-                >
-                  <div className="relative aspect-4/3 overflow-hidden bg-surface">
-                    {album.cover ? (
-                      <Image
-                        src={photoUrl(album.cover.publicId, 800)}
-                        alt={`Cover photo of ${album.name}`}
-                        fill
-                        sizes="(min-width: 1024px) 33vw, (min-width: 640px) 50vw, 100vw"
-                        className="object-cover transition duration-300 group-hover:scale-105"
-                      />
-                    ) : null}
-                  </div>
-                  <div className="flex items-baseline justify-between gap-3 p-4">
-                    <h2 className="truncate text-base font-semibold text-ink">
-                      {album.name}
-                    </h2>
-                    <p className="shrink-0 text-xs text-ink-subtle">
-                      {album.photoCount}{" "}
-                      {album.photoCount === 1 ? "photo" : "photos"}
-                    </p>
-                  </div>
-                </Link>
-              </li>
-            ))}
-          </ul>
-        )}
-      </div>
+        <ul className="mt-7 grid grid-cols-1 gap-3 sm:grid-cols-2">
+          {GALLERY.map((album, i) => (
+            <li key={album.name}>
+              <figure className="relative aspect-4/3 overflow-hidden rounded-md bg-forest">
+                <Image
+                  src={album.src}
+                  alt={album.alt}
+                  fill
+                  placeholder="blur"
+                  priority={i < 2}
+                  sizes="(min-width: 640px) 490px, 100vw"
+                  className="object-cover"
+                />
+                <div
+                  aria-hidden
+                  className="absolute inset-0 bg-linear-to-t from-forest/90 via-forest/40 via-40% to-forest/15"
+                />
+                <figcaption className="absolute inset-x-3.5 bottom-3 z-10 text-[clamp(16px,4vw,20px)] font-semibold tracking-[0.04em] text-white">
+                  {album.name}
+                </figcaption>
+              </figure>
+            </li>
+          ))}
+        </ul>
+      </section>
     </SiteShell>
   );
 }

@@ -30,7 +30,7 @@ export function LoginForm({ redirectTo }: { redirectTo?: string }) {
         </p>
       ) : null}
 
-      <Field label="Email address" htmlFor={`${id}-email`}>
+      <Field label="Email Address" htmlFor={`${id}-email`}>
         <input
           id={`${id}-email`}
           name="email"
@@ -50,27 +50,30 @@ export function LoginForm({ redirectTo }: { redirectTo?: string }) {
           autoComplete="current-password"
           required
           className={inputClass}
+          placeholder="Your password"
         />
       </Field>
 
-      <p className="-mt-2 text-right">
+      <p className="-mt-3 text-right">
         <Link
           href="/forgot-password"
-          className="text-xs font-medium text-brand-ink underline-offset-4 hover:underline"
+          className="text-[13px] font-medium text-maroon underline underline-offset-2 hover:opacity-75"
         >
           Forgot password?
         </Link>
       </p>
 
-      <SubmitButton pending={pending} pendingLabel="Signing in…">
-        Sign in
-      </SubmitButton>
+      <div className="pt-3">
+        <SubmitButton pending={pending} pendingLabel="Logging in…">
+          Log in
+        </SubmitButton>
+      </div>
 
-      <p className="text-center text-sm text-ink-muted">
+      <p className="text-center font-display text-[15px] font-medium text-brand-ink">
         New to the group?{" "}
         <Link
           href="/signup"
-          className="font-medium text-brand-ink underline-offset-4 hover:underline"
+          className="text-maroon underline underline-offset-4 hover:opacity-75"
         >
           Create an account
         </Link>

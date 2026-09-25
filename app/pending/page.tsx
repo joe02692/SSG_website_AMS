@@ -26,7 +26,7 @@ export default async function PendingPage() {
         <div className="rounded-2xl border border-line bg-surface-raised p-8 text-center">
           <span
             aria-hidden
-            className="mx-auto grid size-12 place-items-center rounded-full bg-brand-50 dark:bg-brand-950"
+            className="mx-auto grid size-12 place-items-center rounded-full bg-brand-50"
           >
             <svg
               viewBox="0 0 24 24"

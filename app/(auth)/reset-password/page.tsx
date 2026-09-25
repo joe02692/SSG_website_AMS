@@ -1,4 +1,5 @@
 import type { Metadata } from "next";
+import { AuthIntro } from "@/components/auth/auth-intro";
 import { requireUser } from "@/lib/dal";
 import { ResetPasswordForm } from "@/components/auth/reset-password-form";
 
@@ -13,18 +14,13 @@ export default async function ResetPasswordPage() {
   await requireUser();
 
   return (
-    <div className="rounded-2xl border border-line bg-canvas p-6 shadow-sm sm:p-8">
-      <div className="mb-6 space-y-1.5">
-        <h1 className="text-2xl font-semibold tracking-tight text-ink">
-          Set a new password
-        </h1>
-        <p className="text-sm text-ink-muted">
+    <>
+      <AuthIntro title="Set a new password">
           Choose a new password for your account. You&apos;ll stay signed in
           after saving it.
-        </p>
-      </div>
+      </AuthIntro>
 
       <ResetPasswordForm />
-    </div>
+    </>
   );
 }

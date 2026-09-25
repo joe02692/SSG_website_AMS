@@ -1,5 +1,6 @@
 "use client";
 
+/** The design's primary action: full-width forest bar, cream Fustat label. */
 export function SubmitButton({
   pending,
   children,
@@ -13,10 +14,9 @@ export function SubmitButton({
     <button
       type="submit"
       disabled={pending}
-      className="inline-flex w-full items-center justify-center rounded-lg bg-brand-600 px-4 py-2.5
-                 text-sm font-semibold text-white shadow-sm transition
-                 hover:bg-brand-700 focus-visible:outline-2 focus-visible:outline-offset-2
-                 focus-visible:outline-brand-600 disabled:cursor-not-allowed disabled:opacity-70"
+      className="inline-flex min-h-14 w-full items-center justify-center rounded-xl bg-forest px-4 py-3
+                 font-display text-xl text-cream transition hover:opacity-90
+                 disabled:cursor-not-allowed disabled:opacity-70 sm:text-2xl"
     >
       {pending ? pendingLabel : children}
     </button>

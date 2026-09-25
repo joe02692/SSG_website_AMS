@@ -21,8 +21,8 @@ const CHOICES: {
   disabled: boolean;
 }[] = [
   { value: "scout", badge: null, disabled: false },
-  { value: "parent", badge: "Coming soon", disabled: true },
-  { value: "leader", badge: "Needs approval", disabled: false },
+  { value: "parent", badge: "Coming Soon", disabled: true },
+  { value: "leader", badge: "Needs Approval", disabled: false },
 ];
 
 /**
@@ -45,7 +45,7 @@ export function SignupForm() {
   const id = useId();
 
   return (
-    <form action={formAction} className="space-y-5" noValidate>
+    <form action={formAction} className="space-y-4" noValidate>
       {state.notice ? (
         <p
           role="status"
@@ -64,9 +64,9 @@ export function SignupForm() {
         </p>
       ) : null}
 
-      <fieldset className="space-y-2">
-        <legend className="text-sm font-medium text-ink">
-          How are you joining?
+      <fieldset className="pb-4">
+        <legend className="mb-2 font-display text-lg font-medium text-brand-ink">
+          Are you a...
         </legend>
         <div className="grid gap-2">
           {CHOICES.map((choice) => {
@@ -74,17 +74,16 @@ export function SignupForm() {
             return (
               <label
                 key={choice.value}
-                className={`flex gap-3 rounded-lg border p-3 transition ${
+                // The radio itself is visually hidden (the whole card is the
+                // target, as in the design), so the card has to show keyboard
+                // focus on the radio's behalf — has-[:focus-visible].
+                className={`relative flex min-h-[68px] items-center rounded-xl px-4 py-3 transition
+                  has-[:focus-visible]:outline-2 has-[:focus-visible]:outline-offset-2 has-[:focus-visible]:outline-forest sm:px-[18px] ${
                   choice.disabled
-                    ? "cursor-not-allowed border-line bg-surface opacity-60"
+                    ? "cursor-not-allowed border-2 border-[#6b706d] text-[#6b706d]"
                     : selected
-                      ? // bg-brand-50/60 was a fixed light mint at 60% opacity. Over a
-                        // dark card that composites to a muddy grey-green (#939f97),
-                        // and text-ink on it measured 2.38:1 — the selected option
-                        // became the least readable one. Semantic surfaces instead of
-                        // a blended fixed colour.
-                        "cursor-pointer border-brand-600 bg-brand-50 ring-1 ring-brand-600/30 dark:bg-brand-950"
-                      : "cursor-pointer border-line bg-surface-raised hover:border-brand-300"
+                      ? "cursor-pointer border-[3px] border-leaf bg-leaf/20 text-forest"
+                      : "cursor-pointer border-2 border-leaf text-brand-ink hover:bg-leaf/5"
                 }`}
               >
                 <input
@@ -94,24 +93,24 @@ export function SignupForm() {
                   checked={selected}
                   disabled={choice.disabled}
                   onChange={() => setRole(choice.value)}
-                  className="mt-0.5 size-4 accent-brand-600 disabled:cursor-not-allowed"
+                  className="sr-only"
                 />
                 <span className="min-w-0">
-                  <span className="block text-sm font-medium text-ink">
-                    {ROLE_LABELS[choice.value]}
+                  <span className="flex flex-wrap items-center gap-2 sm:gap-3">
+                    <strong className="font-display text-lg font-medium leading-tight sm:text-[21px]">
+                      {choice.value === "leader" ? "Leader" : ROLE_LABELS[choice.value]}
+                    </strong>
                     {choice.badge ? (
                       <span
-                        className={`ml-2 rounded px-1.5 py-0.5 text-[11px] font-semibold ${
-                          choice.disabled
-                            ? "bg-ink-subtle/15 text-ink-subtle"
-                            : "bg-accent-500/15 text-accent-600"
+                        className={`inline-flex min-h-[25px] items-center rounded-md px-2 py-0.5 text-[11px] font-medium text-white ${
+                          choice.disabled ? "bg-[#5f6461]" : "bg-forest"
                         }`}
                       >
                         {choice.badge}
                       </span>
                     ) : null}
                   </span>
-                  <span className="block text-xs text-ink-subtle">
+                  <span className="mt-0.5 block text-xs font-medium leading-snug">
                     {choice.value === "leader"
                       ? LEADER_CHOICE_DESCRIPTION
                       : ROLE_DESCRIPTIONS[choice.value]}
@@ -122,14 +121,14 @@ export function SignupForm() {
           })}
         </div>
         {state.fieldErrors?.role ? (
-          <p className="text-xs font-medium text-danger-ink">
+          <p className="mt-2 text-xs font-medium text-danger-ink">
             {state.fieldErrors.role}
           </p>
         ) : null}
       </fieldset>
 
       <Field
-        label="Full name"
+        label="Full Name"
         htmlFor={`${id}-name`}
         error={state.fieldErrors?.fullName}
       >
@@ -140,12 +139,12 @@ export function SignupForm() {
           autoComplete="name"
           required
           className={inputClass}
-          placeholder="Yara Hassan"
+          placeholder="Ex: Ali Mohamed"
         />
       </Field>
 
       <Field
-        label="Email address"
+        label="Email Address"
         htmlFor={`${id}-email`}
         error={state.fieldErrors?.email}
       >
@@ -163,8 +162,7 @@ export function SignupForm() {
       <Field
         label="Password"
         htmlFor={`${id}-password`}
-        hint="At least 10 characters."
-        error={state.fieldErrors?.password}
+                error={state.fieldErrors?.password}
       >
         <input
           id={`${id}-password`}
@@ -174,6 +172,7 @@ export function SignupForm() {
           required
           minLength={10}
           className={inputClass}
+          placeholder="10 characters minimum"
         />
       </Field>
 
@@ -200,7 +199,7 @@ export function SignupForm() {
             </select>
           </Field>
 
-          <p className="rounded-lg border border-line bg-surface px-3 py-2.5 text-sm text-ink-muted">
+          <p className="rounded-xl border-2 border-line bg-surface-raised px-4 py-3 text-sm text-ink-muted">
             Your account is created straight away but stays locked until the
             group approves it. You&apos;ll be able to sign in and check the
             status at any time.
@@ -208,18 +207,20 @@ export function SignupForm() {
         </>
       ) : null}
 
+      <div className="pt-3">
       <SubmitButton
         pending={pending}
         pendingLabel={role === "leader" ? "Sending request…" : "Creating account…"}
       >
-        {role === "leader" ? "Send request" : "Create account"}
+        {role === "leader" ? "Send Request" : "Create Account"}
       </SubmitButton>
+      </div>
 
-      <p className="text-center text-sm text-ink-muted">
+      <p className="text-center font-display text-[15px] font-medium text-brand-ink">
         Already registered?{" "}
         <Link
           href="/login"
-          className="font-medium text-brand-ink underline-offset-4 hover:underline"
+          className="text-maroon underline underline-offset-4 hover:opacity-75"
         >
           Sign in
         </Link>

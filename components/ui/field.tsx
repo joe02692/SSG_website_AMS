@@ -54,7 +54,10 @@ export function Field({
 
   return (
     <div className="space-y-1.5">
-      <label htmlFor={htmlFor} className="block text-sm font-medium text-ink">
+      <label
+        htmlFor={htmlFor}
+        className="block font-display text-lg font-medium text-brand-ink"
+      >
         {label}
       </label>
       {hint ? (
@@ -77,15 +80,19 @@ export function Field({
 }
 
 /**
- * `border-line-strong`, not `border-line`. The soft divider colour is 1.23:1
- * against white — invisible as an input edge, and below the 3:1 that WCAG
- * 1.4.11 requires for the boundary of a control someone has to find and click.
- * Dividers and controls are different jobs and now have different tokens.
+ * The design's input: a 2px leaf-green outline on the cream, rounded 12px.
+ *
+ * Leaf is 4.89:1 against the cream, comfortably over the 3:1 WCAG 1.4.11
+ * needs for the edge of a control someone has to find — the old soft divider
+ * colour was 1.23:1 and effectively invisible as an input border.
+ *
+ * min-h rather than a fixed height, because the same class dresses the
+ * <textarea> in the registration form and a fixed 50px would crush it.
  */
 export const inputClass =
-  "w-full rounded-lg border border-line-strong bg-surface-raised px-3 py-2 text-sm text-ink " +
-  "placeholder:text-ink-subtle shadow-sm outline-none transition " +
-  "hover:border-brand-500 " +
-  "focus:border-brand-600 focus:ring-2 focus:ring-brand-500/30 " +
-  "aria-[invalid=true]:border-danger-solid aria-[invalid=true]:ring-danger-solid/25 " +
+  "w-full min-h-[50px] rounded-xl border-2 border-line-strong bg-surface-raised px-[18px] py-3 " +
+  "text-sm font-medium text-ink placeholder:text-leaf outline-none transition " +
+  "hover:border-brand-700 " +
+  "focus:border-forest focus:ring-4 focus:ring-leaf/15 " +
+  "aria-[invalid=true]:border-danger-solid aria-[invalid=true]:ring-danger-solid/20 " +
   "disabled:cursor-not-allowed disabled:opacity-60";

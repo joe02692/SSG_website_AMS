@@ -54,7 +54,7 @@ export default async function ProfilePage() {
       <div className="mx-auto max-w-2xl px-4 py-12 sm:px-6 sm:py-16">
         <Link
           href="/dashboard"
-          className="text-sm text-brand-ink underline-offset-4 hover:underline dark:text-brand-300"
+          className="text-sm text-brand-ink underline-offset-4 hover:underline"
         >
           ← Dashboard
         </Link>
@@ -122,7 +122,7 @@ export default async function ProfilePage() {
             To change your password, use{" "}
             <Link
               href="/reset-password"
-              className="font-medium text-brand-ink underline-offset-4 hover:underline dark:text-brand-300"
+              className="font-medium text-brand-ink underline-offset-4 hover:underline"
             >
               set a new password
             </Link>
