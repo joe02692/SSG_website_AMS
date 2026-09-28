@@ -123,27 +123,86 @@ export const STAGES = SCOUT_STAGES.map((stage) => {
   return { value: stage.value, en, ar };
 });
 
-export const MILESTONES = [
+export type MilestoneIcon = "sprout" | "house" | "people" | "laptop";
+
+/** Group milestones on the History page's rope. ⚠️ Only 1977 and 2026 are
+ *  confirmed — the others are placeholders until the group checks them. */
+export const MILESTONES: {
+  year: number;
+  title: string;
+  body: string;
+  icon: MilestoneIcon;
+}[] = [
   {
-    year: String(FOUNDED),
+    year: FOUNDED,
     title: "The First Troop",
     body: "El-Salam begins with a single troop of twenty scouts meeting in a borrowed hall, led by volunteers from the neighbourhood.",
+    icon: "sprout",
   },
   {
-    year: "1985",
+    year: 1985,
     title: "A Permanent Home",
     body: "The group opens its own scout house, giving every section a place to store kit and plan expeditions year-round.",
+    icon: "house",
   },
   {
-    year: "2004",
+    year: 2004,
     title: "Growing",
     body: "Cubs and Rovers are added alongside the original troop, opening the group to a much wider range of ages.",
+    icon: "people",
   },
   {
-    year: "2026",
+    year: 2026,
     title: "Going Digital",
     body: "Records move off spreadsheets and paper into a single membership system, so leaders spend their time on scouting rather than admin.",
+    icon: "laptop",
   },
+];
+
+export type Camp = {
+  year: number;
+  season: "Winter" | "Summer";
+  place: string;
+  placeAr: string;
+  /** The Cloudinary album this camp's photos live in. Built exactly the way
+   *  scripts/upload-gallery.mjs builds it: slugify("Summer Camp 2018 — Marsa Alam"). */
+  slug: string;
+};
+
+const camp = (year: number, season: Camp["season"], place: string, placeAr: string): Camp => ({
+  year,
+  season,
+  place,
+  placeAr,
+  slug: `${season} camp ${year} ${place}`
+    .toLowerCase()
+    .replace(/[^a-z0-9]+/g, "-")
+    .replace(/^-+|-+$/g, ""),
+});
+
+/**
+ * Every camp folder in the group's Drive ("معسكرات ٢٠١٨ إلى ٢٠٢٦"), oldest
+ * first — including the ones with no photos yet. A camp shows its photos on
+ * the History page as soon as its album exists in Cloudinary; to add one,
+ * put the photos in its Drive folder and run the upload script again.
+ */
+export const CAMPS: Camp[] = [
+  camp(2018, "Winter", "Luxor & Aswan", "الأقصر وأسوان"),
+  camp(2018, "Summer", "Marsa Alam", "مرسى علم"),
+  camp(2019, "Winter", "The Oases", "الواحات"),
+  camp(2019, "Summer", "South Sinai", "جنوب سيناء"),
+  camp(2020, "Winter", "Port Said", "بورسعيد"),
+  camp(2021, "Summer", "Marsa Matrouh", "مرسى مطروح"),
+  camp(2022, "Winter", "Siwa", "سيوة"),
+  camp(2022, "Summer", "Sinai", "سيناء"),
+  camp(2023, "Winter", "Luxor & Aswan", "الأقصر وأسوان"),
+  camp(2023, "Summer", "Marsa Alam", "مرسى علم"),
+  camp(2024, "Winter", "The Oases", "الواحات"),
+  camp(2024, "Summer", "Marsa Matrouh", "مرسى مطروح"),
+  camp(2025, "Winter", "Siwa", "سيوة"),
+  camp(2025, "Summer", "Hurghada", "الغردقة"),
+  camp(2026, "Winter", "Luxor & Aswan", "الأقصر وأسوان"),
+  camp(2026, "Summer", "Marsa Matrouh", "مرسى مطروح"),
 ];
 
 /** The six photos in the green band on the homepage. */

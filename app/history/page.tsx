@@ -1,45 +1,126 @@
 import type { Metadata } from "next";
 import Link from "next/link";
 import { SiteShell } from "@/components/site-shell";
-import { PageBanner } from "@/components/page-banner";
 import { SectionHeading } from "@/components/landing/section-heading";
-import { Timeline } from "@/components/landing/timeline";
+import { Timeline, type RopeEntry } from "@/components/landing/timeline";
 import { ValueIcon } from "@/components/landing/icons";
-import { FOUNDED, VALUES } from "@/lib/site-content";
+import { Scenery } from "@/components/history/scenery";
+import { CAMPS, FOUNDED, MILESTONES, VALUES } from "@/lib/site-content";
+import { cloudinaryConfigured, getAlbumPhotos, getAlbums } from "@/lib/cloudinary";
 
 export const metadata: Metadata = {
   title: "Our History",
-  description: `How El-Salam Scouting Group grew from one troop in ${FOUNDED} — and what it still stands for.`,
+  description: `How El-Salam Scouting Group grew from one troop in ${FOUNDED} — every milestone and every camp since, with photos.`,
 };
 
 const years = new Date().getFullYear() - FOUNDED;
 const yearsInWords =
   years >= 55 ? "Nearly sixty" : years >= 45 ? "Nearly fifty" : `${years}`;
 
-export default function HistoryPage() {
+/**
+ * Milestones and camps, oldest first, each camp with its photos if its
+ * Cloudinary album exists. Matched by the album's folder name, or failing
+ * that by year + season in its name — so a camp whose place was typed
+ * differently when uploading still finds its photos.
+ */
+async function ropeEntries(): Promise<RopeEntry[]> {
+  const albums = cloudinaryConfigured() ? await getAlbums() : [];
+
+  const camps = await Promise.all(
+    CAMPS.map(async (camp): Promise<RopeEntry> => {
+      const album =
+        albums.find((a) => a.slug === camp.slug) ??
+        albums.find(
+          (a) =>
+            a.name.includes(String(camp.year)) &&
+            a.name.toLowerCase().includes(camp.season.toLowerCase()),
+        );
+      const photos = album ? await getAlbumPhotos(album.slug) : [];
+      return {
+        kind: "camp",
+        key: camp.slug,
+        ...camp,
+        slug: album?.slug ?? camp.slug,
+        photos: photos.map(({ publicId, width, height }) => ({ publicId, width, height })),
+      };
+    }),
+  );
+
+  const milestones: RopeEntry[] = MILESTONES.map((m) => ({
+    kind: "milestone",
+    key: `milestone-${m.year}`,
+    ...m,
+  }));
+
+  // Within a year: winter camp, then summer camp, then that year's milestone.
+  const order = (e: RopeEntry) =>
+    e.year * 10 + (e.kind === "milestone" ? 9 : e.season === "Winter" ? 1 : 5);
+  return [...milestones, ...camps].sort((a, b) => order(a) - order(b));
+}
+
+export default async function HistoryPage() {
+  const entries = await ropeEntries();
+  const withPhotos = entries.filter((e) => e.kind === "camp" && e.photos.length).length;
+
   return (
     <SiteShell>
-      <PageBanner title="Our History" arabic="تاريخنا">
-        {yearsInWords} years in the same neighbourhood. What began as one troop
-        in a borrowed hall is now a whole family of stages and hundreds of
-        families. The uniform has changed; the promise hasn&apos;t.
-      </PageBanner>
+      <div className="relative isolate overflow-hidden bg-cream pb-14">
+        <Scenery />
 
-      <section
-        aria-labelledby="timeline-heading"
-        className="mx-auto w-[calc(100%-40px)] max-w-[832px] pt-10"
-      >
-        <SectionHeading
-          id="timeline-heading"
-          title="How We Got Here"
-          subtitle={`From ${FOUNDED} to today`}
-        />
-        <Timeline />
+        <section className="relative mx-auto w-[calc(100%-40px)] max-w-[880px] pt-8 sm:pt-10">
+          <p className="flex items-center gap-4 text-[11px] font-semibold uppercase tracking-[0.2em] text-maroon sm:text-xs">
+            <span aria-hidden className="h-px flex-1 bg-maroon/60" />
+            Same values · A brighter tomorrow
+            <span aria-hidden className="h-px flex-1 bg-maroon/60" />
+          </p>
+          <h1 className="mt-5 text-[clamp(34px,6vw,50px)] font-bold leading-none text-maroon">
+            Our History
+          </h1>
+          <p className="mt-2 text-[clamp(18px,2.6vw,23px)] font-bold leading-snug text-forest">
+            {yearsInWords} years in the same neighbourhood
+          </p>
+          <p className="mt-2 max-w-[640px] text-[clamp(15px,1.8vw,17px)] leading-relaxed text-[#141414]/85">
+            What began as one troop in a borrowed hall is now a whole family of
+            stages and hundreds of families. The uniform has changed; the
+            promise hasn&apos;t.
+          </p>
+        </section>
+
+        <section aria-labelledby="rope-heading" className="relative mx-auto w-[calc(100%-40px)] max-w-[880px]">
+          <h2 id="rope-heading" className="sr-only">
+            Milestones and camps, from {FOUNDED} to today
+          </h2>
+          <p className="mt-6 text-sm text-ink-muted">
+            Every milestone and every camp since {CAMPS[0].year}
+            {withPhotos ? ` — tap a camp's photo to see all its pictures.` : "."}
+          </p>
+          <Timeline entries={entries} />
+        </section>
+      </div>
+
+      {/* ------------------------------------------------ Moments That Matter */}
+      <section aria-labelledby="moments-heading" className="on-dark bg-forest">
+        <div className="mx-auto flex w-[calc(100%-40px)] max-w-[1100px] flex-col items-start gap-4 py-8 sm:flex-row sm:items-center sm:justify-between">
+          <div>
+            <h2 id="moments-heading" className="text-[clamp(24px,4vw,32px)] leading-tight text-sun">
+              Moments That Matter
+            </h2>
+            <p className="mt-1 text-[15px] text-white/90 sm:text-base">
+              Camps, hikes, service projects and more — one adventure at a time.
+            </p>
+          </div>
+          <Link
+            href="/gallery"
+            className="shrink-0 rounded-md bg-maroon px-6 py-2.5 text-base font-bold text-white shadow-lg shadow-black/20 transition hover:-translate-y-0.5"
+          >
+            See All
+          </Link>
+        </div>
       </section>
 
       <section
         aria-labelledby="values-heading"
-        className="mt-14 bg-surface py-12"
+        className="bg-surface py-12"
       >
         <div className="mx-auto w-[calc(100%-40px)] max-w-[1100px]">
           <div className="reveal max-w-2xl">

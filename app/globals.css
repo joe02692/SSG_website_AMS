@@ -351,3 +351,22 @@ dialog.lightbox[open]::backdrop {
     }
   }
 }
+
+/* ---------------------------------------------------------------------------
+   The History page's rope: a braid in the group's colours (maroon, cream,
+   forest, yellow), with a shading layer on top so it reads as round.
+   --------------------------------------------------------------------------- */
+.rope {
+  background:
+    linear-gradient(90deg, rgb(0 0 0 / 0.38), rgb(0 0 0 / 0) 35%, rgb(255 255 255 / 0.28) 52%, rgb(0 0 0 / 0) 70%, rgb(0 0 0 / 0.4)),
+    repeating-linear-gradient(
+      -38deg,
+      var(--color-maroon) 0 7px,
+      #f1e3c0 7px 10px,
+      var(--color-forest) 10px 16px,
+      #f1e3c0 16px 19px,
+      var(--color-sun) 19px 25px,
+      #f1e3c0 25px 28px
+    );
+  box-shadow: 0 2px 6px rgb(30 68 40 / 0.25);
+}
