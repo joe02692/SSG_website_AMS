@@ -1,7 +1,7 @@
 import Image from "next/image";
 import type { ReactNode } from "react";
 import { SiteShell } from "@/components/site-shell";
-import { FOUNDED, HERO_SLIDES } from "@/lib/site-content";
+import { FOUNDED, GROUP_PHOTO } from "@/lib/site-content";
 
 /**
  * Sign in, sign up, forgot and reset password.
@@ -12,7 +12,7 @@ import { FOUNDED, HERO_SLIDES } from "@/lib/site-content";
  * form in a void. On phones the photo is dropped and the form is the page.
  */
 export default function AuthLayout({ children }: { children: ReactNode }) {
-  const photo = HERO_SLIDES[0];
+  const photo = GROUP_PHOTO;
   return (
     <SiteShell>
       <div className="lg:grid lg:min-h-[calc(100dvh-72px)] lg:grid-cols-[minmax(0,1fr)_minmax(0,1fr)]">

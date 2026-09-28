@@ -15,7 +15,11 @@ import { cache } from "react";
  * for an hour, keeping us far away from the free tier's rate limits.
  */
 
-const ROOT_FOLDER = "gallery";
+/** The Cloudinary folder albums live in. Same setting the upload script
+ *  reads, so they can't disagree. A nested path ("ssg/gallery") works too. */
+const ROOT_FOLDER = (process.env.CLOUDINARY_GALLERY_FOLDER || "gallery")
+  .replace(/^\/+|\/+$/g, "")
+  .toLowerCase();
 const REVALIDATE_SECONDS = 3600;
 
 export type GalleryPhoto = {
@@ -25,6 +29,9 @@ export type GalleryPhoto = {
   width: number;
   height: number;
   createdAt: string;
+  /** Album names as written by scripts/upload-gallery.mjs, if present. */
+  album?: string;
+  albumAr?: string;
 };
 
 export type GalleryAlbum = {
@@ -34,6 +41,8 @@ export type GalleryAlbum = {
   slug: string;
   /** Display name, e.g. "Summer Camp 2026" */
   name: string;
+  /** Arabic name, when the album came from an Arabic-named folder. */
+  nameAr?: string;
   photoCount: number;
   cover: GalleryPhoto | null;
 };
@@ -112,6 +121,8 @@ async function adminPost(path: string, body: unknown): Promise<unknown | null> {
  * a sequential await blocking that album's photo fetch.
  */
 const resolveRootFolder = cache(async (): Promise<string | null> => {
+  // A nested path can't be found in the top-level listing; trust it as given.
+  if (ROOT_FOLDER.includes("/")) return process.env.CLOUDINARY_GALLERY_FOLDER!.replace(/^\/+|\/+$/g, "");
   const data = (await adminGet(`/folders`)) as {
     folders?: { name: string; path: string }[];
   } | null;
@@ -153,11 +164,34 @@ function toPhoto(raw: RawResource): GalleryPhoto {
     width: raw.width ?? 4,
     height: raw.height ?? 3,
     createdAt: raw.created_at ?? "",
+    album: custom.album || undefined,
+    albumAr: custom.album_ar || undefined,
   };
 }
 
 function newestFirst(a: GalleryPhoto, b: GalleryPhoto): number {
   return b.createdAt.localeCompare(a.createdAt);
+}
+
+/**
+ * Album order inside an album: by file name, which for camera photos
+ * (IMG_0412, IMG_0413 …) is the order they were taken. Upload time is
+ * meaningless here — the script uploads three at a time, so it's shuffled.
+ */
+const byFileName = new Intl.Collator("en", { numeric: true }).compare;
+function inShootingOrder(a: GalleryPhoto, b: GalleryPhoto): number {
+  return byFileName(a.publicId, b.publicId);
+}
+
+/** The most recent 4-digit year in an album's name, or 0. */
+function yearOf(name: string): number {
+  const years = name.match(/\b(19|20)\d{2}\b/g);
+  return years ? Math.max(...years.map(Number)) : 0;
+}
+
+/** Within one year the summer camp came after the winter one. */
+function seasonOf(name: string): number {
+  return /summer/i.test(name) ? 2 : /winter/i.test(name) ? 1 : 0;
 }
 
 /**
@@ -177,7 +211,7 @@ export async function getAlbumPhotos(slug: string): Promise<GalleryPhoto[]> {
     `/resources/by_asset_folder?asset_folder=${encodeURIComponent(folder)}&max_results=200&context=true`,
   )) as { resources?: RawResource[] } | null;
   if (dynamic?.resources?.length) {
-    return dynamic.resources.map(toPhoto).sort(newestFirst);
+    return dynamic.resources.map(toPhoto).sort(inShootingOrder);
   }
 
   // Fixed folder mode
@@ -185,7 +219,7 @@ export async function getAlbumPhotos(slug: string): Promise<GalleryPhoto[]> {
     `/resources/image/upload?prefix=${encodeURIComponent(`${folder}/`)}&max_results=200&context=true`,
   )) as { resources?: RawResource[] } | null;
   if (fixed?.resources?.length) {
-    return fixed.resources.map(toPhoto).sort(newestFirst);
+    return fixed.resources.map(toPhoto).sort(inShootingOrder);
   }
 
   return [];
@@ -208,17 +242,26 @@ export async function getAlbums(): Promise<GalleryAlbum[]> {
       return {
         path: folder.path,
         slug: folder.name,
-        name: titleCase(folder.name),
+        // The upload script records the name as typed ("Summer Camp 2026");
+        // an album made by hand in the console falls back to its folder name.
+        name: photos[0]?.album ?? titleCase(folder.name),
+        nameAr: photos[0]?.albumAr,
         photoCount: photos.length,
         cover: photos[0] ?? null,
       };
     }),
   );
 
+  // Newest event first: "Summer Camp 2018" before "Summer Camp 2016". The
+  // year in the name is the event's year; upload dates are all the same day.
+  // Albums without a year follow, newest upload first.
   return albums
     .filter((album) => album.photoCount > 0)
-    .sort((a, b) =>
-      (b.cover?.createdAt ?? "").localeCompare(a.cover?.createdAt ?? ""),
+    .sort(
+      (a, b) =>
+        yearOf(b.name) - yearOf(a.name) ||
+        seasonOf(b.name) - seasonOf(a.name) ||
+        (b.cover?.createdAt ?? "").localeCompare(a.cover?.createdAt ?? ""),
     );
 }
 

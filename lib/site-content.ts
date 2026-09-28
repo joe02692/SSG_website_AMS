@@ -19,6 +19,18 @@ import { SCOUT_STAGES } from "@/lib/onboarding";
 import hero1 from "@/public/images/hero-1.jpg";
 import hero2 from "@/public/images/hero-2.jpg";
 import hero3 from "@/public/images/hero-3.jpg";
+import slide01 from "@/public/images/slide-01.jpg";
+import slide02 from "@/public/images/slide-02.jpg";
+import slide03 from "@/public/images/slide-03.jpg";
+import slide04 from "@/public/images/slide-04.jpg";
+import slide05 from "@/public/images/slide-05.jpg";
+import slide06 from "@/public/images/slide-06.jpg";
+import slide07 from "@/public/images/slide-07.jpg";
+import slide08 from "@/public/images/slide-08.jpg";
+import slide09 from "@/public/images/slide-09.jpg";
+import slide10 from "@/public/images/slide-10.jpg";
+import slide11 from "@/public/images/slide-11.jpg";
+import slide12 from "@/public/images/slide-12.jpg";
 import activity1 from "@/public/images/activity-1.jpg";
 import activity2 from "@/public/images/activity-2.jpg";
 import activity3 from "@/public/images/activity-3.jpg";
@@ -31,10 +43,31 @@ export const FOUNDED = 1977;
 export type Photo = { src: StaticImageData; alt: string };
 export type Album = Photo & { name: string };
 
+/** The big group photo by the sea — used beside the sign-in forms. */
+export const GROUP_PHOTO: Photo = {
+  src: hero1,
+  alt: "Hundreds of El-Salam scouts, leaders and families waving in a group photo by the sea",
+};
+
+/**
+ * The homepage slideshow, in the order it plays. Chosen by the group (28 Sep
+ * 2026) from the "٣٠ صورة website" Drive folder. Each was turned upright,
+ * resized to 2000px and had its EXIF data — including any GPS position —
+ * removed before being added here.
+ */
 export const HERO_SLIDES: Photo[] = [
-  { src: hero1, alt: "Hundreds of El-Salam scouts, leaders and families waving in a group photo by the sea" },
-  { src: hero2, alt: "Scouts sitting in a circle on the grass during a patrol meeting" },
-  { src: hero3, alt: "A scout and a leader tying a neckerchief together on the lawn" },
+  { src: slide01, alt: "Guides in white shirts and maroon neckerchiefs posing together in front of a wooden pole structure" },
+  { src: slide02, alt: "A crowd of young cubs and their leaders grinning at the camera on a sunny lawn" },
+  { src: slide03, alt: "Guides with their arms around each other, laughing, with the sea behind them" },
+  { src: slide04, alt: "Scouts caught mid-jump in a game on a stone terrace lined with palm trees" },
+  { src: slide05, alt: "A leader holds out a neckerchief as two young cubs reach for it in a game on the grass" },
+  { src: slide06, alt: "A guide leaps into the air, arms up, while her friends clap along" },
+  { src: slide07, alt: "Leaders and young cubs laughing together under the trees in the late-afternoon sun" },
+  { src: slide08, alt: "A leader pours water over a laughing group of cubs during a summer game" },
+  { src: slide09, alt: "Young guides sitting in a circle on the grass for a patrol meeting" },
+  { src: slide10, alt: "Young leaders posing as a team under a tree, one sitting on another's shoulders" },
+  { src: slide11, alt: "Two young cubs hugging and showing off matching bead bracelets" },
+  { src: slide12, alt: "Senior guides sitting together along a garden wall at golden hour" },
 ];
 
 export const STATS = [
@@ -111,7 +144,7 @@ export const ACTIVITIES: Album[] = [
 
 /** Camp Gallery page: the designer's eight photos, one card each. */
 export const GALLERY: Album[] = [
-  { src: hero3, name: "Neckerchief Ceremony", alt: HERO_SLIDES[2].alt },
-  { src: hero2, name: "Patrol Circle", alt: HERO_SLIDES[1].alt },
+  { src: hero3, name: "Neckerchief Ceremony", alt: "A scout and a leader tying a neckerchief together on the lawn" },
+  { src: hero2, name: "Patrol Circle", alt: "Scouts sitting in a circle on the grass during a patrol meeting" },
   ...ACTIVITIES,
 ];

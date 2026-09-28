@@ -1,13 +1,10 @@
 import type { Metadata } from "next";
-import Image from "next/image";
 import Link from "next/link";
 import { notFound } from "next/navigation";
 import { SiteShell } from "@/components/site-shell";
-import {
-  cloudinaryConfigured,
-  getAlbumPhotos,
-  photoUrlFit,
-} from "@/lib/cloudinary";
+import { PageBanner } from "@/components/page-banner";
+import { GalleryGrid } from "@/components/gallery/gallery-grid";
+import { cloudinaryConfigured, getAlbumPhotos } from "@/lib/cloudinary";
 
 function titleFromSlug(slug: string): string {
   return slug
@@ -16,13 +13,28 @@ function titleFromSlug(slug: string): string {
     .replace(/\b\w/g, (c) => c.toUpperCase());
 }
 
+/** The slug becomes part of a Cloudinary API path — keep it strictly boring. */
+const SAFE_SLUG = /^[\w][\w -]*$/;
+
+async function load(album: string) {
+  const slug = decodeURIComponent(album);
+  if (!SAFE_SLUG.test(slug) || !cloudinaryConfigured()) return null;
+  const photos = await getAlbumPhotos(slug);
+  if (photos.length === 0) return null;
+  return {
+    slug,
+    photos,
+    name: photos[0].album ?? titleFromSlug(slug),
+    nameAr: photos[0].albumAr,
+  };
+}
+
 export async function generateMetadata(props: {
   params: Promise<{ album: string }>;
 }): Promise<Metadata> {
   const { album } = await props.params;
-  return {
-    title: `${titleFromSlug(decodeURIComponent(album))} — Camp gallery`,
-  };
+  const data = await load(album);
+  return { title: data ? `${data.name} — Camp Gallery` : "Camp Gallery" };
 }
 
 export default async function AlbumPage(props: {
@@ -30,51 +42,35 @@ export default async function AlbumPage(props: {
   params: Promise<{ album: string }>;
 }) {
   const { album } = await props.params;
-  const slug = decodeURIComponent(album);
-
-  // The slug becomes part of a Cloudinary API path — keep it strictly boring.
-  if (!/^[\w][\w -]*$/.test(slug)) notFound();
-
-  const photos = cloudinaryConfigured() ? await getAlbumPhotos(slug) : [];
-  if (photos.length === 0) notFound();
+  const data = await load(album);
+  if (!data) notFound();
 
   return (
     <SiteShell>
-      <div className="mx-auto max-w-6xl px-4 py-12 sm:px-6 sm:py-16">
-        <div className="mb-8">
-          <Link
-            href="/gallery"
-            className="text-sm text-brand-ink underline-offset-4 hover:underline"
-          >
-            ← All albums
-          </Link>
-          <h1 className="mt-3 text-2xl font-semibold tracking-tight text-ink sm:text-[28px]">
-            {titleFromSlug(slug)}
-          </h1>
-          <p className="mt-2 text-sm text-ink-subtle">
-            {photos.length} {photos.length === 1 ? "photo" : "photos"}
-          </p>
-        </div>
-
-        <ul role="list" className="columns-2 gap-3 md:columns-3 [&>li]:mb-3">
-          {photos.map((photo, index) => (
-            <li
-              key={photo.publicId}
-              className="break-inside-avoid overflow-hidden rounded-xl border border-line bg-surface"
-            >
-              <Image
-                src={photoUrlFit(photo.publicId, 900)}
-                alt={photo.caption}
-                width={photo.width || 900}
-                height={photo.height || 675}
-                sizes="(min-width: 768px) 33vw, 50vw"
-                className="h-auto w-full"
-                priority={index < 4}
-              />
-            </li>
-          ))}
-        </ul>
-      </div>
+      <PageBanner title={data.name} arabic={data.nameAr ?? "معرض الصور"}>
+        {data.photos.length} {data.photos.length === 1 ? "photo" : "photos"}. Tap
+        any photo to see it full size.
+      </PageBanner>
+      <section className="mx-auto w-[calc(100%-40px)] max-w-[1100px] pb-16">
+        <Link
+          href="/gallery"
+          className="mt-6 inline-block text-sm font-semibold text-maroon underline underline-offset-4 hover:opacity-75"
+        >
+          ← All albums
+        </Link>
+        <GalleryGrid
+          items={data.photos.map((photo, i) => ({
+            id: photo.publicId,
+            alt: photo.caption || `Photo ${i + 1} from ${data.name}`,
+            source: {
+              kind: "cloudinary",
+              publicId: photo.publicId,
+              width: photo.width,
+              height: photo.height,
+            },
+          }))}
+        />
+      </section>
     </SiteShell>
   );
 }

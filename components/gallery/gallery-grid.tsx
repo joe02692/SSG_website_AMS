@@ -1,8 +1,7 @@
 "use client";
 
-import Image from "next/image";
 import { useEffect, useRef, useState } from "react";
-import type { Album } from "@/lib/site-content";
+import { Photo, type PhotoSource } from "@/components/gallery/photo";
 import { LIGHT_DISMISS, lightDismissFallback } from "@/components/ui/dialog-utils";
 
 /**
@@ -12,7 +11,16 @@ import { LIGHT_DISMISS, lightDismissFallback } from "@/components/ui/dialog-util
  * card you clicked, Escape and a tap on the dark backdrop close it, and the
  * page behind is inert. ← / → step through the photos.
  */
-export function GalleryGrid({ albums }: { albums: Album[] }) {
+export type GalleryItem = {
+  id: string;
+  /** Shown on the card and in the viewer header. Optional for album photos,
+   *  where every card would otherwise repeat the album's name. */
+  name?: string;
+  alt: string;
+  source: PhotoSource;
+};
+
+export function GalleryGrid({ items: albums }: { items: GalleryItem[] }) {
   const dialog = useRef<HTMLDialogElement>(null);
   const [current, setCurrent] = useState(0);
 
@@ -34,29 +42,30 @@ export function GalleryGrid({ albums }: { albums: Album[] }) {
     <>
       <ul className="mt-8 grid grid-cols-1 gap-3 sm:grid-cols-2 lg:grid-cols-3">
         {albums.map((album, i) => (
-          <li key={album.name} className="reveal">
+          <li key={album.id} className="reveal">
             <button
               type="button"
               onClick={() => open(i)}
-              aria-label={`${album.name} — open photo`}
+              aria-label={`${album.name ?? album.alt} — open photo ${i + 1} of ${albums.length}`}
               className="group relative block aspect-4/3 w-full overflow-hidden rounded-xl bg-forest text-left"
             >
-              <Image
-                src={album.src}
+              <Photo
+                source={album.source}
                 alt={album.alt}
-                fill
-                placeholder="blur"
                 priority={i < 3}
                 sizes="(min-width: 1024px) 340px, (min-width: 640px) 50vw, 100vw"
                 className="object-cover transition duration-500 group-hover:scale-105"
               />
-              <span
-                aria-hidden
-                className="absolute inset-0 bg-linear-to-t from-forest/90 via-forest/35 via-40% to-forest/5"
-              />
+              {/* Darkening only where there's a caption to read over it. */}
+              {album.name ? (
+                <span
+                  aria-hidden
+                  className="absolute inset-0 bg-linear-to-t from-forest/90 via-forest/35 via-40% to-forest/5"
+                />
+              ) : null}
               <span className="absolute inset-x-3.5 bottom-3 z-10 flex items-end justify-between gap-2">
                 <span className="text-[clamp(15px,3vw,17px)] font-semibold tracking-[0.03em] text-white">
-                  {album.name}
+                  {album.name ?? ""}
                 </span>
                 <span
                   aria-hidden
@@ -75,7 +84,7 @@ export function GalleryGrid({ albums }: { albums: Album[] }) {
       <dialog
         ref={dialog}
         {...LIGHT_DISMISS}
-        aria-label={`${photo.name}, photo ${current + 1} of ${albums.length}`}
+        aria-label={`${photo.name ? `${photo.name}, photo` : "Photo"} ${current + 1} of ${albums.length}`}
         onKeyDown={(e) => {
           if (e.key === "ArrowRight") step(1);
           if (e.key === "ArrowLeft") step(-1);
@@ -85,8 +94,12 @@ export function GalleryGrid({ albums }: { albums: Album[] }) {
         <div className="flex h-full flex-col">
           <div className="flex items-center justify-between gap-3 px-1 pb-3">
             <p className="text-sm text-white/80">
-              <span className="font-semibold text-white">{photo.name}</span>
-              <span className="mx-2" aria-hidden>·</span>
+              {photo.name ? (
+                <>
+                  <span className="font-semibold text-white">{photo.name}</span>
+                  <span className="mx-2" aria-hidden>·</span>
+                </>
+              ) : null}
               {current + 1} / {albums.length}
             </p>
             <form method="dialog">
@@ -100,13 +113,11 @@ export function GalleryGrid({ albums }: { albums: Album[] }) {
           </div>
 
           <div className="relative min-h-0 flex-1">
-            <Image
-              key={photo.name}
-              src={photo.src}
+            <Photo
+              key={photo.id}
+              source={photo.source}
               alt={photo.alt}
-              fill
               sizes="96vw"
-              placeholder="blur"
               className="object-contain"
             />
             <button
