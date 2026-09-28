@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useRef, useState } from "react";
+import { useEffect, useLayoutEffect, useRef, useState } from "react";
 import Link from "next/link";
 import { Photo } from "@/components/gallery/photo";
 import { PillIcon } from "@/components/history/icons";
@@ -22,7 +22,7 @@ export type RopeEntry =
 
 /**
  * The History page's rope: the group's milestones and every camp, oldest at
- * the top, knotted onto a braided cord in the group's colours.
+ * the top, knotted onto a natural jute rope that sways from knot to knot.
  *
  * A camp with photos is a button that opens them in a viewer right here;
  * one without says so. The rope and knots are decoration — the entries are
@@ -34,14 +34,9 @@ export type RopeEntry =
  */
 export function Timeline({ entries }: { entries: RopeEntry[] }) {
   const [open, setOpen] = useState<Extract<RopeEntry, { kind: "camp" }> | null>(null);
-
   return (
     <div className="relative mx-auto mt-10 max-w-[880px]">
-      {/* The rope itself: a braided stripe, shaded to look round. */}
-      <div
-        aria-hidden
-        className="rope absolute bottom-0 left-[13px] top-2 w-[14px] rounded-full sm:left-1/2 sm:w-[18px] sm:-translate-x-1/2"
-      />
+      <Rope count={entries.length} />
       <ol className="relative">
         {entries.map((entry, i) => {
           const right = i % 2 === 1;
@@ -54,7 +49,8 @@ export function Timeline({ entries }: { entries: RopeEntry[] }) {
             >
               <span
                 aria-hidden
-                className="col-start-1 row-start-1 flex justify-center pt-px sm:col-start-2 sm:-mt-[3px] sm:pt-0"
+                data-knot
+                className="col-start-1 row-start-1 flex justify-center self-start pt-px sm:col-start-2 sm:-mt-[3px] sm:pt-0"
               >
                 <Knot />
               </span>
@@ -177,7 +173,87 @@ function CampCard({
   );
 }
 
-/** A knot in the group's colours, sitting on the rope. */
+/**
+ * The rope: one SVG path through every knot, swinging out to alternate sides
+ * between them like a real rope hanging loose, in jute colours.
+ *
+ * The knots' positions depend on how tall each entry turns out, so the path
+ * is worked out in the browser from where the knots actually are, and again
+ * whenever the layout changes size (a photo loading, the window resizing).
+ */
+function Rope({ count }: { count: number }) {
+  const [shape, setShape] = useState<{ d: string; w: number; h: number; thick: number } | null>(null);
+  // Measures the timeline it sits in. (A ref passed down from the parent
+  // wouldn't be attached yet when this effect runs — children's layout
+  // effects run before their parent's ref is set.)
+  const svg = useRef<SVGSVGElement>(null);
+
+  useLayoutEffect(() => {
+    const el = svg.current?.parentElement;
+    if (!el) return;
+
+    const measure = () => {
+      const knots = [...el.querySelectorAll<HTMLElement>("[data-knot]")];
+      if (knots.length === 0) return;
+      const w = el.clientWidth;
+      const h = el.clientHeight;
+      // Same switch as the layout: from sm (640px) the rope runs down the middle.
+      const wide = window.matchMedia("(min-width: 640px)").matches;
+      const x = wide ? w / 2 : 20;
+      const swing = wide ? 30 : 9;
+
+      // Centre of each knot, relative to the timeline. offsetTop ignores the
+      // entries' reveal animation, so the rope doesn't chase them around.
+      const ys = knots.map((k) => {
+        let y = k.offsetHeight / 2;
+        let node: HTMLElement | null = k;
+        while (node && node !== el) {
+          y += node.offsetTop;
+          node = node.offsetParent as HTMLElement | null;
+        }
+        return y;
+      });
+
+      const points = [ys[0] - 26, ...ys, h - 4];
+      let d = `M${x} ${points[0]}`;
+      for (let i = 1; i < points.length; i++) {
+        const y0 = points[i - 1];
+        const y1 = points[i];
+        const gap = y1 - y0;
+        // Swing further on long stretches, barely at all on short ones.
+        const bend = Math.min(swing, gap / 5) * (i % 2 === 0 ? 1 : -1);
+        d += ` C${x + bend} ${y0 + gap / 3} ${x + bend} ${y1 - gap / 3} ${x} ${y1}`;
+      }
+      setShape({ d, w, h, thick: wide ? 15 : 11 });
+    };
+
+    measure();
+    const observer = new ResizeObserver(measure);
+    observer.observe(el);
+    return () => observer.disconnect();
+  }, [count]);
+
+  const { d, w, h, thick } = shape ?? { d: "", w: 0, h: 0, thick: 0 };
+  return (
+    <svg
+      ref={svg}
+      aria-hidden
+      width={w}
+      height={h}
+      className="pointer-events-none absolute inset-0 overflow-visible"
+    >
+      {/* Soft shadow, dark edge, jute body, then the twist: short dark bands
+          across the rope, and a thin highlight along it. */}
+      <path d={d} fill="none" stroke="rgb(60 40 15 / 0.18)" strokeWidth={thick + 6} strokeLinecap="round" transform="translate(2 3)" />
+      <path d={d} fill="none" stroke="#8a6534" strokeWidth={thick + 3} strokeLinecap="round" />
+      <path d={d} fill="none" stroke="#c9a36a" strokeWidth={thick} strokeLinecap="round" />
+      <path d={d} fill="none" stroke="#a37b45" strokeWidth={thick} strokeDasharray="3 6" />
+      <path d={d} fill="none" stroke="#e6cf9f" strokeWidth={thick / 4} strokeDasharray="5 4" opacity="0.7" />
+    </svg>
+  );
+}
+
+/** A jute knot sitting on the rope. */
 function Knot() {
   return (
     <svg viewBox="0 0 40 40" className="size-9 drop-shadow-sm sm:size-11">
@@ -188,13 +264,14 @@ function Knot() {
           <stop offset="1" stopColor="#000" stopOpacity="0.35" />
         </radialGradient>
       </defs>
-      <circle cx="20" cy="20" r="15" fill="#f1e3c0" />
-      <g fill="none" strokeWidth="5" strokeLinecap="round">
-        <path d="M7 15c8-5 18-5 26 2" stroke="#912e37" />
-        <path d="M6 23c9 4 19 4 28-3" stroke="#1e4428" />
-        <path d="M13 7c-3 9-2 18 4 27" stroke="#ffdd32" />
-        <path d="M27 7c3 9 2 18-4 27" stroke="#912e37" />
-        <path d="M9 30c7-3 15-9 20-22" stroke="#f1e3c0" strokeWidth="3" />
+      <circle cx="20" cy="20" r="15.5" fill="#8a6534" />
+      <circle cx="20" cy="20" r="14" fill="#c9a36a" />
+      <g fill="none" strokeWidth="4.5" strokeLinecap="round">
+        <path d="M7 15c8-5 18-5 26 2" stroke="#a37b45" />
+        <path d="M6 23c9 4 19 4 28-3" stroke="#b58c52" />
+        <path d="M13 7c-3 9-2 18 4 27" stroke="#d9bb85" />
+        <path d="M27 7c3 9 2 18-4 27" stroke="#a37b45" />
+        <path d="M9 30c7-3 15-9 20-22" stroke="#e6cf9f" strokeWidth="2.5" />
       </g>
       <circle cx="20" cy="20" r="16" fill="url(#knot-shade)" />
     </svg>
