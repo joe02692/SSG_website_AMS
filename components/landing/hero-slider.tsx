@@ -1,21 +1,25 @@
 "use client";
 
 import Image from "next/image";
-import { useEffect, useReducer, useState, useSyncExternalStore } from "react";
-import type { Photo } from "@/lib/site-content";
+import {
+  useEffect,
+  useReducer,
+  useRef,
+  useSyncExternalStore,
+  type CSSProperties,
+  type ReactNode,
+} from "react";
+import type { HeroSlide } from "@/lib/site-content";
 
-const INTERVAL_MS = 5000;
+const INTERVAL_MS = 6000;
 const REDUCED = "(prefers-reduced-motion: reduce)";
-/** Above this many photos, dots become ‹ 3 / 15 › — fifteen dots don't fit
- *  beside the pause button on a 320px phone. */
-const MAX_DOTS = 6;
 
 /**
  * Which slide is showing, plus every slide that has been shown or is up next.
  *
  * Only those are mounted. Stacked full-screen <img>s are all "in the
- * viewport", so the browser's lazy loading doesn't help: with fifteen photos
- * it would fetch all fifteen (~5 MB) before a visitor has seen the second.
+ * viewport", so the browser's lazy loading doesn't help: with twelve photos
+ * it would fetch all twelve (~4 MB) before a visitor has seen the second.
  * Mounting the next one early means it's ready before the crossfade starts.
  */
 type Show = { index: number; seen: number[] };
@@ -36,130 +40,138 @@ function subscribeReduced(onChange: () => void) {
 }
 
 /**
- * The homepage's photo strip.
+ * The homepage hero: crossfading photos with a bar of captions along the
+ * bottom, in the style of nvidia.com — each item has a thin line that fills
+ * in yellow while its photo is showing, then the next one takes over.
  *
- * Crossfades rather than sliding (calmer behind text, and cheaper — only
- * opacity changes), with a slow zoom on the photo that is showing. Dots let
- * a visitor jump to any photo, and the pause button satisfies WCAG 2.2.2:
- * anything that moves on its own for more than five seconds needs a way to
- * stop it.
- *
- * It never auto-advances for people whose device asks for reduced motion, and
- * stops while the tab is hidden so a phone isn't decoding 2000px photos for
- * nobody.
+ * - No pause button (the group's choice). The line holds while the pointer
+ *   or keyboard focus is on the bar, so anyone reading a caption or picking
+ *   a photo isn't rushed, and it never plays for people whose device asks
+ *   for reduced motion.
+ * - The CSS animation on the line drives the timing (its animationend moves
+ *   on), so the line and the photo change can't drift apart, and a hidden
+ *   tab stops by itself because browsers don't run animations there.
+ * - `children` is the headline and buttons, laid out above the bar.
  */
-export function HeroSlider({ slides }: { slides: Photo[] }) {
+export function HeroSlider({
+  slides,
+  children,
+}: {
+  slides: HeroSlide[];
+  children?: ReactNode;
+}) {
   const [{ index, seen }, go] = useReducer(show, {
     index: 0,
     seen: slides.length > 1 ? [0, 1] : [0],
   });
   const goTo = (to: number) => go({ to, count: slides.length });
-  const [paused, setPaused] = useState(false);
   const reduced = useSyncExternalStore(
     subscribeReduced,
     () => window.matchMedia(REDUCED).matches,
     () => false,
   );
-  const auto = !paused && !reduced && slides.length > 1;
 
+  // Keep the active item in view when the bar is wider than the screen.
+  // Scrolls only the bar itself — scrollIntoView would also jump the page.
+  const bar = useRef<HTMLDivElement>(null);
   useEffect(() => {
-    if (!auto) return;
-    const timer = window.setInterval(() => {
-      if (document.visibilityState === "visible") {
-        go({ to: index + 1, count: slides.length });
-      }
-    }, INTERVAL_MS);
-    return () => window.clearInterval(timer);
-  }, [auto, slides.length, index]);
+    const el = bar.current;
+    const item = el?.children[index] as HTMLElement | undefined;
+    if (!el || !item) return;
+    const left = item.offsetLeft - el.offsetLeft;
+    const right = left + item.offsetWidth;
+    if (left < el.scrollLeft || right > el.scrollLeft + el.clientWidth) {
+      el.scrollTo({ left: left - 16, behavior: reduced ? "auto" : "smooth" });
+    }
+  }, [index, reduced]);
 
   return (
-    <div className="absolute inset-0 overflow-hidden">
-      {slides.map((slide, i) => (
-        <div
-          key={slide.src.src}
-          className={`absolute inset-0 transition-opacity duration-1000 ease-in-out ${
-            i === index ? "opacity-100" : "opacity-0"
-          }`}
-          // Only the showing photo is exposed to screen readers.
-          aria-hidden={i !== index}
-        >
-          {seen.includes(i) ? (
-          <Image
-            src={slide.src}
-            alt={slide.alt}
-            fill
-            priority={i === 0}
-            sizes="100vw"
-            placeholder="blur"
-            className={`object-cover object-[center_35%] ${i === index ? "ken-burns" : ""}`}
-          />
-          ) : null}
-        </div>
-      ))}
+    <>
+      <div className="absolute inset-0 overflow-hidden">
+        {slides.map((slide, i) => (
+          <div
+            key={slide.src.src}
+            className={`absolute inset-0 transition-opacity duration-1000 ease-in-out ${
+              i === index ? "opacity-100" : "opacity-0"
+            }`}
+            // Only the showing photo is exposed to screen readers.
+            aria-hidden={i !== index}
+          >
+            {seen.includes(i) ? (
+              <Image
+                src={slide.src}
+                alt={slide.alt}
+                fill
+                priority={i === 0}
+                sizes="100vw"
+                placeholder="blur"
+                style={{ objectPosition: slide.focus ?? "50% 35%" }}
+                className={`object-cover ${i === index ? "ken-burns" : ""}`}
+              />
+            ) : null}
+          </div>
+        ))}
+      </div>
+
+      {/* Darkens the bottom for the headline and the bar. */}
+      <div
+        aria-hidden
+        className="pointer-events-none absolute inset-0 bg-linear-to-t from-black/80 via-black/25 via-50% to-black/10"
+      />
+
+      <div className="relative flex flex-1 flex-col items-center justify-end px-4 pb-6 text-center sm:pb-8">
+        {children}
+      </div>
 
       {slides.length > 1 ? (
-        <div className="on-dark absolute bottom-4 right-4 z-20 flex items-center gap-2 rounded-full bg-black/35 px-2.5 py-1.5 backdrop-blur-sm sm:bottom-6 sm:right-6">
-          {slides.length <= MAX_DOTS ? (
-            slides.map((slide, i) => (
-              <button
-                key={slide.src.src}
-                type="button"
-                onClick={() => goTo(i)}
-                aria-label={`Show photo ${i + 1} of ${slides.length}`}
-                aria-current={i === index ? "true" : undefined}
-                className="grid size-6 place-items-center"
-              >
-                <span
-                  aria-hidden
-                  className={`block h-2 rounded-full transition-all duration-300 ${
-                    i === index ? "w-6 bg-sun" : "w-2 bg-white/70"
-                  }`}
-                />
-              </button>
-            ))
-          ) : (
-            <>
-              <button
-                type="button"
-                onClick={() => goTo(index - 1)}
-                aria-label="Previous photo"
-                className="grid size-7 place-items-center rounded-full text-lg leading-none text-white transition hover:bg-white/15"
-              >
-                ‹
-              </button>
-              <span className="min-w-[3.25rem] text-center text-xs font-semibold tabular-nums text-white">
-                {index + 1} / {slides.length}
-              </span>
-              <button
-                type="button"
-                onClick={() => goTo(index + 1)}
-                aria-label="Next photo"
-                className="grid size-7 place-items-center rounded-full text-lg leading-none text-white transition hover:bg-white/15"
-              >
-                ›
-              </button>
-            </>
-          )}
-          {!reduced ? (
-            <button
-              type="button"
-              onClick={() => setPaused((p) => !p)}
-              aria-label={paused ? "Play slideshow" : "Pause slideshow"}
-              className="ml-1 grid size-7 place-items-center rounded-full text-white transition hover:bg-white/15"
-            >
-              {paused ? (
-                <svg aria-hidden viewBox="0 0 16 16" className="size-3.5 fill-current">
-                  <path d="M4 2.5v11l9-5.5z" />
-                </svg>
-              ) : (
-                <svg aria-hidden viewBox="0 0 16 16" className="size-3.5 fill-current">
-                  <path d="M4 2.5h3v11H4zM9 2.5h3v11H9z" />
-                </svg>
-              )}
-            </button>
-          ) : null}
+        <div className="on-dark hero-bar relative">
+          <div
+            ref={bar}
+            role="group"
+            aria-label="Choose a photo"
+            className="no-scrollbar mx-auto flex w-full max-w-[1200px] items-start snap-x snap-mandatory gap-4 overflow-x-auto scroll-px-4 px-4 pb-5 [mask-image:linear-gradient(to_right,transparent,#000_16px,#000_calc(100%-56px),transparent)] sm:gap-6 sm:px-8 sm:pb-7"
+          >
+            {slides.map((slide, i) => {
+              const active = i === index;
+              return (
+                <button
+                  key={slide.src.src}
+                  type="button"
+                  onClick={() => goTo(i)}
+                  aria-current={active ? "true" : undefined}
+                  aria-label={`${slide.label}: ${slide.title} — photo ${i + 1} of ${slides.length}`}
+                  className="group w-[44%] shrink-0 snap-start pt-3 text-left sm:w-[29%] lg:w-[calc((100%-5*1.5rem)/6)]"
+                >
+                  <span aria-hidden className="relative block h-[3px] overflow-hidden rounded-full bg-white/30">
+                    {active ? (
+                      <span
+                        key={index}
+                        className="hero-progress absolute inset-0 bg-sun"
+                        style={{ "--hero-interval": `${INTERVAL_MS}ms` } as CSSProperties}
+                        onAnimationEnd={() => goTo(index + 1)}
+                      />
+                    ) : null}
+                  </span>
+                  <span
+                    className={`mt-3 block text-[11px] font-bold tracking-wide sm:text-xs ${
+                      active ? "text-sun" : "text-white/75 group-hover:text-white"
+                    }`}
+                  >
+                    {slide.label}
+                  </span>
+                  <span
+                    className={`mt-1 line-clamp-2 text-[13px] leading-snug sm:text-sm ${
+                      active ? "text-white" : "text-white/65 group-hover:text-white/90"
+                    }`}
+                  >
+                    {slide.title}
+                  </span>
+                </button>
+              );
+            })}
+          </div>
         </div>
       ) : null}
-    </div>
+    </>
   );
 }

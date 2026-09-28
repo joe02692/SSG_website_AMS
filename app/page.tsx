@@ -55,19 +55,19 @@ export default function HomePage() {
   return (
     <SiteShell>
       {/* ---------------------------------------------------------------- Hero */}
-      <section className="relative h-[min(72svh,600px)] min-h-[380px] w-full overflow-hidden bg-forest">
-        <HeroSlider slides={HERO_SLIDES} />
-        <div
-          aria-hidden
-          className="pointer-events-none absolute inset-0 z-10 bg-linear-to-t from-black/65 via-black/15 via-45% to-black/10"
-        />
-        <div className="absolute inset-x-0 bottom-14 z-10 px-4 text-center sm:bottom-16">
+      {/* Tall enough on desktop that the photos (3:2) keep people's heads:
+          it fills the screen below the 72px header, but never goes wider
+          than about 1.6:1. Phones get most of the screen. */}
+      <section className="relative flex h-[clamp(480px,82svh,720px)] w-full flex-col overflow-hidden bg-forest lg:h-[clamp(560px,min(calc(100svh_-_72px),62vw),1000px)]">
+        <HeroSlider slides={HERO_SLIDES}>
           <h1>
             <span className="mb-2 block font-sans text-[clamp(0.95rem,3.4vw,28px)] leading-none tracking-[-0.02em] text-white [text-shadow:0_1px_10px_rgb(0_0_0/0.45)]">
               Character, Service &amp; Friendship
             </span>
-            <span className="block font-display text-[clamp(2.1rem,9vw,56px)] leading-none text-white [text-shadow:2px_0_var(--color-sun),-2px_0_var(--color-sun),0_2px_var(--color-sun),0_-2px_var(--color-sun)]">
-              SINCE {FOUNDED}
+            {/* Solid white with the year in brand yellow. A soft shadow (not an
+                outline) keeps it readable on bright and dark photos alike. */}
+            <span className="block font-display text-[clamp(2.1rem,9vw,56px)] font-extrabold leading-none tracking-[0.02em] text-white [text-shadow:0_2px_14px_rgb(0_0_0/0.5)]">
+              SINCE <span className="text-sun">{FOUNDED}</span>
             </span>
           </h1>
           <div className="on-dark mt-5 flex flex-wrap justify-center gap-3">
@@ -84,7 +84,7 @@ export default function HomePage() {
               Our Story
             </Link>
           </div>
-        </div>
+        </HeroSlider>
       </section>
 
       {/* -------------------------------------------------------- Intro + stats */}

@@ -243,6 +243,34 @@ body {
   .ken-burns {
     animation: ken-burns 7s ease-out both;
   }
+
+  /* The yellow line filling under the active item in the hero's bottom bar.
+     Its animationend is what moves the slideshow on (hero-slider.tsx), so
+     the line and the photo change can never drift apart. Hovering or
+     focusing the bar holds it so a visitor can read. */
+  @keyframes hero-progress {
+    from {
+      scale: 0 1;
+    }
+    to {
+      scale: 1 1;
+    }
+  }
+  .hero-progress {
+    transform-origin: left;
+    animation: hero-progress var(--hero-interval, 6s) linear both;
+  }
+  .hero-bar:is(:hover, :focus-within) .hero-progress {
+    animation-play-state: paused;
+  }
+}
+
+/* The hero bar scrolls sideways when there are more items than fit. */
+.no-scrollbar {
+  scrollbar-width: none;
+}
+.no-scrollbar::-webkit-scrollbar {
+  display: none;
 }
 
 /* ---------------------------------------------------------------------------

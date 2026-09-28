@@ -49,25 +49,39 @@ export const GROUP_PHOTO: Photo = {
   alt: "Hundreds of El-Salam scouts, leaders and families waving in a group photo by the sea",
 };
 
+/** A homepage slide: the photo, plus the caption shown in the bar under it. */
+export type HeroSlide = Photo & {
+  /** Short tag above the caption, e.g. "Cubs". */
+  label: string;
+  /** One line about the moment. Cut to two lines on screen. */
+  title: string;
+  /** CSS object-position — which part of the photo to keep when the hero is
+   *  wider than the photo. Default "50% 35%". */
+  focus?: string;
+};
+
 /**
  * The homepage slideshow, in the order it plays. Chosen by the group (28 Sep
  * 2026) from the "٣٠ صورة website" Drive folder. Each was turned upright,
  * resized to 2000px and had its EXIF data — including any GPS position —
  * removed before being added here.
+ *
+ * ⚠️ The labels and titles describe what is visible in each photo. Swap in
+ * the real event names whenever the group has them.
  */
-export const HERO_SLIDES: Photo[] = [
-  { src: slide01, alt: "Guides in white shirts and maroon neckerchiefs posing together in front of a wooden pole structure" },
-  { src: slide02, alt: "A crowd of young cubs and their leaders grinning at the camera on a sunny lawn" },
-  { src: slide03, alt: "Guides with their arms around each other, laughing, with the sea behind them" },
-  { src: slide04, alt: "Scouts caught mid-jump in a game on a stone terrace lined with palm trees" },
-  { src: slide05, alt: "A leader holds out a neckerchief as two young cubs reach for it in a game on the grass" },
-  { src: slide06, alt: "A guide leaps into the air, arms up, while her friends clap along" },
-  { src: slide07, alt: "Leaders and young cubs laughing together under the trees in the late-afternoon sun" },
-  { src: slide08, alt: "A leader pours water over a laughing group of cubs during a summer game" },
-  { src: slide09, alt: "Young guides sitting in a circle on the grass for a patrol meeting" },
-  { src: slide10, alt: "Young leaders posing as a team under a tree, one sitting on another's shoulders" },
-  { src: slide11, alt: "Two young cubs hugging and showing off matching bead bracelets" },
-  { src: slide12, alt: "Senior guides sitting together along a garden wall at golden hour" },
+export const HERO_SLIDES: HeroSlide[] = [
+  { src: slide01, label: "Guides", title: "Standing proud in maroon and white", alt: "Guides in white shirts and maroon neckerchiefs posing together in front of a wooden pole structure" },
+  { src: slide02, label: "Cubs", title: "A whole lawn full of grins", alt: "A crowd of young cubs and their leaders grinning at the camera on a sunny lawn" },
+  { src: slide03, label: "Guides", title: "Friends by the sea", alt: "Guides with their arms around each other, laughing, with the sea behind them" },
+  { src: slide04, focus: "50% 25%", label: "Games", title: "Mid-air on the palm terrace", alt: "Scouts caught mid-jump in a game on a stone terrace lined with palm trees" },
+  { src: slide05, label: "Cubs", title: "The neckerchief grab game", alt: "A leader holds out a neckerchief as two young cubs reach for it in a game on the grass" },
+  { src: slide06, focus: "50% 25%", label: "Guides", title: "Jumping for joy", alt: "A guide leaps into the air, arms up, while her friends clap along" },
+  { src: slide07, label: "Leaders", title: "Afternoons under the trees", alt: "Leaders and young cubs laughing together under the trees in the late-afternoon sun" },
+  { src: slide08, label: "Summer", title: "Water games on hot days", alt: "A leader pours water over a laughing group of cubs during a summer game" },
+  { src: slide09, label: "Patrols", title: "Patrol circle on the grass", alt: "Young guides sitting in a circle on the grass for a patrol meeting" },
+  { src: slide10, focus: "50% 15%", label: "Leaders", title: "The team behind it all", alt: "Young leaders posing as a team under a tree, one sitting on another's shoulders" },
+  { src: slide11, label: "Cubs", title: "Best friends, matching bracelets", alt: "Two young cubs hugging and showing off matching bead bracelets" },
+  { src: slide12, label: "Seniors", title: "Golden hour on the garden wall", alt: "Senior guides sitting together along a garden wall at golden hour" },
 ];
 
 export const STATS = [
