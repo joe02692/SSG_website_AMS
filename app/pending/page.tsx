@@ -6,7 +6,11 @@ import { getCurrentProfile, requireUser } from "@/lib/dal";
 import { isPendingRole } from "@/lib/roles";
 import { signOutAction } from "@/app/auth/actions";
 
-export const metadata: Metadata = { title: "Request pending" };
+export const metadata: Metadata = {
+  title: "Request pending",
+  description: "Your leader request is waiting for approval by the group.",
+  robots: { index: false },
+};
 
 /**
  * Where an unapproved leader lands.

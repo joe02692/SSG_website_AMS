@@ -5,6 +5,8 @@ import { ResetPasswordForm } from "@/components/auth/reset-password-form";
 
 export const metadata: Metadata = {
   title: "Set a new password",
+  description: "Choose a new password for your El-Salam Scouting Group account.",
+  robots: { index: false },
 };
 
 export default async function ResetPasswordPage() {

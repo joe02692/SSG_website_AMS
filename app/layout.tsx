@@ -1,5 +1,7 @@
 import type { Metadata, Viewport } from "next";
 import { Fustat, Geologica } from "next/font/google";
+import { Analytics } from "@vercel/analytics/next";
+import { SITE_URL } from "@/lib/site-url";
 import "./globals.css";
 
 // Body text. Latin only — Geologica has no Arabic glyphs at all.
@@ -16,13 +18,29 @@ const fustat = Fustat({
   display: "swap",
 });
 
+const DESCRIPTION =
+  "El-Salam Scouting Group — over 400 scouts, leaders and families building character, service and friendship since 1977.";
+
 export const metadata: Metadata = {
+  // Makes the share image and canonical links absolute URLs.
+  metadataBase: new URL(SITE_URL),
+  applicationName: "El-Salam Scouts",
   title: {
     default: "El-Salam Scouting Group",
     template: "%s · El-Salam Scouting Group",
   },
-  description:
-    "El-Salam Scouting Group — over 400 scouts, leaders and families building character, service and friendship since 1977.",
+  description: DESCRIPTION,
+  // What WhatsApp, Facebook and X show when a link is shared. The picture
+  // itself is app/opengraph-image.jpg, which Next picks up by its name.
+  openGraph: {
+    type: "website",
+    siteName: "El-Salam Scouting Group",
+    title: "El-Salam Scouting Group",
+    locale: "en_US",
+    alternateLocale: ["ar_EG"],
+    description: DESCRIPTION,
+  },
+  twitter: { card: "summary_large_image" },
 };
 
 // Colours the phone's status bar to match the forest-green header.
@@ -37,7 +55,12 @@ export default function RootLayout({ children }: LayoutProps<"/">) {
       lang="en"
       className={`${geologica.variable} ${fustat.variable} h-full antialiased`}
     >
-      <body className="flex min-h-full flex-col font-sans">{children}</body>
+      <body className="flex min-h-full flex-col font-sans">
+        {children}
+        {/* Cookie-free visitor counts (Vercel Web Analytics). Needs switching
+            on once in the Vercel dashboard: Project → Analytics → Enable. */}
+        <Analytics />
+      </body>
     </html>
   );
 }

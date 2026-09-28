@@ -4,7 +4,7 @@ import { notFound } from "next/navigation";
 import { SiteShell } from "@/components/site-shell";
 import { PageBanner } from "@/components/page-banner";
 import { GalleryGrid } from "@/components/gallery/gallery-grid";
-import { cloudinaryConfigured, getAlbumPhotos } from "@/lib/cloudinary";
+import { cloudinaryConfigured, getAlbumPhotos, photoUrl } from "@/lib/cloudinary";
 
 function titleFromSlug(slug: string): string {
   return slug
@@ -34,7 +34,18 @@ export async function generateMetadata(props: {
 }): Promise<Metadata> {
   const { album } = await props.params;
   const data = await load(album);
-  return { title: data ? `${data.name} — Camp Gallery` : "Camp Gallery" };
+  if (!data) return { title: "Camp Gallery" };
+  const description = `${data.photos.length} photos from ${data.name} — El-Salam Scouting Group.`;
+  return {
+    title: `${data.name} — Camp Gallery`,
+    description,
+    // Sharing an album shows its first photo rather than the site-wide image.
+    openGraph: {
+      title: data.name,
+      description,
+      images: [{ url: photoUrl(data.photos[0].publicId, 1200), width: 1200, height: 900 }],
+    },
+  };
 }
 
 export default async function AlbumPage(props: {

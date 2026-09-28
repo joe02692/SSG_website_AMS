@@ -4,6 +4,8 @@ import { ForgotPasswordForm } from "@/components/auth/forgot-password-form";
 
 export const metadata: Metadata = {
   title: "Reset your password",
+  description: "Get a link to set a new password for your El-Salam Scouting Group account.",
+  robots: { index: false },
 };
 
 export default function ForgotPasswordPage() {

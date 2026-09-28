@@ -6,6 +6,7 @@ import { headers } from "next/headers";
 import { createClient } from "@/lib/supabase/server";
 import { SCOUT_STAGES } from "@/lib/onboarding";
 import { COMING_SOON_ROLES, SELF_SERVE_ROLES } from "@/lib/roles";
+import { HOUR, MINUTE, clientIp, withinLimits } from "@/lib/rate-limit";
 
 const STAGE_CODES: string[] = SCOUT_STAGES.map((stage) => stage.value);
 
@@ -17,6 +18,9 @@ export type AuthState = {
 
 const EMAIL_RE = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
 const MIN_PASSWORD_LENGTH = 10;
+
+const TOO_MANY =
+  "Too many attempts from this device. Please wait a little while and try again.";
 
 function str(formData: FormData, key: string): string {
   const value = formData.get(key);
@@ -84,6 +88,16 @@ export async function signUpAction(
 
   if (Object.keys(fieldErrors).length > 0) {
     return { fieldErrors, error: "Please fix the highlighted fields." };
+  }
+
+  // A handful of accounts per network per hour is plenty for a family signing
+  // up several children; bulk sign-ups get stopped.
+  if (
+    !(await withinLimits([
+      { name: "signup-ip", key: await clientIp(), max: 8, windowSeconds: HOUR },
+    ]))
+  ) {
+    return { error: TOO_MANY };
   }
 
   const origin = (await headers()).get("origin") ?? "";
@@ -155,6 +169,18 @@ export async function signInAction(
     return { error: "Enter your email address and password." };
   }
 
+  // Slows password guessing: 5 tries per account per device, and 30 per
+  // device across all accounts, every 15 minutes.
+  const ip = await clientIp();
+  if (
+    !(await withinLimits([
+      { name: "signin-ip", key: ip, max: 30, windowSeconds: 15 * MINUTE },
+      { name: "signin-ip-email", key: `${ip}|${email}`, max: 5, windowSeconds: 15 * MINUTE },
+    ]))
+  ) {
+    return { error: "Too many sign-in attempts. Please wait 15 minutes and try again, or reset your password." };
+  }
+
   const supabase = await createClient();
   const { error } = await supabase.auth.signInWithPassword({
     email,
@@ -183,6 +209,16 @@ export async function requestPasswordResetAction(
 
   if (!EMAIL_RE.test(email)) {
     return { error: "Enter a valid email address." };
+  }
+
+  // Stops anyone using this form to flood someone's inbox.
+  if (
+    !(await withinLimits([
+      { name: "reset-ip", key: await clientIp(), max: 10, windowSeconds: HOUR },
+      { name: "reset-email", key: email, max: 3, windowSeconds: HOUR },
+    ]))
+  ) {
+    return { error: TOO_MANY };
   }
 
   const supabase = await createClient();
