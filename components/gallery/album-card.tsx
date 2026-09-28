@@ -2,7 +2,7 @@ import Link from "next/link";
 import { Photo } from "@/components/gallery/photo";
 import type { GalleryAlbum } from "@/lib/cloudinary";
 
-/** One album on /gallery: cover photo, name (Arabic too, if it has one), count. */
+/** One album on /gallery: cover photo, name, count. */
 export function AlbumCard({ album, priority }: { album: GalleryAlbum; priority?: boolean }) {
   return (
     <Link
@@ -29,11 +29,6 @@ export function AlbumCard({ album, priority }: { album: GalleryAlbum; priority?:
       />
       <span className="absolute inset-x-3.5 bottom-3 z-10 flex items-end justify-between gap-2 text-white">
         <span className="min-w-0">
-          {album.nameAr ? (
-            <span lang="ar" dir="rtl" className="block w-fit font-display text-sm text-butter">
-              {album.nameAr}
-            </span>
-          ) : null}
           <span className="block text-[clamp(15px,3vw,17px)] font-semibold tracking-[0.03em]">
             {album.name}
           </span>

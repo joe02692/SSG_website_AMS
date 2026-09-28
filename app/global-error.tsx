@@ -18,9 +18,6 @@ export default function GlobalError({
       <body className="flex min-h-screen flex-col items-center justify-center bg-cream px-5 text-center font-sans">
         <title>Something went wrong · El-Salam Scouting Group</title>
         <h1 className="text-3xl text-maroon">Something went wrong</h1>
-        <p lang="ar" dir="rtl" className="mt-1 text-lg text-forest">
-          حدث خطأ ما
-        </p>
         <p className="mt-3 max-w-md text-[15px] text-forest/80">
           The site couldn&apos;t load just now. Please try again in a moment.
         </p>

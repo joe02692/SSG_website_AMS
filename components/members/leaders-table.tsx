@@ -1,4 +1,4 @@
-import { ageFromDateOfBirth } from "@/lib/onboarding";
+import { LEADER_COMMITTEES, ageFromDateOfBirth } from "@/lib/onboarding";
 import { ViewDocumentButton } from "@/components/members/view-document-button";
 
 export type LeaderRow = {
@@ -12,15 +12,20 @@ export type LeaderRow = {
   faculty: string;
   academic_year: string | null;
   leadership_years: number;
-  join_date: string;
+  join_year: number;
+  committees: string[] | null;
   profiles: { full_name: string | null; role: string } | null;
-  leader_committees: { stages: { name_en: string; name_ar: string } | null }[] | null;
+  leader_committees: { stages: { name_en: string } | null }[] | null;
 };
 
 const STATUS_LABELS: Record<string, string> = {
   university_student: "Student",
   graduate: "Graduate",
 };
+
+const COMMITTEE_LABELS: Record<string, string> = Object.fromEntries(
+  LEADER_COMMITTEES.map((c) => [c.value, c.label.replace(/ committee$/, "")]),
+);
 
 function formatDate(value: string): string {
   return new Date(value).toLocaleDateString("en-GB", {
@@ -47,7 +52,10 @@ export function LeadersTable({ rows }: { rows: LeaderRow[] }) {
                     Name
                   </th>
                   <th scope="col" className="px-4 py-3 font-medium">
-                    Stages / committees
+                    Stages
+                  </th>
+                  <th scope="col" className="px-4 py-3 font-medium">
+                    Committees
                   </th>
                   <th scope="col" className="px-4 py-3 font-medium">
                     Age
@@ -68,7 +76,7 @@ export function LeadersTable({ rows }: { rows: LeaderRow[] }) {
                     Leading
                   </th>
                   <th scope="col" className="px-4 py-3 font-medium">
-                    Joined
+                    Joined in
                   </th>
                   <th scope="col" className="px-4 py-3 font-medium">
                     ID card
@@ -77,6 +85,9 @@ export function LeadersTable({ rows }: { rows: LeaderRow[] }) {
               </thead>
               <tbody className="divide-y divide-line bg-surface-raised">
                 {rows.map((leader) => {
+                  const workCommittees = (leader.committees ?? []).map(
+                    (code) => COMMITTEE_LABELS[code] ?? code,
+                  );
                   const committees = (leader.leader_committees ?? [])
                     .map((link) => link.stages?.name_en)
                     .filter(Boolean);
@@ -99,6 +110,23 @@ export function LeadersTable({ rows }: { rows: LeaderRow[] }) {
                                 key={name}
                                 className="whitespace-nowrap rounded-full bg-brand-50 px-2 py-0.5 text-xs
                                            font-medium text-brand-800"
+                              >
+                                {name}
+                              </span>
+                            ))}
+                          </span>
+                        ) : (
+                          "—"
+                        )}
+                      </td>
+                      <td className="px-4 py-3 text-ink-muted">
+                        {workCommittees.length > 0 ? (
+                          <span className="flex flex-wrap gap-1">
+                            {workCommittees.map((name) => (
+                              <span
+                                key={name}
+                                className="whitespace-nowrap rounded-full bg-butter/60 px-2 py-0.5 text-xs
+                                           font-medium text-forest"
                               >
                                 {name}
                               </span>
@@ -137,7 +165,7 @@ export function LeadersTable({ rows }: { rows: LeaderRow[] }) {
                         </span>
                       </td>
                       <td className="whitespace-nowrap px-4 py-3 text-ink-muted">
-                        {formatDate(leader.join_date)}
+                        {leader.join_year}
                       </td>
                       <td className="px-4 py-3">
                         {leader.id_card_path ? (

@@ -11,10 +11,11 @@ const geologica = Geologica({
   display: "swap",
 });
 
-// Headings, and the fallback for every Arabic character on the site.
+// Headings. (The site is English-only for now; add the "arabic" subset
+// back here when an Arabic version is built.)
 const fustat = Fustat({
   variable: "--font-fustat",
-  subsets: ["latin", "arabic"],
+  subsets: ["latin"],
   display: "swap",
 });
 
@@ -37,7 +38,6 @@ export const metadata: Metadata = {
     siteName: "El-Salam Scouting Group",
     title: "El-Salam Scouting Group",
     locale: "en_US",
-    alternateLocale: ["ar_EG"],
     description: DESCRIPTION,
   },
   twitter: { card: "summary_large_image" },

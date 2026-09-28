@@ -38,9 +38,6 @@ export default function ErrorPage({
         <h1 className="mt-5 text-[clamp(24px,4.5vw,32px)] leading-tight text-maroon">
           Something went wrong
         </h1>
-        <p lang="ar" dir="rtl" className="mt-1 font-display text-lg text-brand-ink">
-          حدث خطأ ما
-        </p>
         <p className="mt-3 text-[15px] leading-relaxed text-ink-muted">
           This page couldn&apos;t load just now. It&apos;s usually a short hiccup —
           please try again in a moment.

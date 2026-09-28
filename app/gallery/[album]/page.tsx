@@ -25,7 +25,6 @@ async function load(album: string) {
     slug,
     photos,
     name: photos[0].album ?? titleFromSlug(slug),
-    nameAr: photos[0].albumAr,
   };
 }
 
@@ -58,7 +57,7 @@ export default async function AlbumPage(props: {
 
   return (
     <SiteShell>
-      <PageBanner title={data.name} arabic={data.nameAr ?? "معرض الصور"}>
+      <PageBanner title={data.name} eyebrow="Camp Gallery">
         {data.photos.length} {data.photos.length === 1 ? "photo" : "photos"}. Tap
         any photo to see it full size.
       </PageBanner>

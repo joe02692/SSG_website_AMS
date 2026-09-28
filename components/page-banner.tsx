@@ -1,23 +1,24 @@
 /**
- * The band at the top of every inner public page (History, Stages, Gallery):
- * forest background, the page's Arabic name above its English one, and a
+ * The band at the top of every inner public page (Stages, Gallery):
+ * forest background, a small yellow label above the page's title, and a
  * yellow stripe beneath — so each page opens the same way and it's obvious
  * which page you're on.
  */
 export function PageBanner({
   title,
-  arabic,
+  eyebrow,
   children,
 }: {
   title: string;
-  arabic: string;
+  /** Short label above the title, e.g. "Activities". */
+  eyebrow: string;
   children?: React.ReactNode;
 }) {
   return (
     <section className="on-dark relative bg-forest text-cream">
       <div className="mx-auto w-[calc(100%-40px)] max-w-[1100px] py-9 sm:py-11">
-        <p lang="ar" dir="rtl" className="w-fit font-display text-base text-sun">
-          {arabic}
+        <p className="w-fit font-display text-sm font-semibold uppercase tracking-[0.14em] text-sun">
+          {eyebrow}
         </p>
         <h1 className="mt-1 text-[clamp(26px,4.5vw,36px)] leading-tight text-white">
           {title}

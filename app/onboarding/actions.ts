@@ -9,6 +9,7 @@ import { ROLE_LABELS } from "@/lib/roles";
 import { notifyRegistrationComplete } from "@/lib/email";
 import {
   APPLICANT_STATUSES,
+  LEADER_COMMITTEES,
   MAX_ANSWER_LENGTH,
   SCOUT_STAGES,
   usesScoutDetails,
@@ -244,7 +245,7 @@ async function saveLeaderDetails(
   const university = field(formData, "university");
   const faculty = field(formData, "faculty");
   const academicYear = field(formData, "academic_year");
-  const joinDate = field(formData, "join_date");
+  const joinYearRaw = field(formData, "join_year");
   const leadershipYearsRaw = field(formData, "leadership_years");
 
   // getAll, not get: the committees are repeated checkbox inputs sharing one
@@ -254,6 +255,18 @@ async function saveLeaderDetails(
     .filter((value): value is string => typeof value === "string")
     .map((value) => value.trim())
     .filter(Boolean);
+
+  // Work committees (media, training, …) — optional, and kept apart from the
+  // stages above. Stored as a list on leader_details (migration 0020).
+  const committees = [
+    ...new Set(
+      formData
+        .getAll("committees")
+        .filter((value): value is string => typeof value === "string")
+        .map((value) => value.trim())
+        .filter(Boolean),
+    ),
+  ];
 
   const today = new Date();
 
@@ -266,13 +279,15 @@ async function saveLeaderDetails(
     fieldErrors.date_of_birth = "That date looks wrong.";
   }
 
-  const joined = new Date(joinDate);
-  if (!joinDate || Number.isNaN(joined.getTime())) {
-    fieldErrors.join_date = "Enter a valid date.";
-  } else if (joined > today) {
-    fieldErrors.join_date = "That date is in the future.";
-  } else if (!Number.isNaN(born.getTime()) && joined < born) {
-    fieldErrors.join_date = "You cannot have joined before you were born.";
+  // Year only — most leaders remember the year they joined, not the day.
+  // The trigger from migration 0020 enforces the same two rules.
+  const joinYear = Number(joinYearRaw);
+  if (!joinYearRaw || !Number.isInteger(joinYear) || joinYear < 1900) {
+    fieldErrors.join_year = "Choose the year you joined.";
+  } else if (joinYear > today.getFullYear()) {
+    fieldErrors.join_year = "That year is in the future.";
+  } else if (!Number.isNaN(born.getTime()) && joinYear < born.getFullYear()) {
+    fieldErrors.join_year = "You cannot have joined before you were born.";
   }
 
   if (!EGYPT_MOBILE.test(personalPhone)) {
@@ -318,9 +333,14 @@ async function saveLeaderDetails(
 
   const allowedCommittees = SCOUT_STAGES.map((stage) => stage.value);
   if (committeeCodes.length === 0) {
-    fieldErrors.committee_codes = "Tick at least one stage or committee.";
+    fieldErrors.committee_codes = "Tick at least one stage.";
   } else if (committeeCodes.some((code) => !allowedCommittees.includes(code))) {
     fieldErrors.committee_codes = "Choose from the listed stages.";
+  }
+
+  const allowedWorkCommittees = LEADER_COMMITTEES.map((c) => c.value);
+  if (committees.some((code) => !allowedWorkCommittees.includes(code))) {
+    fieldErrors.committees = "Choose from the listed committees.";
   }
 
   for (const [key, value] of [
@@ -369,7 +389,8 @@ async function saveLeaderDetails(
       // year set, so an empty string would fail the write.
       academic_year: isStudent ? academicYear : null,
       leadership_years: leadershipYears,
-      join_date: joinDate,
+      join_year: joinYear,
+      committees,
     },
     { onConflict: "profile_id" },
   );
@@ -383,7 +404,7 @@ async function saveLeaderDetails(
     }
     console.error("[onboarding] could not save leader details", error);
     return {
-      error: describeSaveError(error, "leader_details", "0014_leader_details.sql"),
+      error: describeSaveError(error, "leader_details", "0020_leader_committees_and_join_year.sql"),
     };
   }
 

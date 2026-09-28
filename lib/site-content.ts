@@ -62,7 +62,7 @@ export type HeroSlide = Photo & {
 
 /**
  * The homepage slideshow, in the order it plays. Chosen by the group (28 Sep
- * 2026) from the "٣٠ صورة website" Drive folder. Each was turned upright,
+ * 2026) from the group's Drive folder of website photos. Each was turned upright,
  * resized to 2000px and had its EXIF data — including any GPS position —
  * removed before being added here.
  *
@@ -112,16 +112,16 @@ export const VALUES = [
 ] as const;
 
 /**
- * The stages, split into their English and Arabic names. Taken straight from
+ * The stages, by their English names. Taken straight from
  * the list the registration form and the database use.
  *
  * ⚠️ The group has not settled this list yet (7 English names in the DBMS
  * handoff vs these 8). Whatever it becomes, this section follows it.
  */
-export const STAGES = SCOUT_STAGES.map((stage) => {
-  const [en, ar] = stage.label.split(" — ");
-  return { value: stage.value, en, ar };
-});
+export const STAGES = SCOUT_STAGES.map((stage) => ({
+  value: stage.value,
+  en: stage.label,
+}));
 
 export type MilestoneIcon = "sprout" | "house" | "people" | "laptop";
 
@@ -163,17 +163,15 @@ export type Camp = {
   year: number;
   season: "Winter" | "Summer";
   place: string;
-  placeAr: string;
   /** The Cloudinary album this camp's photos live in. Built exactly the way
    *  scripts/upload-gallery.mjs builds it: slugify("Summer Camp 2018 — Marsa Alam"). */
   slug: string;
 };
 
-const camp = (year: number, season: Camp["season"], place: string, placeAr: string): Camp => ({
+const camp = (year: number, season: Camp["season"], place: string): Camp => ({
   year,
   season,
   place,
-  placeAr,
   slug: `${season} camp ${year} ${place}`
     .toLowerCase()
     .replace(/[^a-z0-9]+/g, "-")
@@ -181,28 +179,28 @@ const camp = (year: number, season: Camp["season"], place: string, placeAr: stri
 });
 
 /**
- * Every camp folder in the group's Drive ("معسكرات ٢٠١٨ إلى ٢٠٢٦"), oldest
+ * Every camp folder in the group's Drive (camps 2018–2026), oldest
  * first — including the ones with no photos yet. A camp shows its photos on
  * the History page as soon as its album exists in Cloudinary; to add one,
  * put the photos in its Drive folder and run the upload script again.
  */
 export const CAMPS: Camp[] = [
-  camp(2018, "Winter", "Luxor & Aswan", "الأقصر وأسوان"),
-  camp(2018, "Summer", "Marsa Alam", "مرسى علم"),
-  camp(2019, "Winter", "The Oases", "الواحات"),
-  camp(2019, "Summer", "South Sinai", "جنوب سيناء"),
-  camp(2020, "Winter", "Port Said", "بورسعيد"),
-  camp(2021, "Summer", "Marsa Matrouh", "مرسى مطروح"),
-  camp(2022, "Winter", "Siwa", "سيوة"),
-  camp(2022, "Summer", "Sinai", "سيناء"),
-  camp(2023, "Winter", "Luxor & Aswan", "الأقصر وأسوان"),
-  camp(2023, "Summer", "Marsa Alam", "مرسى علم"),
-  camp(2024, "Winter", "The Oases", "الواحات"),
-  camp(2024, "Summer", "Marsa Matrouh", "مرسى مطروح"),
-  camp(2025, "Winter", "Siwa", "سيوة"),
-  camp(2025, "Summer", "Hurghada", "الغردقة"),
-  camp(2026, "Winter", "Luxor & Aswan", "الأقصر وأسوان"),
-  camp(2026, "Summer", "Marsa Matrouh", "مرسى مطروح"),
+  camp(2018, "Winter", "Luxor & Aswan"),
+  camp(2018, "Summer", "Marsa Alam"),
+  camp(2019, "Winter", "The Oases"),
+  camp(2019, "Summer", "South Sinai"),
+  camp(2020, "Winter", "Port Said"),
+  camp(2021, "Summer", "Marsa Matrouh"),
+  camp(2022, "Winter", "Siwa"),
+  camp(2022, "Summer", "Sinai"),
+  camp(2023, "Winter", "Luxor & Aswan"),
+  camp(2023, "Summer", "Marsa Alam"),
+  camp(2024, "Winter", "The Oases"),
+  camp(2024, "Summer", "Marsa Matrouh"),
+  camp(2025, "Winter", "Siwa"),
+  camp(2025, "Summer", "Hurghada"),
+  camp(2026, "Winter", "Luxor & Aswan"),
+  camp(2026, "Summer", "Marsa Matrouh"),
 ];
 
 /** The six photos in the green band on the homepage. */

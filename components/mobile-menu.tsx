@@ -70,9 +70,7 @@ export function MobileMenu({ children }: { children: ReactNode }) {
             {children}
           </nav>
           <p className="mt-auto border-t border-cream/15 pt-5 text-sm text-cream/70">
-            <span lang="ar" dir="rtl" className="block font-display">
-              مجموعة السلام الكشفية
-            </span>
+            <span className="block font-display">El-Salam Scouting Group</span>
             Character, Service &amp; Friendship
           </p>
         </div>

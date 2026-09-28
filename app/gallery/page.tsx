@@ -24,7 +24,7 @@ export default async function GalleryPage() {
 
   return (
     <SiteShell>
-      <PageBanner title="Camp Gallery" arabic="معرض الصور">
+      <PageBanner title="Camp Gallery" eyebrow="Activities">
         {albums.length
           ? "Every camp, hike and event — one album at a time. Open an album to see all its photos."
           : "Every camp, hike and event — one album at a time. Tap a photo to see it full size."}

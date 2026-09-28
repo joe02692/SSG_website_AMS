@@ -65,9 +65,7 @@ export function SiteFooter() {
       <div className="border-t border-cream/15">
         <p className="mx-auto flex max-w-[1200px] flex-wrap justify-between gap-2 px-5 py-4 text-xs text-cream/70 sm:px-8">
           <span>© {new Date().getFullYear()} El-Salam Scouting Group</span>
-          <span lang="ar" dir="rtl" className="font-display">
-            كن مستعدًا
-          </span>
+          <span className="font-display">Be prepared.</span>
         </p>
       </div>
     </footer>

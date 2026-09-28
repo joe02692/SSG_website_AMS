@@ -15,7 +15,7 @@ const stageCount = NUMBER_WORDS[STAGES.length] ?? String(STAGES.length);
 export default function StagesPage() {
   return (
     <SiteShell>
-      <PageBanner title={`${stageCount} Stages, One Family`} arabic="مراحلنا">
+      <PageBanner title={`${stageCount} Stages, One Family`} eyebrow="Our Stages">
         From the youngest Buds to the Rovers, every age has a place. You choose
         your stage when you register.
       </PageBanner>
@@ -33,11 +33,8 @@ export default function StagesPage() {
               >
                 {String(i + 1).padStart(2, "0")}
               </span>
-              <span className="min-w-0">
-                <span lang="ar" dir="rtl" className="block w-fit font-display text-lg leading-tight text-forest">
-                  {stage.ar}
-                </span>
-                <span className="block text-sm text-ink-muted">{stage.en}</span>
+              <span className="min-w-0 font-display text-lg leading-tight text-forest">
+                {stage.en}
               </span>
             </li>
           ))}

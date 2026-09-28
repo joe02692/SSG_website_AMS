@@ -54,14 +54,14 @@ export type Question = {
  * without touching stored data.
  */
 export const SCOUT_STAGES = [
-  { value: "baraem", label: "Buds — براعم" },
-  { value: "zahrat", label: "Blossoms — زهرات" },
-  { value: "ashbal", label: "Cubs — أشبال" },
-  { value: "morshedat", label: "Guides — مرشدات" },
-  { value: "kashafa", label: "Scouts — كشافة" },
-  { value: "motaqademat", label: "Senior Guides — متقدمات" },
-  { value: "motaqadem", label: "Senior Scouts — متقدم" },
-  { value: "jawala", label: "Rovers — جوالة" },
+  { value: "baraem", label: "Buds" },
+  { value: "zahrat", label: "Blossoms" },
+  { value: "ashbal", label: "Cubs" },
+  { value: "morshedat", label: "Guides" },
+  { value: "kashafa", label: "Scouts" },
+  { value: "motaqademat", label: "Senior Guides" },
+  { value: "motaqadem", label: "Senior Scouts" },
+  { value: "jawala", label: "Rovers" },
 ];
 
 /**
@@ -74,20 +74,20 @@ export const SCOUT_STAGES = [
 export const SCOUT_QUESTIONS: Question[] = [
   {
     id: "date_of_birth",
-    label: "Date of birth — تاريخ الميلاد",
+    label: "Date of birth",
     type: "date",
     required: true,
     hint: "We work out your age from this, so it stays correct every year.",
   },
   {
     id: "address",
-    label: "Full address — العنوان بالكامل",
+    label: "Full address",
     type: "textarea",
     required: true,
   },
   {
     id: "personal_phone",
-    label: "Personal phone — رقم الهاتف الخاص",
+    label: "Personal phone",
     type: "tel",
     required: true,
     placeholder: "01XXXXXXXXX",
@@ -95,21 +95,21 @@ export const SCOUT_QUESTIONS: Question[] = [
   },
   {
     id: "parent_phone",
-    label: "Parent / guardian phone — رقم هاتف ولي الأمر",
+    label: "Parent / guardian phone",
     type: "tel",
     required: true,
     placeholder: "01XXXXXXXXX",
   },
   {
     id: "stage_code",
-    label: "Scouting stage — اختر المرحلة",
+    label: "Scouting stage",
     type: "select",
     required: true,
     options: SCOUT_STAGES,
   },
   {
     id: "national_id",
-    label: "National ID — الرقم القومي",
+    label: "National ID",
     type: "text",
     required: false,
     placeholder: "14 digits",
@@ -117,7 +117,7 @@ export const SCOUT_QUESTIONS: Question[] = [
   },
   {
     id: "document_path",
-    label: "Birth certificate image — صورة شهادة الميلاد",
+    label: "Birth certificate image",
     type: "file",
     required: true,
     hint: "A photo or scan is fine — uploading straight from your phone works. Only you and the site admins can see it.",
@@ -130,13 +130,34 @@ export const SCOUT_QUESTIONS: Question[] = [
  * these two.
  */
 export const APPLICANT_STATUSES = [
-  { value: "university_student", label: "University student — طالب جامعي" },
-  { value: "graduate", label: "Graduate — خريج" },
+  { value: "university_student", label: "University student" },
+  { value: "graduate", label: "Graduate" },
 ];
 
 /**
+ * The group's work committees — separate from stages, and a leader can sit on
+ * several. Stored as codes in leader_details.committees; migration 0020's
+ * CHECK accepts exactly these values, so adding one means adding it there too.
+ */
+export const LEADER_COMMITTEES = [
+  { value: "program", label: "Program committee" },
+  { value: "media", label: "Media committee" },
+  { value: "secretary", label: "Secretary committee" },
+  { value: "logistics", label: "Tools & logistics committee" },
+  { value: "training", label: "Training committee" },
+];
+
+/** Years offered for "Year you joined scouting", newest first. */
+const THIS_YEAR = new Date().getFullYear();
+export const JOIN_YEARS = Array.from({ length: THIS_YEAR - 1950 + 1 }, (_, i) => {
+  const year = String(THIS_YEAR - i);
+  return { value: year, label: year };
+});
+
+/**
  * Leader registration. Each id is a column on public.leader_details, except
- * `committee_codes`, which becomes rows in public.leader_committees.
+ * `committee_codes`, which becomes rows in public.leader_committees (the
+ * stages a leader serves).
  *
  * Taken from the DBMS team's "Leaders Registration Form (SSG Secretary)"
  * specification. Three fields in that document are deliberately absent here:
@@ -147,14 +168,14 @@ export const APPLICANT_STATUSES = [
 export const LEADER_QUESTIONS: Question[] = [
   {
     id: "date_of_birth",
-    label: "Date of birth — تاريخ الميلاد",
+    label: "Date of birth",
     type: "date",
     required: true,
     hint: "Your age is worked out from this, so it stays correct every year.",
   },
   {
     id: "personal_phone",
-    label: "Personal phone — رقم الهاتف الشخصي",
+    label: "Personal phone",
     type: "tel",
     required: true,
     placeholder: "01XXXXXXXXX",
@@ -162,7 +183,7 @@ export const LEADER_QUESTIONS: Question[] = [
   },
   {
     id: "national_id",
-    label: "National ID — الرقم القومي",
+    label: "National ID",
     type: "text",
     required: true,
     placeholder: "14 digits",
@@ -170,33 +191,33 @@ export const LEADER_QUESTIONS: Question[] = [
   },
   {
     id: "id_card_path",
-    label: "ID card photo — صورة البطاقة الشخصية",
+    label: "ID card photo",
     type: "file",
     required: true,
     hint: "A photo or scan of both sides if possible. Only you and the site admins can see it.",
   },
   {
     id: "applicant_status",
-    label: "Current status — الحالة",
+    label: "Current status",
     type: "select",
     required: true,
     options: APPLICANT_STATUSES,
   },
   {
     id: "university",
-    label: "University — الجامعة",
+    label: "University",
     type: "text",
     required: true,
   },
   {
     id: "faculty",
-    label: "Faculty / College — الكلية",
+    label: "Faculty / College",
     type: "text",
     required: true,
   },
   {
     id: "academic_year",
-    label: "Academic year — السنة الدراسية",
+    label: "Academic year",
     type: "text",
     required: true,
     placeholder: "e.g. Third year",
@@ -207,25 +228,35 @@ export const LEADER_QUESTIONS: Question[] = [
   },
   {
     id: "committee_codes",
-    label: "Stages / committees you serve — المراحل واللجان",
+    label: "Stages you serve",
     type: "checkbox",
     required: true,
-    hint: "Tick every one you lead. Most leaders serve more than one.",
+    hint: "Tick every stage you lead. Most leaders serve more than one.",
     options: SCOUT_STAGES,
   },
   {
+    id: "committees",
+    label: "Committees",
+    type: "checkbox",
+    required: false,
+    hint: "Tick every committee you're part of, if any.",
+    options: LEADER_COMMITTEES,
+  },
+  {
     id: "leadership_years",
-    label: "Years of leadership experience — سنوات الخبرة القيادية",
+    label: "Years of leadership experience",
     type: "number",
     required: true,
     min: 0,
     max: 70,
   },
   {
-    id: "join_date",
-    label: "Date you joined scouting — تاريخ الانضمام للكشافة",
-    type: "date",
+    id: "join_year",
+    label: "Year you joined scouting",
+    type: "select",
     required: true,
+    placeholder: "Choose a year…",
+    options: JOIN_YEARS,
   },
 ];
 

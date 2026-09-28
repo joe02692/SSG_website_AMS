@@ -17,7 +17,7 @@ type RequestRow = {
   id: string;
   full_name: string | null;
   requested_at: string | null;
-  stages: { name_en: string; name_ar: string } | null;
+  stages: { name_en: string } | null;
 };
 
 const ROLE_BADGE: Record<Role, string> = {
@@ -99,7 +99,7 @@ export default async function MembersPage() {
     // on first.
     supabase
       .from("profiles")
-      .select("id, full_name, requested_at, stages:requested_stage_id(name_en, name_ar)")
+      .select("id, full_name, requested_at, stages:requested_stage_id(name_en)")
       .eq("role", "pending_leader")
       .order("requested_at", { ascending: true })
       .limit(MAX_ROWS),
@@ -275,7 +275,7 @@ export default async function MembersPage() {
                         </td>
                         <td className="whitespace-nowrap px-4 py-3 text-ink-muted">
                           {request.stages
-                            ? `${request.stages.name_en} — ${request.stages.name_ar}`
+                            ? request.stages.name_en
                             : "—"}
                         </td>
                         <td className="whitespace-nowrap px-4 py-3 text-ink-muted">

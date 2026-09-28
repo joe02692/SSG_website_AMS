@@ -131,9 +131,6 @@ function CampCard({
       <span className="block font-sans text-lg font-bold text-forest">
         {camp.season} Camp · {camp.place}
       </span>
-      <span lang="ar" dir="rtl" className="block w-fit font-display text-sm text-brand-ink">
-        {camp.season === "Summer" ? "معسكر صيفي" : "معسكر شتوي"} · {camp.placeAr}
-      </span>
     </>
   );
 

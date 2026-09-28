@@ -56,7 +56,7 @@ export default async function DashboardPage({
         <div aria-hidden className="absolute inset-x-0 bottom-0 h-1.5 bg-sun" />
         <div className="mx-auto max-w-6xl px-5 py-10 sm:px-8 sm:py-12">
           <p className="font-display text-base text-sun">
-            <span lang="ar" dir="rtl">أهلاً</span> · Welcome back
+            Welcome back
           </p>
           <h1 className="mt-1 text-[clamp(24px,4vw,34px)] leading-tight text-white">
             {firstName ? `Hello, ${firstName}` : "Hello"}

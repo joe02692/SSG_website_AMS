@@ -20,7 +20,7 @@ type ScoutRow = {
   parent_phone: string;
   document_path: string | null;
   profiles: { full_name: string | null } | null;
-  stages: { name_en: string; name_ar: string; sort: number } | null;
+  stages: { name_en: string; sort: number } | null;
 };
 
 function formatDate(value: string): string {
@@ -51,7 +51,7 @@ export default async function ScoutsPage() {
   const { data } = await supabase
     .from("scout_details")
     .select(
-      "profile_id, date_of_birth, address, national_id, personal_phone, parent_phone, document_path, profiles(full_name), stages(name_en, name_ar, sort)",
+      "profile_id, date_of_birth, address, national_id, personal_phone, parent_phone, document_path, profiles(full_name), stages(name_en, sort)",
     )
     .order("sort", { referencedTable: "stages", ascending: true })
     .order("profile_id", { ascending: true })
@@ -59,14 +59,14 @@ export default async function ScoutsPage() {
 
   const rows = (data ?? []) as unknown as ScoutRow[];
 
-  // Leaders. Ordered by join date so the longest-serving are at the top, which
+  // Leaders. Ordered by the year they joined so the longest-serving are at the top, which
   // is the order a secretary reads this list in.
   const { data: leaderData, error: leaderError } = await supabase
     .from("leader_details")
     .select(
-      "profile_id, date_of_birth, personal_phone, national_id, id_card_path, applicant_status, university, faculty, academic_year, leadership_years, join_date, profiles(full_name, role), leader_committees(stages(name_en, name_ar))",
+      "profile_id, date_of_birth, personal_phone, national_id, id_card_path, applicant_status, university, faculty, academic_year, leadership_years, join_year, committees, profiles(full_name, role), leader_committees(stages(name_en))",
     )
-    .order("join_date", { ascending: true })
+    .order("join_year", { ascending: true })
     .limit(MAX_ROWS);
 
   const leaders = (leaderData ?? []) as unknown as LeaderRow[];
@@ -185,7 +185,7 @@ export default async function ScoutsPage() {
                     </td>
                     <td className="whitespace-nowrap px-4 py-3 text-ink-muted">
                       {row.stages
-                        ? `${row.stages.name_en} — ${row.stages.name_ar}`
+                        ? row.stages.name_en
                         : "—"}
                     </td>
                     <td className="px-4 py-3 font-medium text-ink">

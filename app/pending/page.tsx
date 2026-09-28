@@ -35,7 +35,7 @@ export default async function PendingPage() {
       <div className="mx-auto max-w-xl px-4 py-14 sm:px-6 sm:py-20">
         <div className="rounded-3xl border-2 border-line bg-surface-raised p-7 sm:p-9">
           <p className="font-display text-base text-leaf">
-            <span lang="ar" dir="rtl">طلبك قيد المراجعة</span>
+            Under review
           </p>
           <h1 className="mt-1 text-[clamp(22px,4vw,28px)] leading-tight text-maroon">
             Your request has been sent

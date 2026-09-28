@@ -28,7 +28,6 @@ const EXPLORE = [
   {
     href: "/history",
     title: "Our History",
-    arabic: "تاريخنا",
     body: `From one troop in ${FOUNDED} to hundreds of families — and what we still stand for.`,
     photo: historyPhoto,
     alt: "Scouts sitting in a circle on the grass during a patrol meeting",
@@ -36,7 +35,6 @@ const EXPLORE = [
   {
     href: "/stages",
     title: "Our Stages",
-    arabic: "مراحلنا",
     body: `${STAGES.length} stages from the youngest Buds to the Rovers — every age has a place.`,
     photo: stagesPhoto,
     alt: "Guides in white shirts and neckerchiefs posing together in a park",
@@ -44,7 +42,6 @@ const EXPLORE = [
   {
     href: "/gallery",
     title: "Activities",
-    arabic: "أنشطتنا",
     body: "Hikes, camps, trips and service — a look at a year with El-Salam.",
     photo: activitiesPhoto,
     alt: "Scouts and leaders standing on rocks at the edge of a blue sea",
@@ -91,10 +88,7 @@ export default function HomePage() {
       <section className="mx-auto grid w-[calc(100%-40px)] max-w-[1100px] items-center gap-7 pt-10 lg:grid-cols-[1.15fr_1fr] lg:gap-12 lg:pt-12">
         <div>
           <p className="font-display text-base text-maroon">
-            Welcome ·{" "}
-            <span lang="ar" dir="rtl">
-              أهلاً بكم
-            </span>
+            Welcome
           </p>
           <p className="mt-2 text-[clamp(18px,2.4vw,23px)] leading-snug text-[#141414]">
             El-Salam Scouting Group brings together more than 400 scouts,
@@ -162,10 +156,7 @@ export default function HomePage() {
                   />
                 </span>
                 <span className="flex flex-1 flex-col p-5">
-                  <span lang="ar" dir="rtl" className="block w-fit font-display text-sm text-brand-ink">
-                    {card.arabic}
-                  </span>
-                  <span className="mt-0.5 flex items-center justify-between gap-3">
+                  <span className="flex items-center justify-between gap-3">
                     <span className="font-display text-xl text-forest">{card.title}</span>
                     <span
                       aria-hidden

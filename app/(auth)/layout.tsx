@@ -18,26 +18,32 @@ export default function AuthLayout({ children }: { children: ReactNode }) {
       <div className="lg:grid lg:min-h-[calc(100dvh-72px)] lg:grid-cols-[minmax(0,1fr)_minmax(0,1fr)]">
         <aside
           aria-hidden
-          className="on-dark relative hidden overflow-hidden bg-forest lg:block"
+          className="on-dark relative hidden bg-forest lg:block"
         >
-          <Image
-            src={photo.src}
-            alt=""
-            fill
-            placeholder="blur"
-            sizes="50vw"
-            className="object-cover object-[center_35%] opacity-70"
-          />
-          <div className="absolute inset-0 bg-linear-to-t from-forest via-forest/40 to-forest/10" />
-          <div className="absolute inset-x-10 bottom-12 text-cream">
-            <p lang="ar" dir="rtl" className="w-fit font-display text-4xl text-sun">
-              كن مستعدًا
-            </p>
-            <p className="mt-2 font-display text-2xl">Be prepared.</p>
-            <p className="mt-3 max-w-sm text-[15px] text-cream/85">
-              Four hundred scouts, leaders and families — one group, since{" "}
-              {FOUNDED}.
-            </p>
+          {/* The photo stays pinned to the screen while the form scrolls.
+              Without this, the long sign-up form stretched the panel to
+              ~1,700px tall, and filling that meant blowing a landscape photo
+              up 3× — which is why it looked blurry. The photo itself is now
+              3200px wide (from the original), and `sizes` asks for a copy as
+              wide as the screen, since a landscape photo covering a tall panel
+              is shown wider than the panel. */}
+          <div className="sticky top-[72px] h-[calc(100dvh-72px)] overflow-hidden">
+            <Image
+              src={photo.src}
+              alt=""
+              fill
+              placeholder="blur"
+              sizes="(min-width: 1024px) 100vw, 1px"
+              className="object-cover object-[50%_45%] opacity-80"
+            />
+            <div className="absolute inset-0 bg-linear-to-t from-forest via-forest/35 to-forest/5" />
+            <div className="absolute inset-x-10 bottom-12 text-cream">
+              <p className="font-display text-4xl font-bold text-sun">Be prepared.</p>
+              <p className="mt-3 max-w-sm text-[15px] text-cream/85">
+                Four hundred scouts, leaders and families — one group, since{" "}
+                {FOUNDED}.
+              </p>
+            </div>
           </div>
         </aside>
 

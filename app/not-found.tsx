@@ -24,9 +24,6 @@ export default function NotFound() {
         <h1 className="mt-4 text-[clamp(24px,4.5vw,32px)] leading-tight text-maroon">
           This trail doesn&apos;t lead anywhere
         </h1>
-        <p lang="ar" dir="rtl" className="mt-1 font-display text-lg text-brand-ink">
-          الصفحة غير موجودة
-        </p>
         <p className="mt-3 max-w-md text-[15px] leading-relaxed text-ink-muted">
           The page may have moved, or the link may have a typo. Let&apos;s get
           you back to camp.

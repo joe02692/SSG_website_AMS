@@ -3,7 +3,7 @@ import Link from "next/link";
 import logo from "@/public/images/logo.png";
 
 /**
- * The group's emblem with its Arabic and English names — used in the header,
+ * The group's emblem with its name — used in the header,
  * the footer and above the sign-in forms, so it lives in one place.
  *
  * The <Image> has empty alt text on purpose: the names next to it already say
@@ -23,11 +23,13 @@ export function BrandLogo({ className = "" }: { className?: string }) {
         sizes="64px"
         className="h-9 w-auto min-[380px]:h-10 sm:h-12"
       />
-      <span className="flex flex-col text-[0.65rem] font-semibold leading-tight min-[380px]:text-[0.7rem] sm:text-[0.875rem]">
-        <span lang="ar" dir="rtl">
-          مجموعة السلام الكشفية
+      <span className="flex flex-col leading-tight">
+        <span className="font-display text-[0.95rem] font-bold min-[380px]:text-base sm:text-lg">
+          El-Salam
         </span>
-        <span className="opacity-90">El-Salam Scouts</span>
+        <span className="text-[0.65rem] font-semibold opacity-90 min-[380px]:text-[0.7rem] sm:text-[0.8rem]">
+          Scouting Group
+        </span>
       </span>
     </Link>
   );

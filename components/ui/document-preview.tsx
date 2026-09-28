@@ -68,7 +68,7 @@ export function DocumentPreview({
         <div className="min-w-0">
           <p className="truncate text-sm font-semibold text-ink">{title}</p>
           <p className="text-xs text-ink-subtle">
-            شهادة الميلاد — this link expires in about a minute.
+            This link expires in about a minute.
           </p>
         </div>
 
