@@ -9,6 +9,7 @@ export const PRIVATE_PATHS = [
   "/members",
   "/onboarding",
   "/pending",
+  "/seasonal-plan",
   "/auth",
   "/api",
   "/reset-password",

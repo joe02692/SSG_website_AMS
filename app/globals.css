@@ -370,3 +370,14 @@ dialog.lightbox[open]::backdrop {
     );
   box-shadow: 0 2px 6px rgb(30 68 40 / 0.25);
 }
+
+/* The "under construction" sticker on unfinished pages: a slow, small wobble. */
+@media (prefers-reduced-motion: no-preference) {
+  @keyframes sticker-wobble {
+    0%, 100% { rotate: 0deg; }
+    50% { rotate: 3deg; }
+  }
+  .sticker-wobble {
+    animation: sticker-wobble 3.2s ease-in-out infinite;
+  }
+}

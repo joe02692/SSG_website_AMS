@@ -5,21 +5,26 @@ import {
   isPendingRole,
   isSiteAdminRole,
   isStageRole,
+  isStaffRole,
 } from "@/lib/roles";
 import { signOutAction } from "@/app/auth/actions";
 import { BrandLogo } from "@/components/brand-logo";
 import { MobileMenu } from "@/components/mobile-menu";
 import { NavLink } from "@/components/nav-link";
 
-const NAV = [
+// Split in two so leaders' "Seasonal Plan" link can sit right after
+// "Our History" without the whole nav waiting on the sign-in check.
+const NAV_BEFORE = [
   { href: "/", label: "Home" },
   { href: "/history", label: "Our History" },
+];
+const NAV_AFTER = [
   { href: "/stages", label: "Stages" },
   { href: "/gallery", label: "Activities" },
   { href: "/signup", label: "Join Us" },
 ];
 
-const navLink = "whitespace-nowrap text-[15px] font-bold text-white transition hover:text-butter";
+const navLink = "whitespace-nowrap text-sm xl:text-[15px] font-bold text-white transition hover:text-butter";
 
 /* Yellow button, forest text. The design had white text here, which is
    1.34:1 on this yellow — unreadable. Forest is 8.18:1. */
@@ -73,6 +78,21 @@ async function HeaderAuth() {
       </Link>
       <SignOutButton className={`hidden lg:block ${ghostButton}`} />
     </>
+  );
+}
+
+/** "Seasonal Plan" — leaders and staff only. Sits beside "Our History". */
+async function LeaderNavLink({ mobile = false }: { mobile?: boolean }) {
+  const profile = await getCurrentProfile();
+  if (!profile || !isStaffRole(profile.role)) return null;
+  return mobile ? (
+    <Link href="/seasonal-plan" className={menuLink}>
+      Seasonal Plan
+    </Link>
+  ) : (
+    <NavLink href="/seasonal-plan" className={navLink}>
+      Seasonal Plan
+    </NavLink>
   );
 }
 
@@ -172,8 +192,16 @@ export function SiteHeader() {
         <BrandLogo />
 
         <div className="flex items-center gap-2 sm:gap-4">
-          <nav aria-label="Main" className="hidden items-center gap-5 lg:flex">
-            {NAV.map((item) => (
+          <nav aria-label="Main" className="hidden items-center gap-4 lg:flex xl:gap-5">
+            {NAV_BEFORE.map((item) => (
+              <NavLink key={item.href} href={item.href} className={navLink}>
+                {item.label}
+              </NavLink>
+            ))}
+            <Suspense fallback={null}>
+              <LeaderNavLink />
+            </Suspense>
+            {NAV_AFTER.map((item) => (
               <NavLink key={item.href} href={item.href} className={navLink}>
                 {item.label}
               </NavLink>
@@ -188,7 +216,15 @@ export function SiteHeader() {
           </Suspense>
 
           <MobileMenu>
-            {NAV.map((item) => (
+            {NAV_BEFORE.map((item) => (
+              <Link key={item.href} href={item.href} className={menuLink}>
+                {item.label}
+              </Link>
+            ))}
+            <Suspense fallback={null}>
+              <LeaderNavLink mobile />
+            </Suspense>
+            {NAV_AFTER.map((item) => (
               <Link key={item.href} href={item.href} className={menuLink}>
                 {item.label}
               </Link>
