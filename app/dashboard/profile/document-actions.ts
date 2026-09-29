@@ -6,6 +6,7 @@ import { createClient } from "@/lib/supabase/server";
 import { getCurrentProfile } from "@/lib/dal";
 import { isStaffRole } from "@/lib/roles";
 import { nameSlug } from "@/lib/documents";
+import { incomingPrefix } from "@/lib/storage-paths";
 import {
   ALLOWED_TYPES,
   MAX_UPLOAD_BYTES,
@@ -64,19 +65,11 @@ export async function createUploadUrlAction(
     return { error: "That file is over 10 MB. Try a smaller photo." };
   }
 
-  // Built from the session, not the request body.
-  //
-  // The name comes from the signed-in profile rather than a field on the form.
-  // Two reasons: the member never has to type it, and it cannot be wrong — a
-  // typed box lets someone save "Ahmed" on Youssef's account, and once a few
-  // hundred of those exist nobody can trust a filename again. The server
-  // already knows exactly whose account this is.
-  //
-  // Eight hex characters, not a whole UUID, because these live under
-  // <profile_id>/ — the only files they could collide with are that same
-  // member's own, of which there is normally one.
-  const suffix = randomUUID().replace(/-/g, "").slice(0, 8);
-  const key = `${profile.id}/${nameSlug(profile.full_name)}_${suffix}.${EXTENSIONS[contentType]}`;
+  // Built from the session, not the request body: a random name inside this
+  // member's own `_incoming/` folder. The save action later files it under
+  // Scouts/<Stage>/ or Leaders/<Males|Females>/ with the member's name —
+  // it's the only step that knows the stage or gender for certain.
+  const key = `${incomingPrefix(profile.id)}${randomUUID()}.${EXTENSIONS[contentType]}`;
 
   try {
     const url = await presignUpload(key, contentType);

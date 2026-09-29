@@ -64,7 +64,7 @@ export default async function ScoutsPage() {
   const { data: leaderData, error: leaderError } = await supabase
     .from("leader_details")
     .select(
-      "profile_id, date_of_birth, personal_phone, national_id, id_card_path, applicant_status, university, faculty, academic_year, leadership_years, join_year, committees, profiles(full_name, role), leader_committees(stages(name_en))",
+      "profile_id, date_of_birth, personal_phone, national_id, id_card_path, applicant_status, university, faculty, academic_year, leadership_years, join_year, committees, gender, profiles(full_name, role), leader_committees(stages(name_en))",
     )
     .order("join_year", { ascending: true })
     .limit(MAX_ROWS);

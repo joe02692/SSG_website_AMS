@@ -13,6 +13,7 @@ export type LeaderRow = {
   academic_year: string | null;
   leadership_years: number;
   join_year: number;
+  gender: string | null;
   committees: string[] | null;
   profiles: { full_name: string | null; role: string } | null;
   leader_committees: { stages: { name_en: string } | null }[] | null;
@@ -99,6 +100,7 @@ export function LeadersTable({ rows }: { rows: LeaderRow[] }) {
                           {leader.profiles?.full_name ?? "—"}
                         </span>
                         <span className="block max-w-60 truncate text-xs text-ink-subtle">
+                          {leader.gender === "male" ? "Male · " : leader.gender === "female" ? "Female · " : ""}
                           {leader.faculty}
                         </span>
                       </td>

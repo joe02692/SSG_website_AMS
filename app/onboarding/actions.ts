@@ -7,6 +7,8 @@ import { createClient } from "@/lib/supabase/server";
 import { getCurrentProfile } from "@/lib/dal";
 import { ROLE_LABELS } from "@/lib/roles";
 import { notifyRegistrationComplete } from "@/lib/email";
+import { deleteObject } from "@/lib/b2";
+import { fileDocument, leaderFolder, scoutFolder } from "@/lib/storage-paths";
 import {
   APPLICANT_STATUSES,
   LEADER_COMMITTEES,
@@ -86,6 +88,7 @@ function describeSaveError(
 // ---------------------------------------------------------------------------
 async function saveScoutDetails(
   profileId: string,
+  fullName: string | null,
   formData: FormData,
   markComplete: boolean,
 ): Promise<DetailsState> {
@@ -129,14 +132,10 @@ async function saveScoutDetails(
   }
 
   // The browser already uploaded the file to Backblaze and put the resulting
-  // key in a hidden input; this is the key, not the file. Checking the prefix
-  // is what stops a crafted submission from claiming someone else's document:
-  // the key was minted server-side as `<profile_id>/…`, so anything outside
-  // this member's own prefix cannot have come from us.
+  // key in a hidden input; this is the key, not the file. Whether it really
+  // belongs to this member is checked when it is filed, below.
   if (!documentPath) {
     fieldErrors.document_path = "Please upload the birth certificate.";
-  } else if (!documentPath.startsWith(`${profileId}/`)) {
-    fieldErrors.document_path = "That file doesn't belong to your account.";
   }
 
   const supabase = await createClient();
@@ -161,6 +160,30 @@ async function saveScoutDetails(
     return { fieldErrors, error: "Please fix the highlighted answers." };
   }
 
+  // File the certificate as Scouts/<Stage>/<Full name>.<ext>. Also runs when
+  // the member only changed their stage, so the file follows them.
+  const { data: current } = await supabase
+    .from("scout_details")
+    .select("document_path")
+    .eq("profile_id", profileId)
+    .maybeSingle();
+  const filed = await fileDocument({
+    submitted: documentPath,
+    stored: (current as { document_path?: string | null } | null)?.document_path ?? null,
+    profileId,
+    folder: scoutFolder(stageCode),
+    fullName,
+  }).catch((error: unknown) => {
+    console.error("[onboarding] could not file the certificate in Backblaze", error);
+    return { error: "Could not store the certificate. Please try again." };
+  });
+  if ("error" in filed) {
+    return {
+      fieldErrors: { document_path: filed.error },
+      error: "Please fix the highlighted answers.",
+    };
+  }
+
   const row = {
     profile_id: profileId,
     date_of_birth: dateOfBirth,
@@ -169,7 +192,7 @@ async function saveScoutDetails(
     parent_phone: parentPhone,
     national_id: nationalId || null,
     stage_id: stageId,
-    document_path: documentPath,
+    document_path: filed.key,
     document_uploaded_at: new Date().toISOString(),
   };
 
@@ -212,6 +235,9 @@ async function saveScoutDetails(
     };
   }
 
+  // The row now points at the filed copy; the upload and any older copy can go.
+  await Promise.all(filed.cleanup.map(deleteObject));
+
   if (markComplete) {
     await supabase
       .from("profiles")
@@ -232,6 +258,7 @@ async function saveScoutDetails(
 // ---------------------------------------------------------------------------
 async function saveLeaderDetails(
   profileId: string,
+  fullName: string | null,
   formData: FormData,
   markComplete: boolean,
 ): Promise<DetailsState> {
@@ -241,6 +268,7 @@ async function saveLeaderDetails(
   const personalPhone = field(formData, "personal_phone").replace(/\s/g, "");
   const nationalId = field(formData, "national_id").replace(/\s/g, "");
   const idCardPath = field(formData, "id_card_path");
+  const gender = field(formData, "gender");
   const applicantStatus = field(formData, "applicant_status");
   const university = field(formData, "university");
   const faculty = field(formData, "faculty");
@@ -301,8 +329,10 @@ async function saveLeaderDetails(
 
   if (!idCardPath) {
     fieldErrors.id_card_path = "Please upload a photo of your ID card.";
-  } else if (!idCardPath.startsWith(`${profileId}/`)) {
-    fieldErrors.id_card_path = "That file doesn't belong to your account.";
+  }
+
+  if (gender !== "male" && gender !== "female") {
+    fieldErrors.gender = "Choose male or female.";
   }
 
   const allowedStatuses = APPLICANT_STATUSES.map((option) => option.value);
@@ -374,13 +404,38 @@ async function saveLeaderDetails(
     };
   }
 
+  // File the ID card as Leaders/<Males|Females>/<Full name>.<ext>. Runs on
+  // every save, so a corrected gender or name moves the file too.
+  const { data: current } = await supabase
+    .from("leader_details")
+    .select("id_card_path")
+    .eq("profile_id", profileId)
+    .maybeSingle();
+  const filed = await fileDocument({
+    submitted: idCardPath,
+    stored: (current as { id_card_path?: string | null } | null)?.id_card_path ?? null,
+    profileId,
+    folder: leaderFolder(gender),
+    fullName,
+  }).catch((error: unknown) => {
+    console.error("[onboarding] could not file the ID card in Backblaze", error);
+    return { error: "Could not store the ID card photo. Please try again." };
+  });
+  if ("error" in filed) {
+    return {
+      fieldErrors: { id_card_path: filed.error },
+      error: "Please fix the highlighted answers.",
+    };
+  }
+
   const { error } = await supabase.from("leader_details").upsert(
     {
       profile_id: profileId,
       date_of_birth: dateOfBirth,
       personal_phone: personalPhone,
       national_id: nationalId,
-      id_card_path: idCardPath,
+      id_card_path: filed.key,
+      gender,
       id_card_uploaded_at: new Date().toISOString(),
       applicant_status: applicantStatus,
       university,
@@ -404,9 +459,12 @@ async function saveLeaderDetails(
     }
     console.error("[onboarding] could not save leader details", error);
     return {
-      error: describeSaveError(error, "leader_details", "0020_leader_committees_and_join_year.sql"),
+      error: describeSaveError(error, "leader_details", "0021_leader_gender.sql"),
     };
   }
+
+  // The row now points at the filed copy; the upload and any older copy can go.
+  await Promise.all(filed.cleanup.map(deleteObject));
 
   // Replace the committee set rather than merge it: unticking a box has to
   // mean something. Delete-then-insert is safe here because RLS scopes both
@@ -444,8 +502,8 @@ async function saveDetails(
   // Which set of answers this is comes from the member's stored role, never
   // from the submitted form.
   return usesScoutDetails(profile.role)
-    ? saveScoutDetails(profile.id, formData, markComplete)
-    : saveLeaderDetails(profile.id, formData, markComplete);
+    ? saveScoutDetails(profile.id, profile.full_name, formData, markComplete)
+    : saveLeaderDetails(profile.id, profile.full_name, formData, markComplete);
 }
 
 /** Onboarding: save and let the member through to the dashboard. */

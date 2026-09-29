@@ -113,6 +113,8 @@ export type LeaderDetails = {
   faculty: string;
   academic_year: string | null;
   leadership_years: number;
+  /** "male" | "female" — null for leaders registered before 0021. */
+  gender: string | null;
   /** Year only (migration 0020). */
   join_year: number;
   /** Work committee codes (program, media, …) — migration 0020. */
@@ -136,7 +138,7 @@ export const getLeaderDetails = cache(async (): Promise<LeaderDetails | null> =>
   const { data, error } = await supabase
     .from("leader_details")
     .select(
-      "profile_id, date_of_birth, personal_phone, national_id, id_card_path, applicant_status, university, faculty, academic_year, leadership_years, join_year, committees, leader_committees(stages(code))",
+      "profile_id, date_of_birth, personal_phone, national_id, id_card_path, applicant_status, university, faculty, academic_year, leadership_years, join_year, committees, gender, leader_committees(stages(code))",
     )
     .eq("profile_id", user.id)
     .maybeSingle();
@@ -178,6 +180,7 @@ export function leaderAnswers(
     leadership_years:
       details.leadership_years === null ? "" : String(details.leadership_years),
     join_year: details.join_year ? String(details.join_year) : "",
+    gender: details.gender ?? "",
     committees: (details.committees ?? []).join(","),
     committee_codes: details.committee_codes.join(","),
   };

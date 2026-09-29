@@ -89,6 +89,10 @@ export function DetailsForm({
           >
             {question.type === "file" ? (
               <DocumentField
+                // Remount when the saved key changes (the save action files
+                // the upload under a new name), so the hidden input never
+                // resubmits the temporary upload key.
+                key={defaultValue}
                 fieldId={fieldId}
                 name={question.id}
                 required={question.required}

@@ -1,7 +1,9 @@
 import "server-only";
 
 import {
+  CopyObjectCommand,
   DeleteObjectCommand,
+  HeadObjectCommand,
   GetObjectCommand,
   PutObjectCommand,
   S3Client,
@@ -10,7 +12,8 @@ import { getSignedUrl } from "@aws-sdk/s3-request-presigner";
 import { attachmentDisposition } from "@/lib/documents";
 
 /**
- * Backblaze B2 — where scouts' birth certificates live, permanently.
+ * Backblaze B2 — where scouts' birth certificates and leaders' ID cards live,
+ * permanently.
  *
  * B2 speaks the S3 API, so this is the standard AWS SDK pointed at a
  * Backblaze endpoint.
@@ -28,7 +31,15 @@ import { attachmentDisposition } from "@/lib/documents";
  * Rules that follow:
  *   • The bucket must stay PRIVATE. Never set it to public in the B2 console.
  *   • Never return a URL from here without checking the caller first.
- *   • Keys are always `<profile_id>/<filename>`, so ownership is checkable.
+ *   • The browser only ever uploads to `_incoming/<profile_id>/…`, a key the
+ *     server built from the session. Ownership of an upload is checked by
+ *     that prefix; ownership of a filed document by the key stored in the
+ *     member's own database row.
+ *   • Filed documents live in readable folders (lib/storage-paths.ts):
+ *       Scouts/<Stage>/<Full name>.jpg
+ *       Leaders/Males/<Full name>.jpg · Leaders/Females/<Full name>.jpg
+ *     They are moved there by the save action, which is the only code that
+ *     knows the stage or gender for certain.
  */
 
 const UPLOAD_URL_TTL = 300; // seconds — generous, phone uploads can be slow
@@ -205,4 +216,27 @@ export async function deleteObject(key: string): Promise<void> {
     // A missing object is not an error worth surfacing — the caller wanted
     // the file gone, and it is.
   }
+}
+
+/** True if an object exists at `key`. */
+export async function objectExists(key: string): Promise<boolean> {
+  try {
+    await client().send(new HeadObjectCommand({ Bucket: bucketName(), Key: key }));
+    return true;
+  } catch {
+    return false;
+  }
+}
+
+/**
+ * Copies an object to a new key (the original stays until deleteObject).
+ *
+ * CopySource must be URL-encoded per path segment — names with spaces, or
+ * in Arabic, would otherwise be misread by the S3 layer.
+ */
+export async function copyObject(from: string, to: string): Promise<void> {
+  const source = `${bucketName()}/${from.split("/").map(encodeURIComponent).join("/")}`;
+  await client().send(
+    new CopyObjectCommand({ Bucket: bucketName(), CopySource: source, Key: to }),
+  );
 }

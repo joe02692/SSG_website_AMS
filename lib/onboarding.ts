@@ -147,6 +147,12 @@ export const LEADER_COMMITTEES = [
   { value: "training", label: "Training committee" },
 ];
 
+/** Leader gender — migration 0021 accepts exactly these two values. */
+export const GENDERS = [
+  { value: "male", label: "Male" },
+  { value: "female", label: "Female" },
+];
+
 /** Years offered for "Year you joined scouting", newest first. */
 const THIS_YEAR = new Date().getFullYear();
 export const JOIN_YEARS = Array.from({ length: THIS_YEAR - 1950 + 1 }, (_, i) => {
@@ -172,6 +178,14 @@ export const LEADER_QUESTIONS: Question[] = [
     type: "date",
     required: true,
     hint: "Your age is worked out from this, so it stays correct every year.",
+  },
+  {
+    id: "gender",
+    label: "Gender",
+    type: "select",
+    required: true,
+    options: GENDERS,
+    hint: "Leaders' documents are filed by gender.",
   },
   {
     id: "personal_phone",

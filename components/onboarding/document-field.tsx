@@ -21,16 +21,17 @@ const ACCEPTED = ["image/jpeg", "image/png", "image/webp", "application/pdf"];
  * there is nothing yet to write to.
  *
  * So the two halves are split. The file goes to Backblaze the moment it is
- * chosen (the object key is `<profile_id>/…`, built server-side from the
- * session, which exists long before any details row does). The resulting key
+ * chosen (to `_incoming/<profile_id>/…`, a key built server-side from the
+ * session, which exists long before any details row does). Saving the form
+ * then files it as Scouts/<Stage>/<Name> or Leaders/<Males|Females>/<Name>. The resulting key
  * is parked in a hidden input, and the surrounding form's action writes it as
  * a column when it creates the row. One insert, no orphan row, and no window
  * where a member is registered without their document.
  *
  * A file uploaded by someone who then abandons the form is an orphan object in
- * the bucket. That is the deliberate trade: a few stray objects under a
- * profile's own prefix, versus blocking registration on an upload that cannot
- * happen yet. They are cheap, private, and overwritten on the next attempt.
+ * the bucket's `_incoming/` folder. That is the deliberate trade: a few stray
+ * objects there, versus blocking registration on an upload that cannot
+ * happen yet. They are cheap and private.
  */
 export function DocumentField({
   fieldId,
