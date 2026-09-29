@@ -298,3 +298,21 @@ export const SCOUTING_FACTS = [
   { value: "1922", label: "Egypt helps found the World Organization of the Scout Movement" },
   { value: "60M", label: "Young people and volunteers in Scouting worldwide" },
 ];
+
+/**
+ * How to reach the group — shown on the homepage ("Contact Us") and in the
+ * footer. From Zyad, 29 Sep 2026. These are the Al Rehab branch's accounts.
+ * (The old site's email and Friday hours are deliberately NOT used.)
+ */
+export const CONTACT = {
+  phoneDisplay: "+20 111 832 3108",
+  phoneHref: "tel:+201118323108",
+  instagram: {
+    handle: "@ssg_elrehab_club",
+    url: "https://www.instagram.com/ssg_elrehab_club",
+  },
+  facebook: {
+    label: "El-Salam Scouts · Al Rehab",
+    url: "https://www.facebook.com/share/1CAy5asLoZ/",
+  },
+};

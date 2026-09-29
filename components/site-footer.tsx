@@ -1,12 +1,14 @@
 import Link from "next/link";
 import { BrandLogo } from "@/components/brand-logo";
-import { FOUNDED } from "@/lib/site-content";
+import { CONTACT, FOUNDED } from "@/lib/site-content";
+import { FacebookIcon, InstagramIcon, PhoneIcon } from "@/components/landing/contact-icons";
 
 const EXPLORE = [
   { href: "/history", label: "Our History" },
   { href: "/stages", label: "Our Stages" },
   { href: "/gallery", label: "Camp Gallery" },
   { href: "/signup", label: "Join Us" },
+  { href: "/#contact", label: "Contact Us" },
 ];
 
 const MEMBERS = [
@@ -22,7 +24,7 @@ export function SiteFooter() {
     <footer className="on-dark mt-auto bg-forest text-cream">
       {/* A strip of the group's yellow, like the edge of a neckerchief. */}
       <div aria-hidden className="h-1.5 bg-sun" />
-      <div className="mx-auto grid max-w-[1200px] grid-cols-2 gap-x-6 gap-y-10 px-5 py-12 sm:px-8 md:grid-cols-[1.4fr_1fr_1fr]">
+      <div className="mx-auto grid max-w-[1200px] grid-cols-2 gap-x-6 gap-y-10 px-5 py-12 sm:px-8 md:grid-cols-[1.4fr_1fr_1fr_1fr]">
         <div className="col-span-2 md:col-span-1">
           <BrandLogo />
           <p className="mt-4 max-w-xs text-sm leading-relaxed text-cream/80">
@@ -60,6 +62,30 @@ export function SiteFooter() {
             ))}
           </ul>
         </nav>
+
+        <div className="col-span-2 md:col-span-1">
+          <h2 className="text-base text-sun">Contact</h2>
+          <ul className="mt-3 space-y-2.5 text-sm">
+            <li>
+              <a href={CONTACT.phoneHref} className={`${linkClass} inline-flex items-center gap-2`}>
+                <PhoneIcon className="size-4" />
+                <span dir="ltr">{CONTACT.phoneDisplay}</span>
+              </a>
+            </li>
+            <li>
+              <a href={CONTACT.instagram.url} target="_blank" rel="noopener noreferrer" className={`${linkClass} inline-flex items-center gap-2`}>
+                <InstagramIcon className="size-4" />
+                Instagram<span className="sr-only"> (opens in a new tab)</span>
+              </a>
+            </li>
+            <li>
+              <a href={CONTACT.facebook.url} target="_blank" rel="noopener noreferrer" className={`${linkClass} inline-flex items-center gap-2`}>
+                <FacebookIcon className="size-4" />
+                Facebook<span className="sr-only"> (opens in a new tab)</span>
+              </a>
+            </li>
+          </ul>
+        </div>
       </div>
 
       <div className="border-t border-cream/15">

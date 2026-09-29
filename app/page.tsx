@@ -5,6 +5,7 @@ import { SiteShell } from "@/components/site-shell";
 import { HeroSlider } from "@/components/landing/hero-slider";
 import { SectionHeading } from "@/components/landing/section-heading";
 import { AboutScouting, AboutUs, OurGoals } from "@/components/landing/about-sections";
+import { ContactUs } from "@/components/landing/contact-us";
 import { FOUNDED, HERO_SLIDES, STAGES, STATS } from "@/lib/site-content";
 import historyPhoto from "@/public/images/hero-2.jpg";
 import stagesPhoto from "@/public/images/activity-2.jpg";
@@ -178,6 +179,9 @@ export default function HomePage() {
           ))}
         </ul>
       </section>
+
+      {/* ------------------------------------------------------------ Contact */}
+      <ContactUs />
 
       {/* ---------------------------------------------------------------- Join */}
       <section id="join" aria-labelledby="join-heading" className="px-5 py-12">

@@ -104,6 +104,7 @@ export function HeroSlider({
                 fill
                 priority={i === 0}
                 sizes="100vw"
+                quality={90}
                 placeholder="blur"
                 style={{ objectPosition: slide.focus ?? "50% 35%" }}
                 className={`object-cover ${i === index ? "ken-burns" : ""}`}

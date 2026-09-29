@@ -87,6 +87,7 @@ export function AboutUs() {
             fill
             placeholder="blur"
             sizes="(min-width: 1024px) 520px, 100vw"
+            quality={90}
             className="object-cover object-[50%_20%]"
           />
           <span className="absolute left-3 top-3 rounded-full bg-sun px-3 py-1 text-sm font-bold text-forest shadow">

@@ -44,6 +44,13 @@ const nextConfig: NextConfig = {
     // (Cloudinary photos don't count: they use a Cloudinary loader and are
     // resized by Cloudinary, see components/gallery/photo.tsx.)
     minimumCacheTTL: 2678400,
+    // AVIF first: noticeably sharper than WebP at the same size, so the big
+    // homepage photos look better without getting heavier. Browsers without
+    // AVIF get WebP.
+    formats: ["image/avif", "image/webp"],
+    // 75 is the default everywhere; 90 is used only for the homepage's
+    // full-width photos, where compression smudging is most visible.
+    qualities: [75, 90],
     // Camp photography is served from Cloudinary so it never touches the
     // Supabase storage quota. `images.domains` was deprecated in Next 16 —
     // remotePatterns is the supported form.
