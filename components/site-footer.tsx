@@ -26,8 +26,8 @@ export function SiteFooter() {
         <div className="col-span-2 md:col-span-1">
           <BrandLogo />
           <p className="mt-4 max-w-xs text-sm leading-relaxed text-cream/80">
-            Character, service and friendship — scouting in the same
-            neighbourhood since {FOUNDED}.
+            Character, service and friendship — scouting from Tanta to Al
+            Rehab and Madinaty since {FOUNDED}.
           </p>
         </div>
 

@@ -10,7 +10,7 @@ import { cloudinaryConfigured, getAlbumPhotos, getAlbums } from "@/lib/cloudinar
 
 export const metadata: Metadata = {
   title: "Our History",
-  description: `How El-Salam Scouting Group grew from one troop in ${FOUNDED} — every milestone and every camp since, with photos.`,
+  description: `How El-Salam Scouting Group grew from Tanta in ${FOUNDED} — every milestone and every camp since, with photos.`,
 };
 
 const years = new Date().getFullYear() - FOUNDED;
@@ -77,12 +77,12 @@ export default async function HistoryPage() {
             Our History
           </h1>
           <p className="mt-2 text-[clamp(18px,2.6vw,23px)] font-bold leading-snug text-forest">
-            {yearsInWords} years in the same neighbourhood
+            {yearsInWords} years of Scouting, from Tanta outwards
           </p>
           <p className="mt-2 max-w-[640px] text-[clamp(15px,1.8vw,17px)] leading-relaxed text-[#141414]/85">
-            What began as one troop in a borrowed hall is now a whole family of
-            stages and hundreds of families. The uniform has changed; the
-            promise hasn&apos;t.
+            What began in Tanta in 1977 now reaches sports clubs, youth centres
+            and schools across Egypt. The uniform has changed; the promise
+            hasn&apos;t.
           </p>
         </section>
 

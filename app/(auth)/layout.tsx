@@ -40,7 +40,7 @@ export default function AuthLayout({ children }: { children: ReactNode }) {
             <div className="absolute inset-x-10 bottom-12 text-cream">
               <p className="font-display text-4xl font-bold text-sun">Be prepared.</p>
               <p className="mt-3 max-w-sm text-[15px] text-cream/85">
-                Four hundred scouts, leaders and families — one group, since{" "}
+                One of Egypt&apos;s oldest scout groups — scouting since{" "}
                 {FOUNDED}.
               </p>
             </div>

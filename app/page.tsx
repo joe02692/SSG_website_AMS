@@ -4,6 +4,7 @@ import type { Metadata } from "next";
 import { SiteShell } from "@/components/site-shell";
 import { HeroSlider } from "@/components/landing/hero-slider";
 import { SectionHeading } from "@/components/landing/section-heading";
+import { AboutScouting, AboutUs, OurGoals } from "@/components/landing/about-sections";
 import { FOUNDED, HERO_SLIDES, STAGES, STATS } from "@/lib/site-content";
 import historyPhoto from "@/public/images/hero-2.jpg";
 import stagesPhoto from "@/public/images/activity-2.jpg";
@@ -13,7 +14,7 @@ import logo from "@/public/images/logo.png";
 export const metadata: Metadata = {
   title: "El-Salam Scouting Group",
   description:
-    "El-Salam Scouting Group — over 400 scouts, leaders and families building character, service and friendship since 1977.",
+    "El-Salam Scout Group — one of Egypt's oldest scout groups, building character, service and friendship since 1977 in Tanta, Al Rehab and Madinaty.",
 };
 
 /* The homepage is a front door, not the whole house: a welcome, the key
@@ -28,7 +29,7 @@ const EXPLORE = [
   {
     href: "/history",
     title: "Our History",
-    body: `From one troop in ${FOUNDED} to hundreds of families — and what we still stand for.`,
+    body: `From Tanta in ${FOUNDED} to clubs and schools across Egypt — and what we still stand for.`,
     photo: historyPhoto,
     alt: "Scouts sitting in a circle on the grass during a patrol meeting",
   },
@@ -91,9 +92,9 @@ export default function HomePage() {
             Welcome
           </p>
           <p className="mt-2 text-[clamp(18px,2.4vw,23px)] leading-snug text-[#141414]">
-            El-Salam Scouting Group brings together more than 400 scouts,
-            leaders and families. We hike, camp, serve our community — and grow
-            up a little braver for it.
+            One of Egypt&apos;s oldest scout groups, from Tanta to Al Rehab and
+            Madinaty. We hike, camp, serve our community — and grow up a little
+            braver for it.
           </p>
         </div>
         <dl className="grid grid-cols-2 gap-3">
@@ -127,6 +128,11 @@ export default function HomePage() {
           Join Us
         </Link>
       </section>
+
+      {/* ------------------------------ About us · Our goals · About Scouting */}
+      <AboutUs />
+      <OurGoals />
+      <AboutScouting />
 
       {/* ------------------------------------------------------------- Explore */}
       <section

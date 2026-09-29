@@ -85,8 +85,8 @@ export const HERO_SLIDES: HeroSlide[] = [
 ];
 
 export const STATS = [
-  { value: "400+", label: "Active Members" },
-  { value: "50+", label: "Camps" },
+  { value: "4", label: "Branches" },
+  { value: "3", label: "Cities" },
   // Counted from the registration form's list, so it can't drift from it.
   { value: String(SCOUT_STAGES.length), label: "Stages" },
   { value: String(FOUNDED), label: "Founded" },
@@ -125,8 +125,10 @@ export const STAGES = SCOUT_STAGES.map((stage) => ({
 
 export type MilestoneIcon = "sprout" | "house" | "people" | "laptop";
 
-/** Group milestones on the History page's rope. ⚠️ Only 1977 and 2026 are
- *  confirmed — the others are placeholders until the group checks them. */
+/** Group milestones on the History page's rope.
+ *  1977: the group's own statement (its earlier site: "since 1977").
+ *  The 1985 and 2004 placeholders were removed on 29 Sep 2026 — no source
+ *  could confirm them. Add the Al Rehab branch here once its year is known. */
 export const MILESTONES: {
   year: number;
   title: string;
@@ -135,21 +137,9 @@ export const MILESTONES: {
 }[] = [
   {
     year: FOUNDED,
-    title: "The First Troop",
-    body: "El-Salam begins with a single troop of twenty scouts meeting in a borrowed hall, led by volunteers from the neighbourhood.",
+    title: "Founded in Tanta",
+    body: "El-Salam Scout Group is founded in Tanta — still the group's oldest home — and sets out to spread Scouting well beyond one city.",
     icon: "sprout",
-  },
-  {
-    year: 1985,
-    title: "A Permanent Home",
-    body: "The group opens its own scout house, giving every section a place to store kit and plan expeditions year-round.",
-    icon: "house",
-  },
-  {
-    year: 2004,
-    title: "Growing",
-    body: "Cubs and Rovers are added alongside the original troop, opening the group to a much wider range of ages.",
-    icon: "people",
   },
   {
     year: 2026,
@@ -218,4 +208,93 @@ export const GALLERY: Album[] = [
   { src: hero3, name: "Neckerchief Ceremony", alt: "A scout and a leader tying a neckerchief together on the lawn" },
   { src: hero2, name: "Patrol Circle", alt: "Scouts sitting in a circle on the grass during a patrol meeting" },
   ...ACTIVITIES,
+];
+
+// ---------------------------------------------------------------------------
+// About us · Our goals · About scouting
+//
+// Rewritten in English from the group's earlier site
+// (elsalam-scout-group.site123.me, Arabic). The group's own statements are
+// kept as the group made them; the facts about world and Egyptian Scouting
+// were checked against WOSM and corrected where the old site was out of date.
+// ---------------------------------------------------------------------------
+
+/** Where the group meets. From the old site's "Branches" section. */
+export const BRANCHES = [
+  { name: "Tanta Sports Club", city: "Tanta", note: "Our oldest home" },
+  { name: "Tanta Teachers Club", city: "Tanta" },
+  { name: "Al Rehab Sports Club", city: "Al Rehab" },
+  { name: "Madinaty Sports Club", city: "Madinaty" },
+];
+
+export const ABOUT_POINTS = [
+  "Gharbia's leading scout group, under the Egyptian Federation for Scouts and Girl Guides.",
+  "Present in sports clubs, youth centres and both public and private schools.",
+  "Teams that have represented Egypt at scout events at home and around the world.",
+];
+
+export type GoalIcon = "citizen" | "talent" | "globe" | "tent" | "friends" | "service";
+
+/** "Our Goals", from the old site, reworded. */
+export const GOALS: { title: string; body: string; icon: GoalIcon }[] = [
+  {
+    title: "Good citizens",
+    body: "Raise young people who can look after themselves and serve their community, out of love for their family, their town and their country.",
+    icon: "citizen",
+  },
+  {
+    title: "Talent, discovered",
+    body: "Find every member's talents, polish them, and give them a stage to shine on.",
+    icon: "talent",
+  },
+  {
+    title: "Egypt and the world",
+    body: "Help our boys and girls get to know Egypt — and the wider world around it — first-hand.",
+    icon: "globe",
+  },
+  {
+    title: "Camps and events",
+    body: "Prepare and nominate our members for local and international camps, gatherings and scout events.",
+    icon: "tent",
+  },
+  {
+    title: "Lifelong friendships",
+    body: "Build friendships between members — and between their families, too.",
+    icon: "friends",
+  },
+  {
+    title: "A habit of service",
+    body: "Make community service part of everyday life, and put it into practice.",
+    icon: "service",
+  },
+];
+
+/** The fixed points of every season, shared by all branches. */
+export const SEASON = [
+  { when: "Start of season", title: "Opening ceremony", where: "Indoor" },
+  { when: "Mid-year holiday", title: "Winter camp", where: "Away" },
+  { when: "End of the school year", title: "Summer camp", where: "Away" },
+  { when: "End of season", title: "Closing ceremony", where: "Indoor" },
+];
+
+/** Beyond the group — "according to each year's plan". */
+export const WIDER_SCOUTING = [
+  "Activities of the Egyptian Federation for Scouts and Girl Guides",
+  "Programmes of the Arab Scout Organization",
+  "Committees and projects of the World Scout Bureau",
+  "Celebrations and competitions with other scout groups",
+];
+
+/**
+ * About Scouting. Checked, and corrected from the old site:
+ *  - membership: WOSM reports a reach of 60 million young people and
+ *    volunteers (Aug 2025), not "over 100 million".
+ *  - Egypt: Scouting began here in 1914; Egypt was among the founding
+ *    members of the World Organization of the Scout Movement in 1922.
+ */
+export const SCOUTING_FACTS = [
+  { value: "1907", label: "Scouting is founded" },
+  { value: "1914", label: "Scouting comes to Egypt" },
+  { value: "1922", label: "Egypt helps found the World Organization of the Scout Movement" },
+  { value: "60M", label: "Young people and volunteers in Scouting worldwide" },
 ];

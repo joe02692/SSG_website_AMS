@@ -20,7 +20,7 @@ const fustat = Fustat({
 });
 
 const DESCRIPTION =
-  "El-Salam Scouting Group — over 400 scouts, leaders and families building character, service and friendship since 1977.";
+  "El-Salam Scout Group — one of Egypt's oldest scout groups, building character, service and friendship since 1977 in Tanta, Al Rehab and Madinaty.";
 
 export const metadata: Metadata = {
   // Makes the share image and canonical links absolute URLs.
