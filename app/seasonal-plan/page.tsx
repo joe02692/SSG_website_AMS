@@ -5,12 +5,12 @@ import { PageBanner } from "@/components/page-banner";
 import { ConstructionSticker } from "@/components/construction-sticker";
 import { requireRole } from "@/lib/dal";
 import { STAFF_ROLES } from "@/lib/roles";
+import { getT } from "@/lib/i18n/server";
 
-export const metadata: Metadata = {
-  title: "Seasonal Plan",
-  description: "The season's plan for El-Salam leaders.",
-  robots: { index: false },
-};
+export async function generateMetadata(): Promise<Metadata> {
+  const t = (await getT()).pages.seasonal;
+  return { title: t.metaTitle, description: t.metaDescription, robots: { index: false } };
+}
 
 /**
  * The season plan, for leaders and staff only (see claude/feature-backlog.md
@@ -19,27 +19,27 @@ export const metadata: Metadata = {
  */
 export default async function SeasonalPlanPage() {
   await requireRole(...STAFF_ROLES);
+  const t = (await getT()).pages.seasonal;
 
   return (
     <SiteShell>
-      <PageBanner title="Seasonal Plan" eyebrow="Leaders only">
-        Meetings, camps and activities for the season, stage by stage.
+      <PageBanner title={t.title} eyebrow={t.eyebrow}>
+        {t.intro}
       </PageBanner>
 
       <section className="mx-auto flex w-[calc(100%-40px)] max-w-[640px] flex-col items-center py-14 text-center sm:py-20">
-        <ConstructionSticker />
+        <ConstructionSticker top={t.stickerTop} bottom={t.stickerBottom} />
         <h2 className="mt-8 text-[clamp(22px,4vw,28px)] leading-tight text-maroon">
-          We&apos;re still pitching this tent
+          {t.heading}
         </h2>
         <p className="mt-2 max-w-md text-[15px] leading-relaxed text-ink-muted">
-          The seasonal plan is under construction. Grab your toolbox and check
-          back soon — no knots will be left untied.
+          {t.body}
         </p>
         <Link
           href="/dashboard"
           className="mt-6 rounded-md bg-forest px-6 py-2.5 text-sm font-bold text-cream transition hover:opacity-90"
         >
-          Back to my dashboard
+          {t.back}
         </Link>
       </section>
     </SiteShell>

@@ -3,6 +3,7 @@
 import { revalidatePath } from "next/cache";
 import { createClient } from "@/lib/supabase/server";
 import { getCurrentUser } from "@/lib/dal";
+import { getT } from "@/lib/i18n/server";
 
 export type ProfileState = {
   error?: string;
@@ -18,19 +19,20 @@ export async function updateProfileAction(
 ): Promise<ProfileState> {
   // Server Actions are reachable by direct POST, so this check is the gate —
   // not the page render that happened to precede it.
+  const t = (await getT()).account.profile;
   const user = await getCurrentUser();
-  if (!user) return { error: "You need to be signed in." };
+  if (!user) return { error: t.signInFirst };
 
   const raw = formData.get("fullName");
   const fullName = typeof raw === "string" ? raw.trim() : "";
 
   if (fullName.length < 2) {
-    return { fieldErrors: { fullName: "Please enter your full name." } };
+    return { fieldErrors: { fullName: t.enterName } };
   }
   if (fullName.length > MAX_NAME_LENGTH) {
     return {
       fieldErrors: {
-        fullName: `Keep it under ${MAX_NAME_LENGTH} characters.`,
+        fullName: t.nameTooLong(MAX_NAME_LENGTH),
       },
     };
   }
@@ -46,12 +48,12 @@ export async function updateProfileAction(
     .eq("id", user.id);
 
   if (error) {
-    return { error: "Could not save your details. Please try again." };
+    return { error: t.couldNotSave };
   }
 
   // The header greets members by name, so refresh the whole layout.
   revalidatePath("/", "layout");
-  return { notice: "Your details have been saved." };
+  return { notice: t.saved };
 }
 
 // Birth-certificate handling moved to ./document-actions.ts when storage

@@ -5,6 +5,7 @@ import Link from "next/link";
 import { requestPasswordResetAction, type AuthState } from "@/app/auth/actions";
 import { Field, inputClass } from "@/components/ui/field";
 import { SubmitButton } from "@/components/ui/submit-button";
+import { useT } from "@/lib/i18n/client";
 
 const initialState: AuthState = {};
 
@@ -14,6 +15,8 @@ export function ForgotPasswordForm() {
     initialState,
   );
   const id = useId();
+  const all = useT().auth;
+  const t = all.forgot;
 
   return (
     <form action={formAction} className="space-y-5" noValidate>
@@ -35,29 +38,30 @@ export function ForgotPasswordForm() {
         </p>
       ) : null}
 
-      <Field label="Email Address" htmlFor={`${id}-email`}>
+      <Field label={all.login.email} htmlFor={`${id}-email`}>
         <input
           id={`${id}-email`}
           name="email"
           type="email"
           autoComplete="email"
           required
-          className={inputClass}
+          dir="ltr"
+          className={`${inputClass} rtl:text-right`}
           placeholder="you@example.com"
         />
       </Field>
 
-      <SubmitButton pending={pending} pendingLabel="Sending…">
-        Email me a reset link
+      <SubmitButton pending={pending} pendingLabel={t.pending}>
+        {t.submit}
       </SubmitButton>
 
       <p className="text-center font-display text-[15px] font-medium text-brand-ink">
-        Remembered it?{" "}
+        {t.remembered}{" "}
         <Link
           href="/login"
           className="text-maroon underline underline-offset-4 hover:opacity-75"
         >
-          Sign in
+          {t.signIn}
         </Link>
       </p>
     </form>

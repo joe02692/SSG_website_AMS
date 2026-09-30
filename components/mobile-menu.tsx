@@ -2,6 +2,7 @@
 
 import { useEffect, useRef, type ReactNode } from "react";
 import { LIGHT_DISMISS, lightDismissFallback } from "@/components/ui/dialog-utils";
+import { useT } from "@/lib/i18n/client";
 
 /**
  * The slide-in menu for screens narrower than 1024px — a native modal <dialog>.
@@ -18,6 +19,7 @@ import { LIGHT_DISMISS, lightDismissFallback } from "@/components/ui/dialog-util
  */
 export function MobileMenu({ children }: { children: ReactNode }) {
   const ref = useRef<HTMLDialogElement>(null);
+  const t = useT();
 
   useEffect(() => {
     const dialog = ref.current;
@@ -28,7 +30,7 @@ export function MobileMenu({ children }: { children: ReactNode }) {
     <div className="lg:hidden">
       <button
         type="button"
-        aria-label="Open menu"
+        aria-label={t.chrome.openMenu}
         aria-haspopup="dialog"
         onClick={() => ref.current?.showModal()}
         className="grid size-10 place-items-center rounded-md bg-leaf transition hover:bg-brand-500"
@@ -43,7 +45,7 @@ export function MobileMenu({ children }: { children: ReactNode }) {
       <dialog
         ref={ref}
         {...LIGHT_DISMISS}
-        aria-label="Menu"
+        aria-label={t.chrome.menu}
         className="menu-sheet on-dark bg-forest p-0 text-cream"
         // Any link or sign-out button inside closes the sheet. In Next.js a
         // <Link> changes page without a reload, so without this the menu
@@ -56,22 +58,22 @@ export function MobileMenu({ children }: { children: ReactNode }) {
       >
         <div className="flex h-full flex-col p-6">
           <div className="flex items-center justify-between">
-            <h2 className="text-xl text-sun">Menu</h2>
+            <h2 className="text-xl text-sun">{t.chrome.menu}</h2>
             <form method="dialog">
               <button
-                aria-label="Close menu"
+                aria-label={t.chrome.closeMenu}
                 className="grid size-10 place-items-center rounded-md text-[28px] leading-none text-cream transition hover:bg-cream/10"
               >
                 ×
               </button>
             </form>
           </div>
-          <nav aria-label="Main" className="mt-8 flex flex-col gap-1">
+          <nav aria-label={t.chrome.nav.main} className="mt-8 flex flex-col gap-1">
             {children}
           </nav>
           <p className="mt-auto border-t border-cream/15 pt-5 text-sm text-cream/70">
-            <span className="block font-display">El-Salam Scouting Group</span>
-            Character, Service &amp; Friendship
+            <span className="block font-display">{t.chrome.groupName}</span>
+            {t.chrome.tagline}
           </p>
         </div>
       </dialog>

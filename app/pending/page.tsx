@@ -5,12 +5,12 @@ import { SiteShell } from "@/components/site-shell";
 import { getCurrentProfile, requireUser } from "@/lib/dal";
 import { isPendingRole } from "@/lib/roles";
 import { signOutAction } from "@/app/auth/actions";
+import { getT } from "@/lib/i18n/server";
 
-export const metadata: Metadata = {
-  title: "Request pending",
-  description: "Your leader request is waiting for approval by the group.",
-  robots: { index: false },
-};
+export async function generateMetadata(): Promise<Metadata> {
+  const t = (await getT()).account.pending;
+  return { title: t.metaTitle, description: t.metaDescription, robots: { index: false } };
+}
 
 /**
  * Where an unapproved leader lands.
@@ -24,26 +24,23 @@ export default async function PendingPage() {
   if (!profile) redirect("/login");
   if (!isPendingRole(profile.role)) redirect("/dashboard");
 
-  const steps = [
-    { title: "Request sent", body: "Your account exists and your request is on file.", state: "done" },
-    { title: "Admin review", body: "The head of the group checks who you are and picks your role.", state: "current" },
-    { title: "Welcome in", body: "This page turns into your dashboard the moment you're approved.", state: "next" },
-  ] as const;
+  const t = (await getT()).account.pending;
+  const states = ["done", "current", "next"] as const;
+  const steps = t.steps.map((step, i) => ({ ...step, state: states[i] }));
 
   return (
     <SiteShell>
       <div className="mx-auto max-w-xl px-4 py-14 sm:px-6 sm:py-20">
         <div className="rounded-3xl border-2 border-line bg-surface-raised p-7 sm:p-9">
           <p className="font-display text-base text-leaf">
-            Under review
+            {t.eyebrow}
           </p>
           <h1 className="mt-1 text-[clamp(22px,4vw,28px)] leading-tight text-maroon">
-            Your request has been sent
+            {t.title}
           </h1>
           <p className="mt-3 text-ink-muted">
-            {profile.full_name ? `Thanks, ${profile.full_name}. ` : ""}
-            We&apos;re waiting for an admin to approve your account. Until then
-            there&apos;s nothing here for you to fill in.
+            {profile.full_name ? t.thanks(profile.full_name) : null}
+            {t.waiting}
           </p>
 
           {/* Where they are in the process — the question everyone waiting
@@ -56,7 +53,7 @@ export default async function PendingPage() {
                 className="relative flex gap-4 pb-6 last:pb-0"
               >
                 {i < steps.length - 1 ? (
-                  <span aria-hidden className="absolute left-[15px] top-8 h-[calc(100%-2rem)] w-0.5 bg-line" />
+                  <span aria-hidden className="absolute start-[15px] top-8 h-[calc(100%-2rem)] w-0.5 bg-line" />
                 ) : null}
                 <span
                   aria-hidden
@@ -74,8 +71,8 @@ export default async function PendingPage() {
                   <span className="block font-display text-base text-forest">
                     {step.title}
                     {step.state === "current" ? (
-                      <span className="ml-2 align-middle text-xs font-semibold uppercase tracking-wider text-maroon">
-                        Now
+                      <span className="ms-2 align-middle text-xs font-semibold uppercase tracking-wider text-maroon">
+                        {t.now}
                       </span>
                     ) : null}
                   </span>
@@ -86,8 +83,7 @@ export default async function PendingPage() {
           </ol>
 
           <p className="mt-7 text-sm text-ink-subtle">
-            You can sign in and check back at any time. If it&apos;s urgent,
-            speak to someone in the group directly.
+            {t.checkBack}
           </p>
 
           <div className="mt-6 flex flex-wrap gap-3">
@@ -95,14 +91,14 @@ export default async function PendingPage() {
               href="/"
               className="rounded-md bg-forest px-5 py-2.5 text-sm font-bold text-cream transition hover:opacity-90"
             >
-              Back to the site
+              {t.backToSite}
             </Link>
             <form action={signOutAction}>
               <button
                 type="submit"
                 className="rounded-md border-2 border-line px-5 py-2 text-sm font-semibold text-ink-muted transition hover:border-leaf hover:text-ink"
               >
-                Sign out
+                {t.signOut}
               </button>
             </form>
           </div>

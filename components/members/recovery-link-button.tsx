@@ -5,6 +5,8 @@ import {
   createRecoveryLinkAction,
   type RecoveryLinkState,
 } from "@/app/members/actions";
+import { useT } from "@/lib/i18n/client";
+import { fill } from "@/lib/i18n/fill";
 
 const initialState: RecoveryLinkState = {};
 
@@ -32,6 +34,7 @@ export function RecoveryLinkButton({
   );
   const [armed, setArmed] = useState(false);
   const [copied, setCopied] = useState(false);
+  const t = useT().members.controls;
 
   async function copy() {
     if (!state.link) return;
@@ -48,18 +51,17 @@ export function RecoveryLinkButton({
 
   if (state.link) {
     return (
-      <div className="space-y-1.5 text-left">
+      <div className="space-y-1.5 text-start">
         <p className="text-xs text-ink-muted">
-          One-time link for{" "}
-          <span className="font-medium text-ink">{state.forName}</span>. Send it
-          to them directly — it works once, then expires.
+          {fill(t.oneTimeLink, <span className="font-medium text-ink" dir="auto">{state.forName}</span>)}
         </p>
         <textarea
           readOnly
           rows={2}
           value={state.link}
           onFocus={(event) => event.currentTarget.select()}
-          aria-label={`Recovery link for ${state.forName}`}
+          aria-label={t.recoveryLinkFor(state.forName ?? "")}
+          dir="ltr"
           className="w-full rounded-lg border border-line-strong bg-surface px-2 py-1.5
                      font-mono text-[11px] text-ink"
         />
@@ -68,7 +70,7 @@ export function RecoveryLinkButton({
           onClick={copy}
           className="text-xs font-medium text-brand-ink underline-offset-4 hover:underline"
         >
-          {copied ? "Copied" : "Copy link"}
+          {copied ? t.copied : t.copyLink}
         </button>
       </div>
     );
@@ -76,13 +78,13 @@ export function RecoveryLinkButton({
 
   if (!armed) {
     return (
-      <div className="text-right">
+      <div className="text-end">
         <button
           type="button"
           onClick={() => setArmed(true)}
           className="text-xs font-medium text-ink-muted underline-offset-4 hover:text-ink hover:underline"
         >
-          Reset password
+          {t.resetPassword}
         </button>
         {state.error ? (
           <p role="alert" className="mt-1 text-xs text-danger-ink">
@@ -97,8 +99,7 @@ export function RecoveryLinkButton({
     <form action={formAction} className="flex flex-col items-end gap-1">
       <input type="hidden" name="memberId" value={memberId} />
       <p className="text-xs text-ink-muted">
-        Make a recovery link for{" "}
-        <span className="font-medium text-ink">{name}</span>?
+        {fill(t.makeLinkQuestion, <span className="font-medium text-ink" dir="auto">{name}</span>)}
       </p>
       <div className="flex items-center gap-2">
         <button
@@ -107,14 +108,14 @@ export function RecoveryLinkButton({
           className="rounded-md bg-brand-600 px-2 py-1 text-xs font-semibold text-white
                      transition hover:bg-brand-700 disabled:opacity-70"
         >
-          {pending ? "Creating…" : "Create link"}
+          {pending ? t.creating : t.createLink}
         </button>
         <button
           type="button"
           onClick={() => setArmed(false)}
           className="text-xs font-medium text-ink-muted hover:text-ink"
         >
-          Cancel
+          {t.cancel}
         </button>
       </div>
       {state.error ? (

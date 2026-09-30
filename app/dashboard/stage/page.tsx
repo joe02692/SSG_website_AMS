@@ -3,15 +3,17 @@ import Link from "next/link";
 import { SiteShell } from "@/components/site-shell";
 import { requireRole } from "@/lib/dal";
 import { STAGE_ROLES } from "@/lib/roles";
+import { getT } from "@/lib/i18n/server";
 
-export const metadata: Metadata = {
-  title: "Stage",
-};
+export async function generateMetadata(): Promise<Metadata> {
+  return { title: (await getT()).account.stage.metaTitle };
+}
 
 export default async function StagePage() {
   // Leader-only. proxy.ts already bounced anonymous visitors; this is the
   // check that actually enforces the role.
   const profile = await requireRole(...STAGE_ROLES);
+  const t = (await getT()).account.stage;
 
   return (
     <SiteShell>
@@ -20,25 +22,23 @@ export default async function StagePage() {
           href="/dashboard"
           className="text-sm text-brand-700 underline-offset-4 hover:underline"
         >
-          ← Dashboard
+          <span aria-hidden className="inline-block rtl:-scale-x-100">←</span> {t.back}
         </Link>
 
         <h1 className="mt-3 text-2xl sm:text-[28px] font-semibold tracking-tight text-ink">
-          Stage
+          {t.title}
         </h1>
         <p className="mt-2 text-ink-muted">
-          Manage the section you lead — its members, and its season plan.
+          {t.intro}
         </p>
 
         <div className="mt-8 rounded-2xl border border-dashed border-line bg-surface p-10 text-center">
-          <p className="text-lg font-medium text-ink">Nothing here yet</p>
+          <p className="text-lg font-medium text-ink">{t.empty}</p>
           <p className="mx-auto mt-2 max-w-md text-sm text-ink-muted">
-            Once stages are set up in the database, this page will show the
-            stage you&apos;re assigned to, the scouts in it, and the season plan
-            you can edit and upload.
+            {t.emptyBody}
           </p>
           <p className="mt-4 text-xs text-ink-subtle">
-            Signed in as {profile.full_name ?? "a leader"}.
+            {t.signedInAs(profile.full_name)}
           </p>
         </div>
       </div>

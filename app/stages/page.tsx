@@ -2,27 +2,26 @@ import type { Metadata } from "next";
 import Link from "next/link";
 import { SiteShell } from "@/components/site-shell";
 import { PageBanner } from "@/components/page-banner";
-import { STAGES } from "@/lib/site-content";
+import { getLocale, getT } from "@/lib/i18n/server";
+import { localizedStages } from "@/lib/i18n/content";
 
-export const metadata: Metadata = {
-  title: "Our Stages",
-  description: "The stages of El-Salam Scouting Group, from the youngest Buds to the Rovers.",
-};
+export async function generateMetadata(): Promise<Metadata> {
+  const t = (await getT()).pages.stages;
+  return { title: t.metaTitle, description: t.metaDescription };
+}
 
-const NUMBER_WORDS = ["Zero", "One", "Two", "Three", "Four", "Five", "Six", "Seven", "Eight", "Nine", "Ten"];
-const stageCount = NUMBER_WORDS[STAGES.length] ?? String(STAGES.length);
-
-export default function StagesPage() {
+export default async function StagesPage() {
+  const t = (await getT()).pages.stages;
+  const stages = localizedStages(await getLocale());
   return (
     <SiteShell>
-      <PageBanner title={`${stageCount} Stages, One Family`} eyebrow="Our Stages">
-        From the youngest Buds to the Rovers, every age has a place. You choose
-        your stage when you register.
+      <PageBanner title={t.title(stages.length)} eyebrow={t.eyebrow}>
+        {t.intro}
       </PageBanner>
 
       <section className="mx-auto w-[calc(100%-40px)] max-w-[1100px] py-10">
         <ol className="grid grid-cols-1 gap-3 min-[420px]:grid-cols-2 md:grid-cols-4">
-          {STAGES.map((stage, i) => (
+          {stages.map((stage, i) => (
             <li
               key={stage.value}
               className="reveal flex items-center gap-3 rounded-xl border-2 border-line bg-surface-raised p-4 transition hover:-translate-y-0.5 hover:border-leaf hover:shadow-md"
@@ -34,7 +33,7 @@ export default function StagesPage() {
                 {String(i + 1).padStart(2, "0")}
               </span>
               <span className="min-w-0 font-display text-lg leading-tight text-forest">
-                {stage.en}
+                {stage.name}
               </span>
             </li>
           ))}
@@ -42,13 +41,13 @@ export default function StagesPage() {
 
         <div className="mt-10 flex flex-col items-start gap-4 rounded-2xl bg-sun px-6 py-6 text-forest sm:flex-row sm:items-center sm:justify-between">
           <p className="text-base font-medium">
-            Know your stage? Registration takes about a minute.
+            {t.knowStage}
           </p>
           <Link
             href="/signup"
             className="shrink-0 rounded-md bg-forest px-5 py-2.5 text-sm font-bold text-cream transition hover:opacity-90"
           >
-            Start registration →
+            {t.startRegistration} <span aria-hidden className="inline-block rtl:-scale-x-100">→</span>
           </Link>
         </div>
       </section>

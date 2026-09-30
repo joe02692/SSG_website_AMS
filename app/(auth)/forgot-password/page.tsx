@@ -1,18 +1,19 @@
 import type { Metadata } from "next";
 import { AuthIntro } from "@/components/auth/auth-intro";
 import { ForgotPasswordForm } from "@/components/auth/forgot-password-form";
+import { getT } from "@/lib/i18n/server";
 
-export const metadata: Metadata = {
-  title: "Reset your password",
-  description: "Get a link to set a new password for your El-Salam Scouting Group account.",
-  robots: { index: false },
-};
+export async function generateMetadata(): Promise<Metadata> {
+  const t = (await getT()).auth.forgot;
+  return { title: t.metaTitle, description: t.metaDescription, robots: { index: false } };
+}
 
-export default function ForgotPasswordPage() {
+export default async function ForgotPasswordPage() {
+  const t = (await getT()).auth.forgot;
   return (
     <>
-      <AuthIntro title="Forgot your password?">
-          Enter your email and we&apos;ll send you a link to set a new one.
+      <AuthIntro title={t.title}>
+        {t.intro}
       </AuthIntro>
 
       <ForgotPasswordForm />

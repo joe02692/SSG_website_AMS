@@ -4,7 +4,8 @@ import { revalidatePath } from "next/cache";
 import { createClient } from "@/lib/supabase/server";
 import { createAdminSupabase } from "@/lib/supabase/admin";
 import { getCurrentProfile } from "@/lib/dal";
-import { ROLE_LABELS } from "@/lib/roles";
+import { getLocale, getT } from "@/lib/i18n/server";
+import { localizeState } from "@/lib/i18n/onboarding";
 import {
   isAssignableRole,
   isHeadSiteAdminRole,
@@ -80,7 +81,7 @@ async function requireHeadAdmin() {
  * want "remove their access but keep the person on the roster", that's a
  * different action: set role to 'scout' instead of calling this.
  */
-export async function deleteMemberAction(
+async function deleteMember(
   _prevState: DeleteState,
   formData: FormData,
 ): Promise<DeleteState> {
@@ -167,7 +168,7 @@ export type RecoveryLinkState = {
  * account, so it sits with the same person who can delete accounts and mint
  * invite codes — not with every site admin.
  */
-export async function createRecoveryLinkAction(
+async function createRecoveryLink(
   _prevState: RecoveryLinkState,
   formData: FormData,
 ): Promise<RecoveryLinkState> {
@@ -255,7 +256,7 @@ export async function createRecoveryLinkAction(
   // the admin who asked, and then it is gone from the server's side.
   return {
     link: link.toString(),
-    forName: target.full_name ?? "this member",
+    forName: target.full_name ?? (await getT()).members.page.thisMember,
   };
 }
 
@@ -278,7 +279,7 @@ export type ReviewState = { error?: string; notice?: string };
  * exactly one head admin, set by hand in SQL, and no approval — however
  * malformed the request — can mint a second.
  */
-export async function approveRequestAction(
+async function approveRequest(
   _prevState: ReviewState,
   formData: FormData,
 ): Promise<ReviewState> {
@@ -337,7 +338,7 @@ export async function approveRequestAction(
 
   revalidatePath("/members");
   return {
-    notice: `${target.full_name ?? "That member"} is now a ${ROLE_LABELS[role]}.`,
+    notice: (await getT()).members.results.nowRole(target.full_name, (await getT()).roles.labels[role]),
   };
 }
 
@@ -349,7 +350,7 @@ export async function approveRequestAction(
  * next minute, and there is no trace that they were already refused. The UI
  * therefore asks twice, because this cannot be undone.
  */
-export async function rejectRequestAction(
+async function rejectRequest(
   _prevState: ReviewState,
   formData: FormData,
 ): Promise<ReviewState> {
@@ -393,7 +394,7 @@ export async function rejectRequestAction(
   }
 
   revalidatePath("/members");
-  return { notice: `${target.full_name ?? "That request"} was rejected and removed.` };
+  return { notice: (await getT()).members.results.rejected(target.full_name) };
 }
 
 /**
@@ -404,7 +405,7 @@ export async function rejectRequestAction(
  * yourself leaves the group with no head admin and no way back except SQL; and
  * no other head admin can be touched from here.
  */
-export async function changeRoleAction(
+async function changeRole(
   _prevState: ReviewState,
   formData: FormData,
 ): Promise<ReviewState> {
@@ -432,7 +433,7 @@ export async function changeRoleAction(
     return { error: "Head site admin accounts can't be changed from here." };
   }
   if (target.role === role) {
-    return { notice: `${target.full_name ?? "They"} is already a ${ROLE_LABELS[role]}.` };
+    return { notice: (await getT()).members.results.alreadyRole(target.full_name, (await getT()).roles.labels[role]) };
   }
 
   let adminClient;
@@ -457,6 +458,31 @@ export async function changeRoleAction(
 
   revalidatePath("/members");
   return {
-    notice: `${target.full_name ?? "That member"} is now a ${ROLE_LABELS[role]}.`,
+    notice: (await getT()).members.results.nowRole(target.full_name, (await getT()).roles.labels[role]),
   };
+}
+
+/** deleteMember, with its messages in the reader's language. */
+export async function deleteMemberAction(_prev: DeleteState, formData: FormData): Promise<DeleteState> {
+  return localizeState(await deleteMember(_prev, formData), await getLocale());
+}
+
+/** createRecoveryLink, with its messages in the reader's language. */
+export async function createRecoveryLinkAction(_prev: RecoveryLinkState, formData: FormData): Promise<RecoveryLinkState> {
+  return localizeState(await createRecoveryLink(_prev, formData), await getLocale());
+}
+
+/** approveRequest, with its messages in the reader's language. */
+export async function approveRequestAction(_prev: ReviewState, formData: FormData): Promise<ReviewState> {
+  return localizeState(await approveRequest(_prev, formData), await getLocale());
+}
+
+/** rejectRequest, with its messages in the reader's language. */
+export async function rejectRequestAction(_prev: ReviewState, formData: FormData): Promise<ReviewState> {
+  return localizeState(await rejectRequest(_prev, formData), await getLocale());
+}
+
+/** changeRole, with its messages in the reader's language. */
+export async function changeRoleAction(_prev: ReviewState, formData: FormData): Promise<ReviewState> {
+  return localizeState(await changeRole(_prev, formData), await getLocale());
 }

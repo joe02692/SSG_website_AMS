@@ -1,20 +1,12 @@
 import type { Metadata } from "next";
 import { AuthIntro } from "@/components/auth/auth-intro";
 import { LoginForm } from "@/components/auth/login-form";
+import { getT } from "@/lib/i18n/server";
 
-export const metadata: Metadata = {
-  title: "Sign in",
-  description: "Sign in to the El-Salam Scouting Group members area.",
-};
-
-const ERROR_MESSAGES: Record<string, string> = {
-  invalid_confirmation_link:
-    "That confirmation link was incomplete. Please request a new one.",
-  confirmation_failed:
-    "That confirmation link has expired or has already been used.",
-  confirmed_sign_in:
-    "Your email is confirmed! We couldn't sign you in automatically on this device, so please sign in below.",
-};
+export async function generateMetadata(): Promise<Metadata> {
+  const t = (await getT()).auth.login;
+  return { title: t.metaTitle, description: t.metaDescription };
+}
 
 export default async function LoginPage({
   searchParams,
@@ -23,12 +15,18 @@ export default async function LoginPage({
   searchParams: Promise<{ redirectTo?: string; error?: string }>;
 }) {
   const { redirectTo, error } = await searchParams;
-  const notice = error ? ERROR_MESSAGES[error] : undefined;
+  const t = (await getT()).auth.login;
+  const messages: Record<string, string> = {
+    invalid_confirmation_link: t.invalidLink,
+    confirmation_failed: t.linkFailed,
+    confirmed_sign_in: t.confirmedSignIn,
+  };
+  const notice = error ? messages[error] : undefined;
 
   return (
     <>
-      <AuthIntro title="Welcome Back">
-        Sign in to reach your section, records and camp bookings.
+      <AuthIntro title={t.title}>
+        {t.intro}
       </AuthIntro>
 
       {notice ? (

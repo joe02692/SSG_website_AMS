@@ -1,6 +1,9 @@
+"use client";
+
 import Image from "next/image";
 import Link from "next/link";
 import logo from "@/public/images/logo.png";
+import { useT } from "@/lib/i18n/client";
 
 /**
  * The group's emblem with its name — used in the header,
@@ -11,6 +14,7 @@ import logo from "@/public/images/logo.png";
  * "El-Salam Scouts" is noise. The link's accessible name comes from the text.
  */
 export function BrandLogo({ className = "" }: { className?: string }) {
+  const t = useT();
   return (
     <Link
       href="/"
@@ -25,10 +29,10 @@ export function BrandLogo({ className = "" }: { className?: string }) {
       />
       <span className="flex flex-col leading-tight">
         <span className="font-display text-[0.95rem] font-bold min-[380px]:text-base sm:text-lg">
-          El-Salam
+          {t.chrome.brandTop}
         </span>
         <span className="text-[0.65rem] font-semibold opacity-90 min-[380px]:text-[0.7rem] sm:text-[0.8rem]">
-          Scouting Group
+          {t.chrome.brandBottom}
         </span>
       </span>
     </Link>

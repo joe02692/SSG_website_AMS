@@ -2,7 +2,8 @@
 
 import { useActionState, useState } from "react";
 import { changeRoleAction, type ReviewState } from "@/app/members/actions";
-import { ASSIGNABLE_ROLES, ROLE_LABELS, type Role } from "@/lib/roles";
+import { ASSIGNABLE_ROLES, type Role } from "@/lib/roles";
+import { useT } from "@/lib/i18n/client";
 
 const initialState: ReviewState = {};
 
@@ -27,16 +28,18 @@ export function ChangeRole({
     initialState,
   );
   const [open, setOpen] = useState(false);
+  const all = useT();
+  const t = all.members.controls;
 
   if (!open) {
     return (
-      <div className="text-right">
+      <div className="text-end">
         <button
           type="button"
           onClick={() => setOpen(true)}
           className="text-xs font-medium text-ink-muted underline-offset-4 hover:text-ink hover:underline"
         >
-          Change role
+          {t.changeRole}
         </button>
         {state.notice ? (
           <p role="status" className="mt-1 text-xs text-success-ink">
@@ -62,12 +65,12 @@ export function ChangeRole({
             ? current
             : "stage_leader"
         }
-        aria-label={`New role for ${name}`}
+        aria-label={t.newRoleFor(name)}
         className="rounded-lg border border-line-strong bg-surface-raised px-2 py-1 text-xs text-ink"
       >
         {ASSIGNABLE_ROLES.map((role) => (
           <option key={role} value={role}>
-            {ROLE_LABELS[role]}
+            {all.roles.labels[role]}
           </option>
         ))}
       </select>
@@ -76,17 +79,17 @@ export function ChangeRole({
         disabled={pending}
         className="rounded-md bg-brand-600 px-2.5 py-1 text-xs font-semibold text-white transition hover:bg-brand-700 disabled:opacity-70"
       >
-        {pending ? "Saving…" : "Save"}
+        {pending ? t.saving : t.save}
       </button>
       <button
         type="button"
         onClick={() => setOpen(false)}
         className="text-xs font-medium text-ink-muted hover:text-ink"
       >
-        Cancel
+        {t.cancel}
       </button>
       {state.error ? (
-        <p role="alert" className="w-full text-right text-xs text-danger-ink">
+        <p role="alert" className="w-full text-end text-xs text-danger-ink">
           {state.error}
         </p>
       ) : null}

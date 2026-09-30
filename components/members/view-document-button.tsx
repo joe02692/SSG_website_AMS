@@ -9,6 +9,7 @@ import {
   DocumentPreview,
   previewKind,
 } from "@/components/ui/document-preview";
+import { useT } from "@/lib/i18n/client";
 
 const initialState: DocumentLinkState = {};
 
@@ -43,6 +44,7 @@ export function ViewDocumentButton({
   // Each click mints a new URL, so viewing the same file twice works.
   const [dismissed, setDismissed] = useState<string | null>(null);
   const navigated = useRef<string | null>(null);
+  const t = useT().members.controls;
 
   useEffect(() => {
     if (state.mode !== "download" || !state.url) return;
@@ -74,7 +76,7 @@ export function ViewDocumentButton({
           disabled={pending}
           className="text-xs font-medium text-brand-ink underline-offset-4 hover:underline disabled:opacity-60"
         >
-          {pending ? "…" : "View"}
+          {pending ? "…" : t.view}
         </button>
         <span aria-hidden className="text-ink-subtle">
           ·
@@ -86,7 +88,7 @@ export function ViewDocumentButton({
           disabled={pending}
           className="text-xs font-medium text-brand-ink underline-offset-4 hover:underline disabled:opacity-60"
         >
-          Download
+          {t.download}
         </button>
         {state.error ? (
           <span role="alert" className="text-xs text-danger-ink">

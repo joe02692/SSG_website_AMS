@@ -12,13 +12,17 @@ import {
 import { DetailsForm } from "@/components/onboarding/details-form";
 import { completeOnboardingAction } from "@/app/onboarding/actions";
 import { questionsForRole, usesScoutDetails } from "@/lib/onboarding";
+import { getLocale, getT } from "@/lib/i18n/server";
+import { localizeQuestions } from "@/lib/i18n/onboarding";
 
-export const metadata: Metadata = {
-  title: "Your details",
-};
+export async function generateMetadata(): Promise<Metadata> {
+  return { title: (await getT()).account.onboarding.metaTitle };
+}
 
 export default async function OnboardingPage() {
   await requireUser();
+  const t = (await getT()).account.onboarding;
+  const locale = await getLocale();
 
   // Fired together rather than in sequence. getScoutDetails() needs only the
   // user id, so it does not depend on the profile; awaiting the profile first
@@ -53,21 +57,20 @@ export default async function OnboardingPage() {
         <div className="w-full max-w-lg rounded-2xl border-2 border-line bg-surface-raised p-6 sm:p-8">
           <div className="mb-6 space-y-1.5">
             <p className="text-xs font-semibold uppercase tracking-wider text-brand-ink">
-              One last step
+              {t.eyebrow}
             </p>
-            <h1 className="text-2xl sm:text-[28px] text-maroon">Your details</h1>
+            <h1 className="text-2xl sm:text-[28px] text-maroon">{t.title}</h1>
             <p className="text-sm text-ink-muted">
-              A few questions so leaders have what they need. You can change any
-              of these later from your dashboard.
+              {t.intro}
             </p>
           </div>
 
           <DetailsForm
             action={completeOnboardingAction}
-            questions={questionsForRole(profile?.role)}
+            questions={localizeQuestions(questionsForRole(profile?.role), locale)}
             answers={answers}
-            submitLabel="Finish signing up"
-            pendingLabel="Saving…"
+            submitLabel={t.finish}
+            pendingLabel={t.saving}
           />
         </div>
       </main>

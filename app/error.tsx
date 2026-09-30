@@ -3,6 +3,7 @@
 import { useEffect } from "react";
 import Link from "next/link";
 import { BrandLogo } from "@/components/brand-logo";
+import { useT } from "@/lib/i18n/client";
 
 /**
  * Shown when a page fails to load — usually Supabase or Cloudinary being
@@ -18,6 +19,7 @@ export default function ErrorPage({
   error: Error & { digest?: string };
   retry: () => void;
 }) {
+  const t = useT().pages.error;
   useEffect(() => {
     // Shows up in the Vercel function logs next to the server-side error.
     console.error(error);
@@ -36,11 +38,10 @@ export default function ErrorPage({
           ⛺
         </span>
         <h1 className="mt-5 text-[clamp(24px,4.5vw,32px)] leading-tight text-maroon">
-          Something went wrong
+          {t.heading}
         </h1>
         <p className="mt-3 text-[15px] leading-relaxed text-ink-muted">
-          This page couldn&apos;t load just now. It&apos;s usually a short hiccup —
-          please try again in a moment.
+          {t.body}
         </p>
         <div className="mt-6 flex flex-wrap justify-center gap-3">
           <button
@@ -48,18 +49,18 @@ export default function ErrorPage({
             onClick={() => retry()}
             className="rounded-md bg-forest px-6 py-2.5 text-sm font-bold text-cream transition hover:opacity-90"
           >
-            Try again
+            {t.tryAgain}
           </button>
           <Link
             href="/"
             className="rounded-md border-2 border-forest px-6 py-2 text-sm font-bold text-forest transition hover:bg-forest/5"
           >
-            Homepage
+            {t.homepage}
           </Link>
         </div>
         {error.digest ? (
           <p className="mt-8 text-xs text-ink-muted">
-            If it keeps happening, send this code to the site admin:{" "}
+            {t.code}{" "}
             <code className="rounded bg-surface px-1.5 py-0.5 font-mono">{error.digest}</code>
           </p>
         ) : null}

@@ -6,6 +6,7 @@ import { MAX_ANSWER_LENGTH, type Question } from "@/lib/onboarding";
 import { Field, inputClass } from "@/components/ui/field";
 import { SubmitButton } from "@/components/ui/submit-button";
 import { DocumentField } from "@/components/onboarding/document-field";
+import { useT } from "@/lib/i18n/client";
 
 const initialState: DetailsState = {};
 
@@ -30,6 +31,7 @@ export function DetailsForm({
 }) {
   const [state, formAction, pending] = useActionState(action, initialState);
   const id = useId();
+  const chooseOne = useT().account.onboarding.chooseOne;
 
   // Only the answers that other questions branch on are tracked. Everything
   // else stays uncontrolled, so typing in a text box does not re-render the
@@ -140,7 +142,7 @@ export function DetailsForm({
                 className={inputClass}
               >
                 <option value="">
-                  {question.placeholder ?? "Choose one…"}
+                  {question.placeholder ?? chooseOne}
                 </option>
                 {(question.options ?? []).map((option) => (
                   <option key={option.value} value={option.value}>
@@ -157,6 +159,7 @@ export function DetailsForm({
                 required={question.required}
                 defaultValue={defaultValue}
                 placeholder={question.placeholder}
+                dir="auto"
                 className={inputClass}
               />
             ) : (
@@ -164,6 +167,15 @@ export function DetailsForm({
                 id={fieldId}
                 name={question.id}
                 type={question.type ?? "text"}
+                // Phone numbers and IDs are digits read left to right in
+                // Arabic too; everything else follows what is typed.
+                dir={
+                  question.type === "tel" || question.id === "national_id"
+                    ? "ltr"
+                    : question.type === "date" || question.type === "number"
+                      ? undefined
+                      : "auto"
+                }
                 // maxLength is meaningless on date and number inputs, and on
                 // date it breaks the native picker in some browsers.
                 maxLength={
@@ -185,7 +197,9 @@ export function DetailsForm({
                         }))
                     : undefined
                 }
-                className={inputClass}
+                className={`${inputClass} ${
+                  question.type === "tel" || question.id === "national_id" ? "rtl:text-right" : ""
+                }`}
               />
             )}
           </Field>

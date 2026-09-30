@@ -1,15 +1,18 @@
 "use client";
 
+import { useT } from "@/lib/i18n/client";
+
 /** The design's primary action: full-width forest bar, cream Fustat label. */
 export function SubmitButton({
   pending,
   children,
-  pendingLabel = "Working…",
+  pendingLabel,
 }: {
   pending: boolean;
   children: React.ReactNode;
   pendingLabel?: string;
 }) {
+  const t = useT();
   return (
     <button
       type="submit"
@@ -18,7 +21,7 @@ export function SubmitButton({
                  font-display text-lg text-cream transition hover:opacity-90
                  disabled:cursor-not-allowed disabled:opacity-70 sm:text-xl"
     >
-      {pending ? pendingLabel : children}
+      {pending ? (pendingLabel ?? t.chrome.working) : children}
     </button>
   );
 }

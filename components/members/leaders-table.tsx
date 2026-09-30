@@ -1,4 +1,7 @@
-import { LEADER_COMMITTEES, ageFromDateOfBirth } from "@/lib/onboarding";
+import { ageFromDateOfBirth } from "@/lib/onboarding";
+import { getLocale, getT } from "@/lib/i18n/server";
+import { intlLocale } from "@/lib/i18n/config";
+import { optionLabel } from "@/lib/i18n/onboarding";
 import { ViewDocumentButton } from "@/components/members/view-document-button";
 
 export type LeaderRow = {
@@ -19,17 +22,8 @@ export type LeaderRow = {
   leader_committees: { stages: { name_en: string } | null }[] | null;
 };
 
-const STATUS_LABELS: Record<string, string> = {
-  university_student: "Student",
-  graduate: "Graduate",
-};
-
-const COMMITTEE_LABELS: Record<string, string> = Object.fromEntries(
-  LEADER_COMMITTEES.map((c) => [c.value, c.label.replace(/ committee$/, "")]),
-);
-
-function formatDate(value: string): string {
-  return new Date(value).toLocaleDateString("en-GB", {
+function formatDate(value: string, locale: string): string {
+  return new Date(value).toLocaleDateString(locale, {
     day: "numeric",
     month: "short",
     year: "numeric",
@@ -43,65 +37,75 @@ function formatDate(value: string): string {
  * at, which a page behind requireSiteAdmin() cannot be. It also stops the
  * registrations page growing into four hundred lines of two tables.
  */
-export function LeadersTable({ rows }: { rows: LeaderRow[] }) {
+export async function LeadersTable({ rows }: { rows: LeaderRow[] }) {
+  const all = await getT();
+  const t = all.members.leaders;
+  const s = all.members.scouts;
+  const locale = await getLocale();
+  const dateLocale = intlLocale(locale);
+  const STATUS_LABELS: Record<string, string> = {
+    university_student: t.student,
+    graduate: t.graduate,
+  };
   return (
-          <div className="mt-6 overflow-x-auto rounded-xl border border-line">
-            <table className="w-full min-w-250 text-left text-sm">
+          <div className="mt-6 relative overflow-x-auto rounded-xl border border-line">
+            <table className="w-full min-w-250 text-start text-sm">
               <thead className="border-b border-line bg-surface text-xs uppercase tracking-wider text-ink-subtle">
                 <tr>
                   <th scope="col" className="px-4 py-3 font-medium">
-                    Name
+                    {s.name}
                   </th>
                   <th scope="col" className="px-4 py-3 font-medium">
-                    Stages
+                    {t.stages}
                   </th>
                   <th scope="col" className="px-4 py-3 font-medium">
-                    Committees
+                    {t.committees}
                   </th>
                   <th scope="col" className="px-4 py-3 font-medium">
-                    Age
+                    {s.age}
                   </th>
                   <th scope="col" className="px-4 py-3 font-medium">
-                    Born
+                    {s.born}
                   </th>
                   <th scope="col" className="px-4 py-3 font-medium">
-                    Phone
+                    {s.phone}
                   </th>
                   <th scope="col" className="px-4 py-3 font-medium">
-                    National ID
+                    {s.nationalId}
                   </th>
                   <th scope="col" className="px-4 py-3 font-medium">
-                    Study
+                    {t.study}
                   </th>
                   <th scope="col" className="px-4 py-3 font-medium">
-                    Leading
+                    {t.leading}
                   </th>
                   <th scope="col" className="px-4 py-3 font-medium">
-                    Joined in
+                    {t.joinedIn}
                   </th>
                   <th scope="col" className="px-4 py-3 font-medium">
-                    ID card
+                    {t.idCard}
                   </th>
                 </tr>
               </thead>
               <tbody className="divide-y divide-line bg-surface-raised">
                 {rows.map((leader) => {
                   const workCommittees = (leader.committees ?? []).map(
-                    (code) => COMMITTEE_LABELS[code] ?? code,
+                    (code) => t.committeeNames[code] ?? code,
                   );
                   const committees = (leader.leader_committees ?? [])
                     .map((link) => link.stages?.name_en)
-                    .filter(Boolean);
+                    .filter((name): name is string => Boolean(name))
+                    .map((name) => optionLabel(locale, name));
 
                   return (
                     <tr key={leader.profile_id}>
                       <td className="px-4 py-3">
-                        <span className="font-medium text-ink">
+                        <bdi className="font-medium text-ink">
                           {leader.profiles?.full_name ?? "—"}
-                        </span>
+                        </bdi>
                         <span className="block max-w-60 truncate text-xs text-ink-subtle">
-                          {leader.gender === "male" ? "Male · " : leader.gender === "female" ? "Female · " : ""}
-                          {leader.faculty}
+                          {leader.gender === "male" ? `${t.male} · ` : leader.gender === "female" ? `${t.female} · ` : ""}
+                          <bdi>{leader.faculty}</bdi>
                         </span>
                       </td>
                       <td className="px-4 py-3 text-ink-muted">
@@ -142,13 +146,13 @@ export function LeadersTable({ rows }: { rows: LeaderRow[] }) {
                         {ageFromDateOfBirth(leader.date_of_birth) ?? "—"}
                       </td>
                       <td className="whitespace-nowrap px-4 py-3 text-ink-muted">
-                        {formatDate(leader.date_of_birth)}
+                        {formatDate(leader.date_of_birth, dateLocale)}
                       </td>
-                      <td className="whitespace-nowrap px-4 py-3 font-mono text-xs text-ink-muted">
-                        {leader.personal_phone}
+                      <td className="whitespace-nowrap px-4 py-3 font-mono text-xs text-ink-muted" dir="ltr">
+                        <span className="block rtl:text-right">{leader.personal_phone}</span>
                       </td>
-                      <td className="whitespace-nowrap px-4 py-3 font-mono text-xs text-ink-muted">
-                        {leader.national_id}
+                      <td className="whitespace-nowrap px-4 py-3 font-mono text-xs text-ink-muted" dir="ltr">
+                        <span className="block rtl:text-right">{leader.national_id}</span>
                       </td>
                       <td className="px-4 py-3 text-ink-muted">
                         <span className="block text-xs">
@@ -157,13 +161,13 @@ export function LeadersTable({ rows }: { rows: LeaderRow[] }) {
                           {leader.academic_year ? ` · ${leader.academic_year}` : ""}
                         </span>
                         <span className="block max-w-48 truncate text-xs text-ink-subtle">
-                          {leader.university}
+                          <bdi>{leader.university}</bdi>
                         </span>
                       </td>
                       <td className="whitespace-nowrap px-4 py-3 text-ink-muted">
                         {leader.leadership_years}{" "}
                         <span className="text-xs text-ink-subtle">
-                          {leader.leadership_years === 1 ? "year" : "years"}
+                          {t.years(leader.leadership_years)}
                         </span>
                       </td>
                       <td className="whitespace-nowrap px-4 py-3 text-ink-muted">
@@ -177,7 +181,7 @@ export function LeadersTable({ rows }: { rows: LeaderRow[] }) {
                             label="id-card"
                           />
                         ) : (
-                          <span className="text-xs text-ink-subtle">Missing</span>
+                          <span className="text-xs text-ink-subtle">{s.missing}</span>
                         )}
                       </td>
                     </tr>

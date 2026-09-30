@@ -6,6 +6,8 @@ import { revalidatePath } from "next/cache";
 import { createClient } from "@/lib/supabase/server";
 import { getCurrentProfile } from "@/lib/dal";
 import { ROLE_LABELS } from "@/lib/roles";
+import { getLocale } from "@/lib/i18n/server";
+import { localizeState } from "@/lib/i18n/onboarding";
 import { notifyRegistrationComplete } from "@/lib/email";
 import { deleteObject } from "@/lib/b2";
 import { fileDocument, leaderFolder, scoutFolder } from "@/lib/storage-paths";
@@ -512,7 +514,7 @@ export async function completeOnboardingAction(
   formData: FormData,
 ): Promise<DetailsState> {
   const result = await saveDetails(formData, true);
-  if (result.error) return result;
+  if (result.error) return localizeState(result, await getLocale());
 
   // Tell the admins, but not on the member's time.
   //
@@ -541,5 +543,5 @@ export async function updateDetailsAction(
   _prevState: DetailsState,
   formData: FormData,
 ): Promise<DetailsState> {
-  return saveDetails(formData, false);
+  return localizeState(await saveDetails(formData, false), await getLocale());
 }

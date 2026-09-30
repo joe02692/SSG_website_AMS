@@ -7,6 +7,7 @@ import {
 } from "@/app/dashboard/profile/actions";
 import { Field, inputClass } from "@/components/ui/field";
 import { SubmitButton } from "@/components/ui/submit-button";
+import { useT } from "@/lib/i18n/client";
 
 const initialState: ProfileState = {};
 
@@ -16,6 +17,7 @@ export function ProfileForm({ fullName }: { fullName: string }) {
     initialState,
   );
   const id = useId();
+  const t = useT().account.profile;
 
   return (
     <form action={formAction} className="space-y-5" noValidate>
@@ -38,9 +40,9 @@ export function ProfileForm({ fullName }: { fullName: string }) {
       ) : null}
 
       <Field
-        label="Full name"
+        label={t.fullName}
         htmlFor={`${id}-name`}
-        hint="This is how you appear to leaders in the members list."
+        hint={t.fullNameHint}
         error={state.fieldErrors?.fullName}
       >
         <input
@@ -51,12 +53,13 @@ export function ProfileForm({ fullName }: { fullName: string }) {
           required
           maxLength={120}
           defaultValue={fullName}
+          dir="auto"
           className={inputClass}
         />
       </Field>
 
-      <SubmitButton pending={pending} pendingLabel="Saving…">
-        Save changes
+      <SubmitButton pending={pending} pendingLabel={t.saving}>
+        {t.saveChanges}
       </SubmitButton>
     </form>
   );

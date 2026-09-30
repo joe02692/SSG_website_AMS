@@ -2,16 +2,13 @@ import type { Metadata } from "next";
 import Link from "next/link";
 import { SiteShell } from "@/components/site-shell";
 import { requireUser, getCurrentProfile } from "@/lib/dal";
-import {
-  ROLE_DESCRIPTIONS,
-  ROLE_LABELS,
-  isSiteAdminRole,
-  isStageRole,
-} from "@/lib/roles";
+import { isSiteAdminRole, isStageRole } from "@/lib/roles";
+import { getLocale, getT } from "@/lib/i18n/server";
+import { intlLocale } from "@/lib/i18n/config";
 
-export const metadata: Metadata = {
-  title: "Dashboard",
-};
+export async function generateMetadata(): Promise<Metadata> {
+  return { title: (await getT()).account.dashboard.metaTitle };
+}
 
 export default async function DashboardPage({
   searchParams,
@@ -24,26 +21,29 @@ export default async function DashboardPage({
   const user = await requireUser();
   const profile = await getCurrentProfile();
   const { denied, pw } = await searchParams;
+  const all = await getT();
+  const t = all.account.dashboard;
+  const locale = await getLocale();
 
   const firstName = profile?.full_name?.trim().split(/\s+/)[0];
 
   const actions = [
     {
       href: "/dashboard/profile",
-      title: "Your details",
-      body: "Update your answers, contact numbers and documents.",
+      title: t.detailsTitle,
+      body: t.detailsBody,
       show: true,
     },
     {
       href: "/dashboard/stage",
-      title: "Your stage",
-      body: "The members and plans for the stage you run.",
+      title: t.stageTitle,
+      body: t.stageBody,
       show: isStageRole(profile?.role),
     },
     {
       href: "/members",
-      title: "Manage members",
-      body: "Every account, leader requests, roles and registrations.",
+      title: t.membersTitle,
+      body: t.membersBody,
       show: isSiteAdminRole(profile?.role),
     },
   ].filter((a) => a.show);
@@ -56,18 +56,17 @@ export default async function DashboardPage({
         <div aria-hidden className="absolute inset-x-0 bottom-0 h-1.5 bg-sun" />
         <div className="mx-auto max-w-6xl px-5 py-10 sm:px-8 sm:py-12">
           <p className="font-display text-base text-sun">
-            Welcome back
+            {t.welcomeBack}
           </p>
           <h1 className="mt-1 text-[clamp(24px,4vw,34px)] leading-tight text-white">
-            {firstName ? `Hello, ${firstName}` : "Hello"}
+            {t.hello(firstName)}
           </h1>
           <p className="mt-2 max-w-xl text-cream/85">
-            Your account is set up. Section records and camp bookings land here
-            in the coming weeks.
+            {t.intro}
           </p>
           {profile ? (
             <p className="mt-4 inline-flex items-center gap-2 rounded-full bg-sun px-3 py-1 text-sm font-semibold text-forest">
-              {ROLE_LABELS[profile.role]}
+              {all.roles.labels[profile.role]}
             </p>
           ) : null}
         </div>
@@ -79,7 +78,7 @@ export default async function DashboardPage({
             role="status"
             className="mb-6 rounded-lg border border-success-line bg-success-surface px-3 py-2.5 text-sm text-success-ink"
           >
-            Your password has been updated.
+            {t.passwordUpdated}
           </p>
         ) : null}
 
@@ -88,11 +87,11 @@ export default async function DashboardPage({
             role="alert"
             className="mb-6 rounded-lg border border-warning-line bg-warning-surface px-3 py-2.5 text-sm text-warning-ink"
           >
-            You don&apos;t have access to that area.
+            {t.denied}
           </p>
         ) : null}
 
-        <h2 className="text-xl text-maroon">Where to next</h2>
+        <h2 className="text-xl text-maroon">{t.whereNext}</h2>
         <ul className="mt-4 grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
           {actions.map((a) => (
             <li key={a.href}>
@@ -104,9 +103,9 @@ export default async function DashboardPage({
                   <span className="font-display text-lg text-forest">{a.title}</span>
                   <span
                     aria-hidden
-                    className="grid size-8 place-items-center rounded-full bg-sun text-forest transition group-hover:translate-x-0.5"
+                    className="grid size-8 place-items-center rounded-full bg-sun text-forest transition group-hover:translate-x-0.5 rtl:group-hover:-translate-x-0.5"
                   >
-                    →
+                    <span className="inline-block rtl:-scale-x-100">→</span>
                   </span>
                 </span>
                 <span className="mt-2 text-sm text-ink-muted">{a.body}</span>
@@ -115,19 +114,19 @@ export default async function DashboardPage({
           ))}
         </ul>
 
-        <h2 className="mt-10 text-xl text-maroon">Your account</h2>
+        <h2 className="mt-10 text-xl text-maroon">{t.yourAccount}</h2>
         <dl className="mt-4 grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
           <div className="rounded-2xl border-2 border-line bg-surface-raised p-5">
             <dt className="text-xs font-semibold uppercase tracking-wider text-ink-subtle">
-              Role
+              {t.role}
             </dt>
             <dd className="mt-1.5">
               <span className="block font-display text-lg text-ink">
-                {profile ? ROLE_LABELS[profile.role] : "—"}
+                {profile ? all.roles.labels[profile.role] : "—"}
               </span>
               {profile ? (
                 <span className="mt-1 block text-sm text-ink-muted">
-                  {ROLE_DESCRIPTIONS[profile.role]}
+                  {all.roles.descriptions[profile.role]}
                 </span>
               ) : null}
             </dd>
@@ -135,20 +134,20 @@ export default async function DashboardPage({
 
           <div className="rounded-2xl border-2 border-line bg-surface-raised p-5">
             <dt className="text-xs font-semibold uppercase tracking-wider text-ink-subtle">
-              Email
+              {t.email}
             </dt>
-            <dd className="mt-1.5 truncate font-display text-lg text-ink">
-              {user.email}
+            <dd className="mt-1.5 truncate font-display text-lg text-ink" dir="ltr">
+              <span className="block rtl:text-right">{user.email}</span>
             </dd>
           </div>
 
           <div className="rounded-2xl border-2 border-line bg-surface-raised p-5">
             <dt className="text-xs font-semibold uppercase tracking-wider text-ink-subtle">
-              Member since
+              {t.memberSince}
             </dt>
             <dd className="mt-1.5 font-display text-lg text-ink">
               {profile
-                ? new Date(profile.created_at).toLocaleDateString("en-GB", {
+                ? new Date(profile.created_at).toLocaleDateString(intlLocale(locale), {
                     day: "numeric",
                     month: "long",
                     year: "numeric",
@@ -160,12 +159,7 @@ export default async function DashboardPage({
 
         {!profile ? (
           <p className="mt-6 rounded-lg border border-warning-line bg-warning-surface px-3 py-2.5 text-sm text-warning-ink">
-            No profile row was found for this account. Run the migration in
-            <code className="mx-1 font-mono text-xs">
-              supabase/migrations/0001_profiles_and_roles.sql
-            </code>
-            — existing accounts created before the trigger existed will need a
-            row inserted manually.
+            {t.noProfile}
           </p>
         ) : null}
       </div>

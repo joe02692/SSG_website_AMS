@@ -6,7 +6,9 @@ import {
   rejectRequestAction,
   type ReviewState,
 } from "@/app/members/actions";
-import { ASSIGNABLE_ROLES, ROLE_LABELS } from "@/lib/roles";
+import { ASSIGNABLE_ROLES } from "@/lib/roles";
+import { useT } from "@/lib/i18n/client";
+import { fill } from "@/lib/i18n/fill";
 
 const initialState: ReviewState = {};
 
@@ -37,6 +39,8 @@ export function RequestReview({
     initialState,
   );
   const [armed, setArmed] = useState(false);
+  const all = useT();
+  const t = all.members.controls;
 
   const error = approveState.error ?? rejectState.error;
 
@@ -46,11 +50,10 @@ export function RequestReview({
         <form action={reject} className="flex flex-col items-end gap-1">
           <input type="hidden" name="memberId" value={memberId} />
           <p className="text-xs text-ink-muted">
-            Reject <span className="font-medium text-ink">{name}</span> and
-            delete the account?
+            {fill(t.rejectQuestion, <span className="font-medium text-ink" dir="auto">{name}</span>)}
           </p>
           <p className="text-xs text-ink-subtle">
-            This can&apos;t be undone, and they can sign up again.
+            {t.rejectNote}
           </p>
           <div className="flex items-center gap-2">
             <button
@@ -58,14 +61,14 @@ export function RequestReview({
               disabled={rejecting}
               className="rounded-md bg-danger-solid px-2 py-1 text-xs font-semibold text-white transition hover:opacity-90 disabled:opacity-70"
             >
-              {rejecting ? "Removing…" : "Yes, reject"}
+              {rejecting ? t.removing : t.yesReject}
             </button>
             <button
               type="button"
               onClick={() => setArmed(false)}
               className="text-xs font-medium text-ink-muted hover:text-ink"
             >
-              Cancel
+              {t.cancel}
             </button>
           </div>
         </form>
@@ -75,12 +78,12 @@ export function RequestReview({
           <select
             name="role"
             defaultValue="stage_leader"
-            aria-label={`Role to give ${name}`}
+            aria-label={t.roleToGive(name)}
             className="rounded-lg border border-line-strong bg-surface-raised px-2 py-1 text-xs text-ink"
           >
             {APPROVAL_ROLES.map((role) => (
               <option key={role} value={role}>
-                {ROLE_LABELS[role]}
+                {all.roles.labels[role]}
               </option>
             ))}
           </select>
@@ -89,14 +92,14 @@ export function RequestReview({
             disabled={approving}
             className="rounded-md bg-brand-600 px-2.5 py-1 text-xs font-semibold text-white transition hover:bg-brand-700 disabled:opacity-70"
           >
-            {approving ? "Approving…" : "Approve"}
+            {approving ? t.approving : t.approve}
           </button>
           <button
             type="button"
             onClick={() => setArmed(true)}
             className="text-xs font-medium text-danger-ink underline-offset-4 hover:underline"
           >
-            Reject
+            {t.reject}
           </button>
         </form>
       )}

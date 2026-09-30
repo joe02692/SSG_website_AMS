@@ -9,7 +9,6 @@ import {
   scoutAnswers,
   leaderAnswers,
 } from "@/lib/dal";
-import { ROLE_LABELS } from "@/lib/roles";
 import { ProfileForm } from "@/components/profile/profile-form";
 import { DetailsForm } from "@/components/onboarding/details-form";
 import { updateDetailsAction } from "@/app/onboarding/actions";
@@ -18,13 +17,18 @@ import {
   questionsForRole,
   usesScoutDetails,
 } from "@/lib/onboarding";
+import { getLocale, getT } from "@/lib/i18n/server";
+import { localizeQuestions } from "@/lib/i18n/onboarding";
 
-export const metadata: Metadata = {
-  title: "Your details",
-};
+export async function generateMetadata(): Promise<Metadata> {
+  return { title: (await getT()).account.profile.metaTitle };
+}
 
 export default async function ProfilePage() {
   const user = await requireUser();
+  const all = await getT();
+  const t = all.account.profile;
+  const locale = await getLocale();
 
   // Both at once. The scout_details lookup used to be gated on the role, which
   // made it a third sequential round trip on the critical path for scouts —
@@ -56,14 +60,14 @@ export default async function ProfilePage() {
           href="/dashboard"
           className="text-sm text-brand-ink underline-offset-4 hover:underline"
         >
-          ← Dashboard
+          <span aria-hidden className="inline-block rtl:-scale-x-100">←</span> {t.back}
         </Link>
 
         <h1 className="mt-3 text-2xl sm:text-[28px] font-semibold tracking-tight text-ink">
-          Your details
+          {t.title}
         </h1>
         <p className="mt-2 text-ink-muted">
-          Keep your information up to date so leaders can reach you.
+          {t.intro}
         </p>
 
         <div className="mt-8 rounded-2xl border border-line bg-surface-raised p-6">
@@ -75,26 +79,19 @@ export default async function ProfilePage() {
             id="details-heading"
             className="text-lg font-semibold tracking-tight text-ink"
           >
-            Membership questions
+            {t.questionsTitle}
           </h2>
           <p className="mt-1 text-sm text-ink-muted">
-            The answers you gave when you joined.
-            {age !== null ? (
-              <>
-                {" "}
-                You are <span className="font-medium text-ink">{age}</span> —
-                worked out from your date of birth, so it updates itself every
-                birthday.
-              </>
-            ) : null}
+            {t.questionsIntro}
+            {age !== null ? <> {t.age(age)}</> : null}
           </p>
           <div className="mt-4 rounded-2xl border border-line bg-surface-raised p-6">
             <DetailsForm
               action={updateDetailsAction}
-              questions={questionsForRole(profile?.role)}
+              questions={localizeQuestions(questionsForRole(profile?.role), locale)}
               answers={answers}
-              submitLabel="Save details"
-              pendingLabel="Saving…"
+              submitLabel={t.save}
+              pendingLabel={t.saving}
             />
           </div>
         </section>
@@ -108,23 +105,22 @@ export default async function ProfilePage() {
         {/* Read-only facts: changing either one is a separate, guarded flow. */}
         <dl className="mt-6 space-y-4 rounded-2xl border border-line bg-surface p-6">
           <div className="flex flex-wrap items-baseline justify-between gap-2">
-            <dt className="text-sm font-medium text-ink">Email address</dt>
-            <dd className="text-sm text-ink-muted">{user.email}</dd>
+            <dt className="text-sm font-medium text-ink">{t.email}</dt>
+            <dd className="text-sm text-ink-muted" dir="ltr">{user.email}</dd>
           </div>
           <div className="flex flex-wrap items-baseline justify-between gap-2">
-            <dt className="text-sm font-medium text-ink">Role</dt>
+            <dt className="text-sm font-medium text-ink">{t.role}</dt>
             <dd className="text-sm text-ink-muted">
-              {profile ? ROLE_LABELS[profile.role] : "—"}
+              {profile ? all.roles.labels[profile.role] : "—"}
             </dd>
           </div>
           <p className="border-t border-line pt-4 text-xs text-ink-subtle">
-            Your role is set by the group and can only be changed by a leader.
-            To change your password, use{" "}
+            {t.roleNote}{" "}
             <Link
               href="/reset-password"
               className="font-medium text-brand-ink underline-offset-4 hover:underline"
             >
-              set a new password
+              {t.setNewPassword}
             </Link>
             .
           </p>

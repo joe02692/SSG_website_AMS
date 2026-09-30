@@ -1,36 +1,41 @@
 import { SectionHeading } from "@/components/landing/section-heading";
 import { FacebookIcon, InstagramIcon, PhoneIcon } from "@/components/landing/contact-icons";
 import { CONTACT } from "@/lib/site-content";
-
-const CARDS = [
-  {
-    href: CONTACT.phoneHref,
-    label: "Call us",
-    value: CONTACT.phoneDisplay,
-    hint: "Questions about joining or stages",
-    Icon: PhoneIcon,
-    external: false,
-  },
-  {
-    href: CONTACT.instagram.url,
-    label: "Instagram",
-    value: CONTACT.instagram.handle,
-    hint: "Camp photos and news",
-    Icon: InstagramIcon,
-    external: true,
-  },
-  {
-    href: CONTACT.facebook.url,
-    label: "Facebook",
-    value: CONTACT.facebook.label,
-    hint: "Announcements and events",
-    Icon: FacebookIcon,
-    external: true,
-  },
-];
+import { getT } from "@/lib/i18n/server";
 
 /** "Contact Us" on the homepage: one big tappable card per way to reach us. */
-export function ContactUs() {
+export async function ContactUs() {
+  const all = await getT();
+  const t = all.home.contact;
+  const cards = [
+    {
+      href: CONTACT.phoneHref,
+      label: t.call,
+      value: CONTACT.phoneDisplay,
+      valueDir: "ltr" as const,
+      hint: t.callHint,
+      Icon: PhoneIcon,
+      external: false,
+    },
+    {
+      href: CONTACT.instagram.url,
+      label: t.instagram,
+      value: CONTACT.instagram.handle,
+      valueDir: "ltr" as const,
+      hint: t.instagramHint,
+      Icon: InstagramIcon,
+      external: true,
+    },
+    {
+      href: CONTACT.facebook.url,
+      label: t.facebook,
+      value: t.facebookName,
+      valueDir: "auto" as const,
+      hint: t.facebookHint,
+      Icon: FacebookIcon,
+      external: true,
+    },
+  ];
   return (
     <section
       id="contact"
@@ -39,11 +44,11 @@ export function ContactUs() {
     >
       <SectionHeading
         id="contact-heading"
-        title="Contact Us"
-        subtitle="Questions about joining? We'd love to hear from you."
+        title={t.title}
+        subtitle={t.subtitle}
       />
       <ul className="mt-6 grid gap-4 md:grid-cols-3">
-        {CARDS.map(({ href, label, value, hint, Icon, external }) => (
+        {cards.map(({ href, label, value, valueDir, hint, Icon, external }) => (
           <li key={label}>
             <a
               href={href}
@@ -55,12 +60,14 @@ export function ContactUs() {
               </span>
               <span className="min-w-0">
                 <span className="block text-sm font-semibold text-brand-ink">{label}</span>
-                <span className="block truncate font-display text-lg font-bold text-forest" dir="ltr">
-                  {value}
+                <span className="block truncate font-display text-lg font-bold text-forest">
+                  {/* Isolated so a phone number or @handle keeps its own
+                      left-to-right order inside an Arabic sentence. */}
+                  <bdi dir={valueDir}>{value}</bdi>
                 </span>
                 <span className="block text-sm text-ink-muted">
                   {hint}
-                  {external ? <span className="sr-only"> (opens in a new tab)</span> : null}
+                  {external ? <span className="sr-only">{all.chrome.opensNewTab}</span> : null}
                 </span>
               </span>
             </a>

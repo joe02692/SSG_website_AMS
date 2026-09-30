@@ -258,6 +258,11 @@ body {
   }
   .hero-progress {
     transform-origin: left;
+  }
+  [dir="rtl"] .hero-progress {
+    transform-origin: right;
+  }
+  .hero-progress {
     animation: hero-progress var(--hero-interval, 6s) linear both;
   }
   .hero-bar:is(:hover, :focus-within) .hero-progress {
@@ -280,7 +285,9 @@ body {
    without these simply show and hide instantly.
    --------------------------------------------------------------------------- */
 dialog.menu-sheet {
-  margin: 0 0 0 auto;
+  /* Slides in from the end side: the right in English, the left in Arabic. */
+  margin: 0;
+  margin-inline-start: auto;
   height: 100dvh;
   max-height: none;
   width: min(100%, 20rem);
@@ -294,6 +301,15 @@ dialog.menu-sheet[open] {
   translate: 0 0;
   @starting-style {
     translate: 100% 0;
+  }
+}
+[dir="rtl"] dialog.menu-sheet {
+  translate: -100% 0;
+}
+[dir="rtl"] dialog.menu-sheet[open] {
+  translate: 0 0;
+  @starting-style {
+    translate: -100% 0;
   }
 }
 
@@ -362,4 +378,23 @@ dialog.lightbox[open]::backdrop {
   .sticker-wobble {
     animation: sticker-wobble 3.2s ease-in-out infinite;
   }
+}
+
+/* ---------------------------------------------------------------------------
+   Arabic (html[lang="ar"], dir="rtl").
+   --------------------------------------------------------------------------- */
+/* Fustat carries Arabic; Geologica has no Arabic glyphs, so body text uses
+   Fustat first in Arabic rather than falling back letter by letter. */
+html[lang="ar"] {
+  --font-sans: var(--font-fustat), ui-sans-serif, system-ui, sans-serif;
+  --font-display: var(--font-fustat), ui-sans-serif, system-ui, sans-serif;
+}
+/* Letter-spacing pulls joined Arabic letters apart, and Arabic has no
+   capitals for `uppercase` to act on — so both are switched off. */
+html[lang="ar"] body * {
+  letter-spacing: normal !important;
+}
+/* Arabic needs a touch more line height than Latin at the same size. */
+html[lang="ar"] body {
+  line-height: 1.7;
 }

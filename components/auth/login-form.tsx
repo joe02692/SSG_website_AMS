@@ -5,6 +5,7 @@ import Link from "next/link";
 import { signInAction, type AuthState } from "@/app/auth/actions";
 import { Field, inputClass } from "@/components/ui/field";
 import { SubmitButton } from "@/components/ui/submit-button";
+import { useT } from "@/lib/i18n/client";
 
 const initialState: AuthState = {};
 
@@ -14,6 +15,7 @@ export function LoginForm({ redirectTo }: { redirectTo?: string }) {
     initialState,
   );
   const id = useId();
+  const t = useT().auth.login;
 
   return (
     <form action={formAction} className="space-y-5" noValidate>
@@ -30,19 +32,22 @@ export function LoginForm({ redirectTo }: { redirectTo?: string }) {
         </p>
       ) : null}
 
-      <Field label="Email Address" htmlFor={`${id}-email`}>
+      <Field label={t.email} htmlFor={`${id}-email`}>
         <input
           id={`${id}-email`}
           name="email"
           type="email"
           autoComplete="email"
           required
-          className={inputClass}
+          // Email addresses are left-to-right even in Arabic; aligned to the
+          // start of the page so the box still reads as part of the form.
+          dir="ltr"
+          className={`${inputClass} rtl:text-right`}
           placeholder="you@example.com"
         />
       </Field>
 
-      <Field label="Password" htmlFor={`${id}-password`}>
+      <Field label={t.password} htmlFor={`${id}-password`}>
         <input
           id={`${id}-password`}
           name="password"
@@ -50,32 +55,32 @@ export function LoginForm({ redirectTo }: { redirectTo?: string }) {
           autoComplete="current-password"
           required
           className={inputClass}
-          placeholder="Your password"
+          placeholder={t.passwordPlaceholder}
         />
       </Field>
 
-      <p className="-mt-3 text-right">
+      <p className="-mt-3 text-end">
         <Link
           href="/forgot-password"
           className="text-[13px] font-medium text-maroon underline underline-offset-2 hover:opacity-75"
         >
-          Forgot password?
+          {t.forgot}
         </Link>
       </p>
 
       <div className="pt-3">
-        <SubmitButton pending={pending} pendingLabel="Logging in…">
-          Log in
+        <SubmitButton pending={pending} pendingLabel={t.pending}>
+          {t.submit}
         </SubmitButton>
       </div>
 
       <p className="text-center font-display text-[15px] font-medium text-brand-ink">
-        New to the group?{" "}
+        {t.newHere}{" "}
         <Link
           href="/signup"
           className="text-maroon underline underline-offset-4 hover:opacity-75"
         >
-          Create an account
+          {t.createAccount}
         </Link>
       </p>
     </form>

@@ -5,7 +5,9 @@ import Link from "next/link";
 import { Photo } from "@/components/gallery/photo";
 import { PillIcon } from "@/components/history/icons";
 import { LIGHT_DISMISS, lightDismissFallback } from "@/components/ui/dialog-utils";
-import type { Camp, MilestoneIcon } from "@/lib/site-content";
+import type { MilestoneIcon } from "@/lib/site-content";
+import type { LocalizedCamp } from "@/lib/i18n/content";
+import { useT } from "@/lib/i18n/client";
 
 export type CampPhoto = { publicId: string; width: number; height: number };
 
@@ -18,7 +20,7 @@ export type RopeEntry =
       body: string;
       icon: MilestoneIcon;
     }
-  | ({ kind: "camp"; key: string; photos: CampPhoto[] } & Camp);
+  | ({ kind: "camp"; key: string; photos: CampPhoto[] } & LocalizedCamp);
 
 /**
  * The History page's rope: the group's milestones and every camp, oldest at
@@ -29,8 +31,10 @@ export type RopeEntry =
  * a real ordered list, so a screen reader hears them in date order whichever
  * side each sits on.
  *
- * Phones: the rope runs down the left, every entry to its right. From sm up
- * entries alternate sides, each tucked ~40px under the one before.
+ * Phones: the rope runs down the start side (left in English, right in
+ * Arabic), every entry beside it. From sm up entries alternate sides, each
+ * tucked ~40px under the one before. All positions are logical (start/end),
+ * so the whole rope mirrors itself in right-to-left pages.
  */
 export function Timeline({ entries }: { entries: RopeEntry[] }) {
   const [open, setOpen] = useState<Extract<RopeEntry, { kind: "camp" }> | null>(null);
@@ -55,15 +59,15 @@ export function Timeline({ entries }: { entries: RopeEntry[] }) {
                 <Knot />
               </span>
               <div
-                className={`relative col-start-2 row-start-1 min-w-0 pl-7 sm:max-w-[380px] ${
+                className={`relative col-start-2 row-start-1 min-w-0 ps-7 sm:max-w-[380px] ${
                   right
-                    ? "sm:col-start-3 sm:pl-12"
-                    : "sm:col-start-1 sm:w-full sm:justify-self-end sm:pl-0 sm:pr-1"
+                    ? "sm:col-start-3 sm:ps-12"
+                    : "sm:col-start-1 sm:w-full sm:justify-self-end sm:ps-0 sm:pe-1"
                 }`}
               >
                 {/* Knot-to-pill line: always on phones, and on the right-hand side. */}
                 <Tie
-                  className={`absolute -left-3 top-[19px] w-9 sm:w-14 ${right ? "" : "sm:hidden"}`}
+                  className={`absolute -start-3 top-[19px] w-9 sm:w-14 ${right ? "" : "sm:hidden"}`}
                 />
                 <PillRow entry={entry} side={right ? "right" : "left"} />
                 {entry.kind === "milestone" ? (
@@ -88,7 +92,7 @@ export function Timeline({ entries }: { entries: RopeEntry[] }) {
 function Tie({ className }: { className: string }) {
   return (
     <span aria-hidden className={`h-0.5 bg-sun/80 ${className}`}>
-      <span className="absolute -left-1 top-1/2 size-2 -translate-y-1/2 rounded-full bg-sun" />
+      <span className="absolute -start-1 top-1/2 size-2 -translate-y-1/2 rounded-full bg-sun" />
     </span>
   );
 }
@@ -103,12 +107,12 @@ function PillRow({ entry, side }: { entry: RopeEntry; side: "left" | "right" }) 
         {entry.year}
         <PillIcon name={icon} />
         {entry.kind === "camp" ? (
-          <span className="text-sm font-semibold">{entry.season}</span>
+          <span className="text-sm font-semibold">{entry.seasonName}</span>
         ) : null}
       </p>
       {side === "left" ? (
-        <span aria-hidden className="relative -mr-4 ml-3 hidden h-0.5 flex-1 bg-sun/80 sm:block">
-          <span className="absolute -right-1 top-1/2 size-2 -translate-y-1/2 rounded-full bg-sun" />
+        <span aria-hidden className="relative -me-4 ms-3 hidden h-0.5 flex-1 bg-sun/80 sm:block">
+          <span className="absolute -end-1 top-1/2 size-2 -translate-y-1/2 rounded-full bg-sun" />
         </span>
       ) : null}
     </div>
@@ -122,10 +126,11 @@ function CampCard({
   camp: Extract<RopeEntry, { kind: "camp" }>;
   onOpen: () => void;
 }) {
+  const t = useT().history;
   const heading = (
     <>
       <span className="block font-sans text-lg font-bold text-forest">
-        {camp.season} Camp · {camp.place}
+        {camp.title}
       </span>
     </>
   );
@@ -138,7 +143,7 @@ function CampCard({
           <svg aria-hidden viewBox="0 0 20 20" className="size-4 fill-current">
             <path d="M4 5h2.2l1.2-1.6h5.2L13.8 5H16a1 1 0 0 1 1 1v9a1 1 0 0 1-1 1H4a1 1 0 0 1-1-1V6a1 1 0 0 1 1-1Zm6 2.5a3.2 3.2 0 1 0 0 6.4 3.2 3.2 0 0 0 0-6.4Z" />
           </svg>
-          Photos coming soon
+          {t.photosComingSoon}
         </p>
       </div>
     );
@@ -152,7 +157,7 @@ function CampCard({
         type="button"
         onClick={onOpen}
         aria-haspopup="dialog"
-        aria-label={`See ${camp.photos.length} photos from ${camp.season} Camp ${camp.year}, ${camp.place}`}
+        aria-label={t.seePhotos(camp.photos.length, camp.fullName)}
         className="group relative mt-2.5 block aspect-[2/1] w-full overflow-hidden rounded-xl bg-forest shadow-md transition hover:-translate-y-0.5 hover:shadow-lg"
       >
         <Photo
@@ -163,9 +168,9 @@ function CampCard({
         />
         <span aria-hidden className="absolute inset-0 bg-linear-to-t from-forest/85 via-forest/10 to-transparent" />
         <span className="absolute inset-x-3 bottom-2.5 flex items-center justify-between gap-2 text-sm font-bold text-white">
-          {camp.photos.length} photos
-          <span className="rounded-full bg-sun px-3 py-1 text-xs text-forest transition group-hover:translate-x-0.5">
-            Open →
+          {t.photoCount(camp.photos.length)}
+          <span className="rounded-full bg-sun px-3 py-1 text-xs text-forest transition group-hover:translate-x-0.5 rtl:group-hover:-translate-x-0.5">
+            {t.open} <span aria-hidden className="inline-block rtl:-scale-x-100">→</span>
           </span>
         </span>
       </button>
@@ -199,7 +204,9 @@ function Rope({ count }: { count: number }) {
       const h = el.clientHeight;
       // Same switch as the layout: from sm (640px) the rope runs down the middle.
       const wide = window.matchMedia("(min-width: 640px)").matches;
-      const x = wide ? w / 2 : 20;
+      // On phones the rope hugs the start edge: left in English, right in Arabic.
+      const rtl = getComputedStyle(el).direction === "rtl";
+      const x = wide ? w / 2 : rtl ? w - 20 : 20;
       const swing = wide ? 30 : 9;
 
       // Centre of each knot, relative to the timeline. offsetTop ignores the
@@ -307,18 +314,23 @@ function CampViewer({
     if (camp && !dialog.current?.open) dialog.current?.showModal();
   }, [camp]);
 
-  // Keep the current thumbnail in view without scrolling the page.
+  const t = useT().history;
+
+  // Keep the current thumbnail in view without scrolling the page. Measured
+  // on screen, so it works the same in left-to-right and right-to-left.
   useEffect(() => {
     const el = strip.current;
     const thumb = el?.children[current] as HTMLElement | undefined;
     if (!el || !thumb) return;
-    el.scrollTo({ left: thumb.offsetLeft - el.clientWidth / 2 + thumb.offsetWidth / 2, behavior: "smooth" });
+    const box = el.getBoundingClientRect();
+    const r = thumb.getBoundingClientRect();
+    el.scrollBy({ left: r.left + r.width / 2 - (box.left + box.width / 2), behavior: "smooth" });
   }, [current]);
 
   const photos = camp?.photos ?? [];
   const n = photos.length;
   const step = (by: number) => setCurrent((i) => (i + by + n) % n);
-  const name = camp ? `${camp.season} Camp ${camp.year} — ${camp.place}` : "";
+  const name = camp ? camp.fullName : "";
   const photo = photos[current];
 
   return (
@@ -328,8 +340,10 @@ function CampViewer({
       onClose={onClose}
       aria-label={name}
       onKeyDown={(e) => {
-        if (e.key === "ArrowRight") step(1);
-        if (e.key === "ArrowLeft") step(-1);
+        // "Forward" is the reading direction: → in English, ← in Arabic.
+        const rtl = getComputedStyle(e.currentTarget).direction === "rtl";
+        if (e.key === "ArrowRight") step(rtl ? -1 : 1);
+        if (e.key === "ArrowLeft") step(rtl ? 1 : -1);
       }}
       className="lightbox on-dark m-auto h-[min(94dvh,960px)] max-h-none w-[min(96vw,1200px)] max-w-none bg-transparent p-0 text-white"
     >
@@ -339,16 +353,16 @@ function CampViewer({
             <div className="min-w-0">
               <p className="truncate font-display text-lg font-bold">{name}</p>
               <p className="text-sm text-white/75">
-                {current + 1} / {n}
+                {t.counter(current + 1, n)}
                 <span className="mx-2" aria-hidden>·</span>
                 <Link href={`/gallery/${camp.slug}`} className="font-semibold text-sun underline underline-offset-2">
-                  Open album page
+                  {t.openAlbum}
                 </Link>
               </p>
             </div>
             <form method="dialog">
               <button
-                aria-label="Close photos"
+                aria-label={t.closePhotos}
                 className="grid size-10 shrink-0 place-items-center rounded-full bg-white/10 text-2xl leading-none transition hover:bg-white/20"
               >
                 ×
@@ -360,25 +374,25 @@ function CampViewer({
             <Photo
               key={photo.publicId}
               source={{ kind: "cloudinary", ...photo }}
-              alt={`Photo ${current + 1} of ${n} from ${name}`}
+              alt={t.photoAlt(current + 1, n, name)}
               sizes="96vw"
               className="object-contain"
             />
             <button
               type="button"
               onClick={() => step(-1)}
-              aria-label="Previous photo"
-              className="absolute left-1 top-1/2 grid size-11 -translate-y-1/2 place-items-center rounded-full bg-black/45 text-2xl transition hover:bg-black/65 sm:left-3"
+              aria-label={t.previousPhoto}
+              className="absolute start-1 top-1/2 grid size-11 -translate-y-1/2 place-items-center rounded-full bg-black/45 text-2xl transition hover:bg-black/65 sm:start-3"
             >
-              ‹
+              <span aria-hidden className="rtl:-scale-x-100">‹</span>
             </button>
             <button
               type="button"
               onClick={() => step(1)}
-              aria-label="Next photo"
-              className="absolute right-1 top-1/2 grid size-11 -translate-y-1/2 place-items-center rounded-full bg-black/45 text-2xl transition hover:bg-black/65 sm:right-3"
+              aria-label={t.nextPhoto}
+              className="absolute end-1 top-1/2 grid size-11 -translate-y-1/2 place-items-center rounded-full bg-black/45 text-2xl transition hover:bg-black/65 sm:end-3"
             >
-              ›
+              <span aria-hidden className="rtl:-scale-x-100">›</span>
             </button>
           </div>
 
@@ -388,7 +402,7 @@ function CampViewer({
                 key={p.publicId}
                 type="button"
                 onClick={() => setCurrent(i)}
-                aria-label={`Show photo ${i + 1} of ${n}`}
+                aria-label={t.showPhoto(i + 1, n)}
                 aria-current={i === current ? "true" : undefined}
                 className={`relative h-14 w-20 shrink-0 overflow-hidden rounded-md transition sm:h-16 sm:w-24 ${
                   i === current ? "ring-2 ring-sun" : "opacity-60 hover:opacity-100"

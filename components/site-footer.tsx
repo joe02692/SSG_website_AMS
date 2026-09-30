@@ -2,24 +2,25 @@ import Link from "next/link";
 import { BrandLogo } from "@/components/brand-logo";
 import { CONTACT, FOUNDED } from "@/lib/site-content";
 import { FacebookIcon, InstagramIcon, PhoneIcon } from "@/components/landing/contact-icons";
-
-const EXPLORE = [
-  { href: "/history", label: "Our History" },
-  { href: "/stages", label: "Our Stages" },
-  { href: "/gallery", label: "Camp Gallery" },
-  { href: "/signup", label: "Join Us" },
-  { href: "/#contact", label: "Contact Us" },
-];
-
-const MEMBERS = [
-  { href: "/login", label: "Log in" },
-  { href: "/dashboard", label: "Dashboard" },
-  { href: "/forgot-password", label: "Forgot password" },
-];
+import { getT } from "@/lib/i18n/server";
 
 const linkClass = "text-cream/80 transition hover:text-sun";
 
-export function SiteFooter() {
+export async function SiteFooter() {
+  const t = await getT();
+  const f = t.chrome.footer;
+  const explore = [
+    { href: "/history", label: f.ourHistory },
+    { href: "/stages", label: f.ourStages },
+    { href: "/gallery", label: f.campGallery },
+    { href: "/signup", label: f.joinUs },
+    { href: "/#contact", label: f.contactUs },
+  ];
+  const members = [
+    { href: "/login", label: f.logIn },
+    { href: "/dashboard", label: f.dashboard },
+    { href: "/forgot-password", label: f.forgotPassword },
+  ];
   return (
     <footer className="on-dark mt-auto bg-forest text-cream">
       {/* A strip of the group's yellow, like the edge of a neckerchief. */}
@@ -28,17 +29,16 @@ export function SiteFooter() {
         <div className="col-span-2 md:col-span-1">
           <BrandLogo />
           <p className="mt-4 max-w-xs text-sm leading-relaxed text-cream/80">
-            Character, service and friendship — scouting from Tanta to Al
-            Rehab and Madinaty since {FOUNDED}.
+            {f.blurb(FOUNDED)}
           </p>
         </div>
 
         <nav aria-labelledby="footer-explore">
           <h2 id="footer-explore" className="text-base text-sun">
-            Explore
+            {f.explore}
           </h2>
           <ul className="mt-3 space-y-2 text-sm">
-            {EXPLORE.map((l) => (
+            {explore.map((l) => (
               <li key={l.href}>
                 <Link href={l.href} className={linkClass}>
                   {l.label}
@@ -50,10 +50,10 @@ export function SiteFooter() {
 
         <nav aria-labelledby="footer-members">
           <h2 id="footer-members" className="text-base text-sun">
-            Members
+            {f.members}
           </h2>
           <ul className="mt-3 space-y-2 text-sm">
-            {MEMBERS.map((l) => (
+            {members.map((l) => (
               <li key={l.href}>
                 <Link href={l.href} className={linkClass}>
                   {l.label}
@@ -64,7 +64,7 @@ export function SiteFooter() {
         </nav>
 
         <div className="col-span-2 md:col-span-1">
-          <h2 className="text-base text-sun">Contact</h2>
+          <h2 className="text-base text-sun">{f.contact}</h2>
           <ul className="mt-3 space-y-2.5 text-sm">
             <li>
               <a href={CONTACT.phoneHref} className={`${linkClass} inline-flex items-center gap-2`}>
@@ -75,13 +75,13 @@ export function SiteFooter() {
             <li>
               <a href={CONTACT.instagram.url} target="_blank" rel="noopener noreferrer" className={`${linkClass} inline-flex items-center gap-2`}>
                 <InstagramIcon className="size-4" />
-                Instagram<span className="sr-only"> (opens in a new tab)</span>
+                {f.instagram}<span className="sr-only">{t.chrome.opensNewTab}</span>
               </a>
             </li>
             <li>
               <a href={CONTACT.facebook.url} target="_blank" rel="noopener noreferrer" className={`${linkClass} inline-flex items-center gap-2`}>
                 <FacebookIcon className="size-4" />
-                Facebook<span className="sr-only"> (opens in a new tab)</span>
+                {f.facebook}<span className="sr-only">{t.chrome.opensNewTab}</span>
               </a>
             </li>
           </ul>
@@ -90,8 +90,8 @@ export function SiteFooter() {
 
       <div className="border-t border-cream/15">
         <p className="mx-auto flex max-w-[1200px] flex-wrap justify-between gap-2 px-5 py-4 text-xs text-cream/70 sm:px-8">
-          <span>© {new Date().getFullYear()} El-Salam Scouting Group</span>
-          <span className="font-display">Be prepared.</span>
+          <span>{f.copyright(new Date().getFullYear())}</span>
+          <span className="font-display">{f.motto}</span>
         </p>
       </div>
     </footer>

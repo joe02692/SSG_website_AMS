@@ -2,24 +2,24 @@ import type { Metadata } from "next";
 import { AuthIntro } from "@/components/auth/auth-intro";
 import { requireUser } from "@/lib/dal";
 import { ResetPasswordForm } from "@/components/auth/reset-password-form";
+import { getT } from "@/lib/i18n/server";
 
-export const metadata: Metadata = {
-  title: "Set a new password",
-  description: "Choose a new password for your El-Salam Scouting Group account.",
-  robots: { index: false },
-};
+export async function generateMetadata(): Promise<Metadata> {
+  const t = (await getT()).auth.reset;
+  return { title: t.metaTitle, description: t.metaDescription, robots: { index: false } };
+}
 
 export default async function ResetPasswordPage() {
   // Reached with the temporary session the recovery link created (or by a
   // normally signed-in member changing their password). No session at all
   // means an expired link — requireUser sends them to /login.
   await requireUser();
+  const t = (await getT()).auth.reset;
 
   return (
     <>
-      <AuthIntro title="Set a new password">
-          Choose a new password for your account. You&apos;ll stay signed in
-          after saving it.
+      <AuthIntro title={t.title}>
+        {t.intro}
       </AuthIntro>
 
       <ResetPasswordForm />

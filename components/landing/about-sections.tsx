@@ -1,15 +1,16 @@
 import Image from "next/image";
 import { SectionHeading } from "@/components/landing/section-heading";
 import { GoalIcon } from "@/components/landing/about-icons";
+import { FOUNDED } from "@/lib/site-content";
+import { getLocale, getT } from "@/lib/i18n/server";
 import {
-  ABOUT_POINTS,
-  BRANCHES,
-  FOUNDED,
-  GOALS,
-  SCOUTING_FACTS,
-  SEASON,
-  WIDER_SCOUTING,
-} from "@/lib/site-content";
+  localizedAboutPoints,
+  localizedBranches,
+  localizedFacts,
+  localizedGoals,
+  localizedSeason,
+  localizedWider,
+} from "@/lib/i18n/content";
 import teamPhoto from "@/public/images/slide-10.jpg";
 
 /**
@@ -37,7 +38,9 @@ function Pin() {
 }
 
 // ---------------------------------------------------------------- About us --
-export function AboutUs() {
+export async function AboutUs() {
+  const t = (await getT()).home.about;
+  const locale = await getLocale();
   return (
     <section
       id="about"
@@ -47,30 +50,16 @@ export function AboutUs() {
       <div>
         <SectionHeading
           id="about-heading"
-          title="About Us"
-          subtitle={`One of Egypt's oldest scout groups — since ${FOUNDED}`}
+          title={t.title}
+          subtitle={t.subtitle(FOUNDED)}
         />
         <div className="mt-4 space-y-3 text-[16px] leading-relaxed text-[#141414]/85">
-          <p>
-            El-Salam Scout Group has been spreading Scouting since {FOUNDED}. It
-            began in Tanta, where its oldest home still stands, and grew into one
-            of the most respected scout groups in Egypt and the Arab world.
-          </p>
-          <p>
-            Taking responsibility is one of Scouting&apos;s first lessons, and
-            we took it to heart. Rather than stay in one city, El-Salam carried
-            Scouting to young people wherever they gather — sports clubs, youth
-            centres, and public and private schools across Egypt. When schools
-            asked us to stay for good, we stayed.
-          </p>
-          <p>
-            Today our teams shine across Egypt and around the world, and the
-            need has never been greater: a generation that learns to work as a
-            team, stand out, and serve the people around it.
-          </p>
+          <p>{t.p1(FOUNDED)}</p>
+          <p>{t.p2}</p>
+          <p>{t.p3}</p>
         </div>
         <ul className="mt-5 space-y-2.5">
-          {ABOUT_POINTS.map((point) => (
+          {localizedAboutPoints(locale).map((point) => (
             <li key={point} className="flex gap-2.5 text-[15px] leading-snug text-forest">
               <Check />
               {point}
@@ -83,21 +72,21 @@ export function AboutUs() {
         <div className="reveal relative aspect-[4/3] overflow-hidden rounded-2xl bg-forest shadow-md">
           <Image
             src={teamPhoto}
-            alt="Young El-Salam leaders posing as a team under a tree"
+            alt={t.photoAlt}
             fill
             placeholder="blur"
             sizes="(min-width: 1024px) 520px, 100vw"
             quality={90}
             className="object-cover object-[50%_20%]"
           />
-          <span className="absolute left-3 top-3 rounded-full bg-sun px-3 py-1 text-sm font-bold text-forest shadow">
-            Since {FOUNDED}
+          <span className="absolute start-3 top-3 rounded-full bg-sun px-3 py-1 text-sm font-bold text-forest shadow">
+            {t.since(FOUNDED)}
           </span>
         </div>
         <div className="rounded-2xl border-2 border-line bg-surface-raised p-5">
-          <h3 className="font-display text-lg text-maroon">Where we meet</h3>
+          <h3 className="font-display text-lg text-maroon">{t.whereWeMeet}</h3>
           <ul className="mt-3 grid gap-2.5 sm:grid-cols-2">
-            {BRANCHES.map((branch) => (
+            {localizedBranches(locale).map((branch) => (
               <li key={branch.name} className="flex gap-2">
                 <Pin />
                 <span className="leading-tight">
@@ -117,17 +106,19 @@ export function AboutUs() {
 }
 
 // --------------------------------------------------------------- Our goals --
-export function OurGoals() {
+export async function OurGoals() {
+  const t = (await getT()).home.goals;
+  const locale = await getLocale();
   return (
     <section aria-labelledby="goals-heading" className="mt-14 bg-surface py-12">
       <div className="mx-auto w-[calc(100%-40px)] max-w-[1100px]">
         <SectionHeading
           id="goals-heading"
-          title="Our Goals"
-          subtitle="What every meeting, camp and trip is for"
+          title={t.title}
+          subtitle={t.subtitle}
         />
         <ol className="mt-7 grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
-          {GOALS.map((goal, i) => (
+          {localizedGoals(locale).map((goal, i) => (
             <li
               key={goal.title}
               className="reveal group relative overflow-hidden rounded-2xl border-2 border-line bg-surface-raised p-5 transition hover:-translate-y-1 hover:border-leaf hover:shadow-lg"
@@ -137,7 +128,7 @@ export function OurGoals() {
               <span
                 aria-hidden
                 data-n={String(i + 1).padStart(2, "0")}
-                className="absolute right-3 top-1 font-display text-[56px] font-extrabold leading-none text-butter/70 before:content-[attr(data-n)]"
+                className="absolute end-3 top-1 font-display text-[56px] font-extrabold leading-none text-butter/70 before:content-[attr(data-n)]"
               />
               <span className="relative grid size-12 place-items-center rounded-full bg-sun text-forest transition group-hover:rotate-6">
                 <GoalIcon name={goal.icon} />
@@ -151,16 +142,16 @@ export function OurGoals() {
         {/* A season with El-Salam */}
         <div className="mt-12 grid gap-8 lg:grid-cols-[1.5fr_1fr]">
           <div>
-            <h3 className="font-display text-[clamp(20px,3vw,24px)] text-maroon">A season with El-Salam</h3>
+            <h3 className="font-display text-[clamp(20px,3vw,24px)] text-maroon">{t.seasonTitle}</h3>
             <p className="mt-1 text-[15px] text-ink-muted">
-              The fixed points every branch shares, every year.
+              {t.seasonSubtitle}
             </p>
-            <ol className="relative mt-5 space-y-3 border-l-2 border-sun pl-6">
-              {SEASON.map((item) => (
+            <ol className="relative mt-5 space-y-3 border-s-2 border-sun ps-6">
+              {localizedSeason(locale).map((item) => (
                 <li key={item.title} className="reveal relative">
                   <span
                     aria-hidden
-                    className="absolute -left-[33px] top-1.5 size-4 rounded-full border-4 border-surface bg-leaf"
+                    className="absolute -start-[33px] top-1.5 size-4 rounded-full border-4 border-surface bg-leaf"
                   />
                   <p className="text-xs font-semibold uppercase tracking-wider text-brand-ink">
                     {item.when} · {item.where}
@@ -171,10 +162,10 @@ export function OurGoals() {
             </ol>
           </div>
           <div className="self-start rounded-2xl bg-forest p-6 text-cream">
-            <h3 className="font-display text-xl text-sun">Beyond our group</h3>
-            <p className="mt-1 text-sm text-cream/80">Each year, as the annual plan allows, we take part in:</p>
+            <h3 className="font-display text-xl text-sun">{t.beyondTitle}</h3>
+            <p className="mt-1 text-sm text-cream/80">{t.beyondIntro}</p>
             <ul className="mt-4 space-y-2.5">
-              {WIDER_SCOUTING.map((item) => (
+              {localizedWider(locale).map((item) => (
                 <li key={item} className="flex gap-2.5 text-[15px] leading-snug">
                   <span aria-hidden className="mt-2 size-1.5 shrink-0 rounded-full bg-sun" />
                   {item}
@@ -182,9 +173,7 @@ export function OurGoals() {
               ))}
             </ul>
             <p className="mt-5 border-t border-cream/15 pt-4 text-sm leading-relaxed text-cream/80">
-              Our programmes are refreshed every season by members who are
-              specialists in their own fields — always true to the foundations
-              of Scouting.
+              {t.refreshed}
             </p>
           </div>
         </div>
@@ -194,34 +183,25 @@ export function OurGoals() {
 }
 
 // ---------------------------------------------------------- About Scouting --
-export function AboutScouting() {
+export async function AboutScouting() {
+  const t = (await getT()).home.scouting;
+  const locale = await getLocale();
   return (
     <section aria-labelledby="scouting-heading" className="on-dark relative overflow-hidden bg-forest py-14 text-cream">
       <div aria-hidden className="absolute inset-x-0 top-0 h-1.5 bg-sun" />
       <div className="mx-auto grid w-[calc(100%-40px)] max-w-[1100px] gap-10 lg:grid-cols-[1.2fr_1fr] lg:items-center">
         <div>
-          <p className="text-sm font-semibold uppercase tracking-[0.14em] text-butter">About Scouting</p>
+          <p className="text-sm font-semibold uppercase tracking-[0.14em] text-butter">{t.eyebrow}</p>
           <h2 id="scouting-heading" className="mt-2 text-[clamp(26px,4.5vw,36px)] leading-tight text-sun">
-            The world&apos;s leading educational youth movement
+            {t.title}
           </h2>
           <div className="mt-4 space-y-3 text-[16px] leading-relaxed text-cream/90">
-            <p>
-              Scouting is a worldwide educational movement for young people —
-              non-political and open to everyone. Its aim is to raise good
-              citizens: leaders who love teamwork, make a difference through
-              their conduct and character, and can get along with anyone while
-              staying true to themselves.
-            </p>
-            <p>
-              Scouts learn by doing. Values are built and habits corrected
-              through camps, life outdoors and regular activities — not
-              lectures. In Egypt, Scouting has shaped ministers, scientists and
-              public figures in every field.
-            </p>
+            <p>{t.p1}</p>
+            <p>{t.p2}</p>
           </div>
         </div>
         <dl className="grid grid-cols-2 gap-3">
-          {SCOUTING_FACTS.map((fact) => (
+          {localizedFacts(locale).map((fact) => (
             <div
               key={fact.value}
               className="reveal flex flex-col-reverse rounded-2xl border border-cream/15 bg-cream/5 p-4"

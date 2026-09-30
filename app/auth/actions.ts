@@ -7,6 +7,7 @@ import { createClient } from "@/lib/supabase/server";
 import { SCOUT_STAGES } from "@/lib/onboarding";
 import { COMING_SOON_ROLES, SELF_SERVE_ROLES } from "@/lib/roles";
 import { HOUR, MINUTE, clientIp, withinLimits } from "@/lib/rate-limit";
+import { getT } from "@/lib/i18n/server";
 
 const STAGE_CODES: string[] = SCOUT_STAGES.map((stage) => stage.value);
 
@@ -18,9 +19,6 @@ export type AuthState = {
 
 const EMAIL_RE = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
 const MIN_PASSWORD_LENGTH = 10;
-
-const TOO_MANY =
-  "Too many attempts from this device. Please wait a little while and try again.";
 
 function str(formData: FormData, key: string): string {
   const value = formData.get(key);
@@ -44,6 +42,7 @@ export async function signUpAction(
   _prevState: AuthState,
   formData: FormData,
 ): Promise<AuthState> {
+  const e = (await getT()).auth.errors;
   const email = str(formData, "email").toLowerCase();
   const password = str(formData, "password");
   const fullName = str(formData, "fullName");
@@ -52,10 +51,10 @@ export async function signUpAction(
 
   const fieldErrors: Record<string, string> = {};
 
-  if (!fullName) fieldErrors.fullName = "Please enter your full name.";
-  if (!EMAIL_RE.test(email)) fieldErrors.email = "Enter a valid email address.";
+  if (!fullName) fieldErrors.fullName = e.fullName;
+  if (!EMAIL_RE.test(email)) fieldErrors.email = e.email;
   if (password.length < MIN_PASSWORD_LENGTH) {
-    fieldErrors.password = `Use at least ${MIN_PASSWORD_LENGTH} characters.`;
+    fieldErrors.password = e.passwordLength(MIN_PASSWORD_LENGTH);
   }
 
   // "leader" is deliberately absent from SELF_SERVE_ROLES. Choosing it creates
@@ -72,10 +71,9 @@ export async function signUpAction(
   // The radio for these is disabled in the UI, but that's only a hint — a
   // crafted POST straight to this action would sail past it.
   if (isComingSoon) {
-    fieldErrors.role =
-      "Parent accounts aren't open yet. Please check back soon.";
+    fieldErrors.role = e.parentsClosed;
   } else if (!isSelfServe && requestedRole !== "leader") {
-    fieldErrors.role = "Choose how you're joining.";
+    fieldErrors.role = e.chooseRole;
   }
   const supabase = await createClient();
 
@@ -83,11 +81,11 @@ export async function signUpAction(
   // list of names has something to recognise them by.
   const isLeaderRequest = requestedRole === "leader";
   if (isLeaderRequest && !STAGE_CODES.includes(requestedStage)) {
-    fieldErrors.requestedStage = "Choose the stage you work with.";
+    fieldErrors.requestedStage = e.chooseStage;
   }
 
   if (Object.keys(fieldErrors).length > 0) {
-    return { fieldErrors, error: "Please fix the highlighted fields." };
+    return { fieldErrors, error: e.fixFields };
   }
 
   // A handful of accounts per network per hour is plenty for a family signing
@@ -97,7 +95,7 @@ export async function signUpAction(
       { name: "signup-ip", key: await clientIp(), max: 8, windowSeconds: HOUR },
     ]))
   ) {
-    return { error: TOO_MANY };
+    return { error: e.tooMany };
   }
 
   const origin = (await headers()).get("origin") ?? "";
@@ -121,7 +119,7 @@ export async function signUpAction(
     },
   });
 
-  if (error) return { error: error.message };
+  if (error) return { error: e.generic(error.message) };
 
   // A leader request never goes to the dashboard, session or not. The account
   // exists but holds `pending_leader`, which grants nothing — sending them to
@@ -130,8 +128,7 @@ export async function signUpAction(
   if (isLeaderRequest) {
     if (data.session) revalidatePath("/", "layout");
     return {
-      notice:
-        "Your request has been sent. We're waiting for an admin to approve it — you'll be able to sign in and check the status any time.",
+      notice: e.requestSent,
     };
   }
 
@@ -149,8 +146,7 @@ export async function signUpAction(
   // the endpoint can't be used to discover which emails have accounts. We
   // mirror that by showing the same message either way.
   return {
-    notice:
-      "Account created. Check your email for a confirmation link to finish signing in.",
+    notice: e.accountCreated,
   };
 }
 
@@ -161,12 +157,13 @@ export async function signInAction(
   _prevState: AuthState,
   formData: FormData,
 ): Promise<AuthState> {
+  const e = (await getT()).auth.errors;
   const email = str(formData, "email").toLowerCase();
   const password = str(formData, "password");
   const redirectTo = safeRedirect(str(formData, "redirectTo") || null);
 
   if (!EMAIL_RE.test(email) || !password) {
-    return { error: "Enter your email address and password." };
+    return { error: e.emailAndPassword };
   }
 
   // Slows password guessing: 5 tries per account per device, and 30 per
@@ -178,7 +175,7 @@ export async function signInAction(
       { name: "signin-ip-email", key: `${ip}|${email}`, max: 5, windowSeconds: 15 * MINUTE },
     ]))
   ) {
-    return { error: "Too many sign-in attempts. Please wait 15 minutes and try again, or reset your password." };
+    return { error: e.tooManySignIns };
   }
 
   const supabase = await createClient();
@@ -189,7 +186,7 @@ export async function signInAction(
 
   if (error) {
     // Deliberately vague: don't reveal whether the address is registered.
-    return { error: "Those details don't match an account." };
+    return { error: e.noMatch };
   }
 
   revalidatePath("/", "layout");
@@ -205,10 +202,11 @@ export async function requestPasswordResetAction(
   _prevState: AuthState,
   formData: FormData,
 ): Promise<AuthState> {
+  const e = (await getT()).auth.errors;
   const email = str(formData, "email").toLowerCase();
 
   if (!EMAIL_RE.test(email)) {
-    return { error: "Enter a valid email address." };
+    return { error: e.email };
   }
 
   // Stops anyone using this form to flood someone's inbox.
@@ -218,7 +216,7 @@ export async function requestPasswordResetAction(
       { name: "reset-email", key: email, max: 3, windowSeconds: HOUR },
     ]))
   ) {
-    return { error: TOO_MANY };
+    return { error: e.tooMany };
   }
 
   const supabase = await createClient();
@@ -233,8 +231,7 @@ export async function requestPasswordResetAction(
   // Deliberately identical whether or not the address has an account —
   // this endpoint must not let anyone probe which emails are registered.
   return {
-    notice:
-      "If that address has an account, a reset link is on its way. Check your inbox (and spam folder).",
+    notice: e.resetSent,
   };
 }
 
@@ -245,18 +242,19 @@ export async function updatePasswordAction(
   _prevState: AuthState,
   formData: FormData,
 ): Promise<AuthState> {
+  const e = (await getT()).auth.errors;
   const password = str(formData, "password");
   const confirm = str(formData, "confirmPassword");
 
   const fieldErrors: Record<string, string> = {};
   if (password.length < MIN_PASSWORD_LENGTH) {
-    fieldErrors.password = `Use at least ${MIN_PASSWORD_LENGTH} characters.`;
+    fieldErrors.password = e.passwordLength(MIN_PASSWORD_LENGTH);
   }
   if (confirm !== password) {
-    fieldErrors.confirmPassword = "The passwords don't match.";
+    fieldErrors.confirmPassword = e.passwordsDiffer;
   }
   if (Object.keys(fieldErrors).length > 0) {
-    return { fieldErrors, error: "Please fix the highlighted fields." };
+    return { fieldErrors, error: e.fixFields };
   }
 
   const supabase = await createClient();
@@ -267,14 +265,13 @@ export async function updatePasswordAction(
   } = await supabase.auth.getUser();
   if (!user) {
     return {
-      error:
-        "Your reset link has expired or was already used. Request a new one from the sign-in page.",
+      error: e.linkExpired,
     };
   }
 
   const { error } = await supabase.auth.updateUser({ password });
   if (error) {
-    return { error: error.message };
+    return { error: e.generic(error.message) };
   }
 
   revalidatePath("/", "layout");

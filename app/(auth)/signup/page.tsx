@@ -1,18 +1,19 @@
 import type { Metadata } from "next";
 import { AuthIntro } from "@/components/auth/auth-intro";
 import { SignupForm } from "@/components/auth/signup-form";
+import { getT } from "@/lib/i18n/server";
 
-export const metadata: Metadata = {
-  title: "Create an account",
-  description:
-    "Register with El-Salam Scouting Group as a scout, parent or leader.",
-};
+export async function generateMetadata(): Promise<Metadata> {
+  const t = (await getT()).auth.signup;
+  return { title: t.metaTitle, description: t.metaDescription };
+}
 
-export default function SignupPage() {
+export default async function SignupPage() {
+  const t = (await getT()).auth.signup;
   return (
     <>
-      <AuthIntro title="Join El-Salam">
-          One account for meetings, camps and group records.
+      <AuthIntro title={t.title}>
+        {t.intro}
       </AuthIntro>
 
       <SignupForm />

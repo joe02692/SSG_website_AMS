@@ -4,6 +4,8 @@ import { getCurrentProfile } from "@/lib/dal";
 import { isSiteAdminRole } from "@/lib/roles";
 import { missingStorageEnv, presignDownload } from "@/lib/b2";
 import { nameSlug } from "@/lib/documents";
+import { getLocale } from "@/lib/i18n/server";
+import { localizeState } from "@/lib/i18n/onboarding";
 
 export type DocumentLinkState = {
   url?: string;
@@ -23,7 +25,7 @@ export type DocumentLinkState = {
  * URLs sitting in the HTML would be 400 live links to children's identity
  * documents, copyable straight out of the page source.
  */
-export async function getDocumentUrlAction(
+async function getDocumentUrl(
   _prevState: DocumentLinkState,
   formData: FormData,
 ): Promise<DocumentLinkState> {
@@ -63,4 +65,12 @@ export async function getDocumentUrlAction(
     console.error("[certificate] could not sign a download URL", error);
     return { error: "Storage refused the request. Check the server logs." };
   }
+}
+
+/** getDocumentUrl, with its messages in the reader's language. */
+export async function getDocumentUrlAction(
+  _prevState: DocumentLinkState,
+  formData: FormData,
+): Promise<DocumentLinkState> {
+  return localizeState(await getDocumentUrl(_prevState, formData), await getLocale());
 }

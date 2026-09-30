@@ -6,10 +6,13 @@ import { createClient } from "@/lib/supabase/server";
 import { ageFromDateOfBirth } from "@/lib/onboarding";
 import { ViewDocumentButton } from "@/components/members/view-document-button";
 import { LeadersTable, type LeaderRow } from "@/components/members/leaders-table";
+import { getLocale, getT } from "@/lib/i18n/server";
+import { intlLocale } from "@/lib/i18n/config";
+import { optionLabel } from "@/lib/i18n/onboarding";
 
-export const metadata: Metadata = {
-  title: "Registrations",
-};
+export async function generateMetadata(): Promise<Metadata> {
+  return { title: (await getT()).members.scouts.metaTitle };
+}
 
 type ScoutRow = {
   profile_id: string;
@@ -23,8 +26,8 @@ type ScoutRow = {
   stages: { name_en: string; sort: number } | null;
 };
 
-function formatDate(value: string): string {
-  return new Date(value).toLocaleDateString("en-GB", {
+function formatDate(value: string, locale: string): string {
+  return new Date(value).toLocaleDateString(locale, {
     day: "numeric",
     month: "short",
     year: "numeric",
@@ -39,6 +42,9 @@ export default async function ScoutsPage() {
   // enforces the same rule at the database, so a stage leader who guessed this
   // URL would get an empty list even if this check were removed.
   await requireSiteAdmin();
+  const t = (await getT()).members.scouts;
+  const locale = await getLocale();
+  const dateLocale = intlLocale(locale);
 
   const supabase = await createClient();
   // Ordered and capped by Postgres, not by JavaScript afterwards.
@@ -81,37 +87,34 @@ export default async function ScoutsPage() {
           href="/members"
           className="text-sm text-brand-ink underline-offset-4 hover:underline"
         >
-          ← Members
+          <span aria-hidden className="inline-block rtl:-scale-x-100">←</span> {t.back}
         </Link>
 
         <h1 className="mt-3 text-2xl sm:text-[28px] font-semibold tracking-tight text-ink">
-          Registrations
+          {t.title}
         </h1>
         <p className="mt-2 text-ink-muted">
-          Registration details for everyone who has completed onboarding —
-          scouts first, then leaders and site staff.
+          {t.intro}
         </p>
 
         <p className="mt-6 rounded-lg border border-warning-line bg-warning-surface px-3 py-2.5 text-sm text-warning-ink">
-          This page shows home addresses, ID numbers and phone numbers,
-          including children&apos;s. Please don&apos;t leave it open on a shared
-          screen, and don&apos;t export it without a reason.
+          {t.privacy}
         </p>
 
         <h2 className="mt-10 text-xl font-semibold tracking-tight text-ink">
-          Scouts
+          {t.scouts}
         </h2>
 
         <dl className="mt-4 flex flex-wrap gap-3">
           <div className="rounded-lg border border-line bg-surface-raised px-4 py-2.5">
             <dt className="text-xs uppercase tracking-wider text-ink-subtle">
-              Registered
+              {t.registered}
             </dt>
             <dd className="text-lg font-semibold text-ink">{rows.length}</dd>
           </div>
           <div className="rounded-lg border border-line bg-surface-raised px-4 py-2.5">
             <dt className="text-xs uppercase tracking-wider text-ink-subtle">
-              Certificate on file
+              {t.certificateOnFile}
             </dt>
             <dd className="text-lg font-semibold text-ink">
               {withDocument}
@@ -129,46 +132,46 @@ export default async function ScoutsPage() {
               href="/members/scouts/download-all"
               className="inline-flex rounded-lg border border-line bg-surface-raised px-4 py-2.5 text-sm font-semibold text-ink transition hover:border-brand-300"
             >
-              Download all certificates (.zip)
+              {t.downloadAll}
             </a>
           </p>
         ) : null}
 
         {rows.length === 0 ? (
           <div className="mt-8 rounded-2xl border border-dashed border-line bg-surface p-10 text-center">
-            <p className="text-lg font-medium text-ink">No scouts yet</p>
+            <p className="text-lg font-medium text-ink">{t.noScouts}</p>
             <p className="mt-2 text-sm text-ink-muted">
-              Registrations appear here once a scout finishes the details form.
+              {t.noScoutsBody}
             </p>
           </div>
         ) : (
-          <div className="mt-6 overflow-x-auto rounded-xl border border-line">
-            <table className="w-full min-w-200 text-left text-sm">
+          <div className="mt-6 relative overflow-x-auto rounded-xl border border-line">
+            <table className="w-full min-w-200 text-start text-sm">
               <thead className="border-b border-line bg-surface text-xs uppercase tracking-wider text-ink-subtle">
                 <tr>
                   <th scope="col" className="px-4 py-3 font-medium">
-                    Name
+                    {t.name}
                   </th>
                   <th scope="col" className="px-4 py-3 font-medium">
-                    Stage
+                    {t.stage}
                   </th>
                   <th scope="col" className="px-4 py-3 font-medium">
-                    Age
+                    {t.age}
                   </th>
                   <th scope="col" className="px-4 py-3 font-medium">
-                    Born
+                    {t.born}
                   </th>
                   <th scope="col" className="px-4 py-3 font-medium">
-                    Phone
+                    {t.phone}
                   </th>
                   <th scope="col" className="px-4 py-3 font-medium">
-                    Parent
+                    {t.parent}
                   </th>
                   <th scope="col" className="px-4 py-3 font-medium">
-                    National ID
+                    {t.nationalId}
                   </th>
                   <th scope="col" className="px-4 py-3 font-medium">
-                    Certificate
+                    {t.certificate}
                   </th>
                 </tr>
               </thead>
@@ -176,32 +179,32 @@ export default async function ScoutsPage() {
                 {rows.map((row) => (
                   <tr key={row.profile_id}>
                     <td className="px-4 py-3">
-                      <span className="font-medium text-ink">
+                      <bdi className="font-medium text-ink">
                         {row.profiles?.full_name ?? "—"}
-                      </span>
+                      </bdi>
                       <span className="block max-w-60 truncate text-xs text-ink-subtle">
-                        {row.address}
+                        <bdi>{row.address}</bdi>
                       </span>
                     </td>
                     <td className="whitespace-nowrap px-4 py-3 text-ink-muted">
                       {row.stages
-                        ? row.stages.name_en
+                        ? optionLabel(locale, row.stages.name_en)
                         : "—"}
                     </td>
                     <td className="px-4 py-3 font-medium text-ink">
                       {ageFromDateOfBirth(row.date_of_birth) ?? "—"}
                     </td>
                     <td className="whitespace-nowrap px-4 py-3 text-ink-muted">
-                      {formatDate(row.date_of_birth)}
+                      {formatDate(row.date_of_birth, dateLocale)}
                     </td>
-                    <td className="whitespace-nowrap px-4 py-3 font-mono text-xs text-ink-muted">
-                      {row.personal_phone}
+                    <td className="whitespace-nowrap px-4 py-3 font-mono text-xs text-ink-muted" dir="ltr">
+                      <span className="block rtl:text-right">{row.personal_phone}</span>
                     </td>
-                    <td className="whitespace-nowrap px-4 py-3 font-mono text-xs text-ink-muted">
-                      {row.parent_phone}
+                    <td className="whitespace-nowrap px-4 py-3 font-mono text-xs text-ink-muted" dir="ltr">
+                      <span className="block rtl:text-right">{row.parent_phone}</span>
                     </td>
-                    <td className="whitespace-nowrap px-4 py-3 font-mono text-xs text-ink-muted">
-                      {row.national_id ?? "—"}
+                    <td className="whitespace-nowrap px-4 py-3 font-mono text-xs text-ink-muted" dir="ltr">
+                      <span className="block rtl:text-right">{row.national_id ?? "—"}</span>
                     </td>
                     <td className="px-4 py-3">
                       {row.document_path ? (
@@ -210,7 +213,7 @@ export default async function ScoutsPage() {
                           filename={row.profiles?.full_name ?? "certificate"}
                         />
                       ) : (
-                        <span className="text-xs text-ink-subtle">Missing</span>
+                        <span className="text-xs text-ink-subtle">{t.missing}</span>
                       )}
                     </td>
                   </tr>
@@ -222,19 +225,19 @@ export default async function ScoutsPage() {
 
         {/* ------------------------------------------------------------ Leaders */}
         <h2 className="mt-14 text-xl font-semibold tracking-tight text-ink">
-          Leaders and site staff
+          {t.leadersTitle}
         </h2>
 
         <dl className="mt-4 flex flex-wrap gap-3">
           <div className="rounded-lg border border-line bg-surface-raised px-4 py-2.5">
             <dt className="text-xs uppercase tracking-wider text-ink-subtle">
-              Registered
+              {t.registered}
             </dt>
             <dd className="text-lg font-semibold text-ink">{leaders.length}</dd>
           </div>
           <div className="rounded-lg border border-line bg-surface-raised px-4 py-2.5">
             <dt className="text-xs uppercase tracking-wider text-ink-subtle">
-              ID card on file
+              {t.idCardOnFile}
             </dt>
             <dd className="text-lg font-semibold text-ink">
               {withIdCard}
@@ -251,16 +254,13 @@ export default async function ScoutsPage() {
             role="alert"
             className="mt-6 rounded-lg border border-danger-line bg-danger-surface px-3 py-2.5 text-sm text-danger-ink"
           >
-            Could not load the leaders list ({leaderError.code ?? "unknown"}:{" "}
-            {leaderError.message}). If this mentions a missing table or a
-            permission, run migrations 0014 and 0015.
+            {t.leadersError(leaderError.code ?? "unknown", leaderError.message)}
           </p>
         ) : leaders.length === 0 ? (
           <div className="mt-6 rounded-2xl border border-dashed border-line bg-surface p-10 text-center">
-            <p className="text-lg font-medium text-ink">No leaders yet</p>
+            <p className="text-lg font-medium text-ink">{t.noLeaders}</p>
             <p className="mt-2 text-sm text-ink-muted">
-              Leaders appear here once their request is approved and they
-              finish the details form.
+              {t.noLeadersBody}
             </p>
           </div>
         ) : (

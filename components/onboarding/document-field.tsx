@@ -7,6 +7,7 @@ import {
   createUploadUrlAction,
   getOwnDocumentUrlAction,
 } from "@/app/dashboard/profile/document-actions";
+import { useT } from "@/lib/i18n/client";
 
 const MAX_BYTES = 10 * 1024 * 1024;
 const ACCEPTED = ["image/jpeg", "image/png", "image/webp", "application/pdf"];
@@ -53,6 +54,7 @@ export function DocumentField({
   const [previewUrl, setPreviewUrl] = useState<string | null>(null);
   const [linking, startLinking] = useTransition();
   const keyRef = useRef<HTMLInputElement>(null);
+  const t = useT().account.documents;
 
   const busy = status !== null;
   const haveDocument = key !== "";
@@ -76,7 +78,7 @@ export function DocumentField({
       data.set("mode", mode);
       const result = await getOwnDocumentUrlAction({}, data);
       if (result.error || !result.url) {
-        setError(result.error ?? "Could not open the document.");
+        setError(result.error ?? t.couldNotOpen);
         return;
       }
       if (mode === "download") window.location.href = result.url;
@@ -91,17 +93,17 @@ export function DocumentField({
     setError(null);
 
     if (!ACCEPTED.includes(original.type)) {
-      setError("Use a JPG, PNG, WebP or PDF.");
+      setError(t.wrongType);
       event.target.value = "";
       return;
     }
 
     try {
-      setStatus("Preparing…");
+      setStatus(t.preparing);
       const file = await compressImage(original);
 
       if (file.size > MAX_BYTES) {
-        setError("That file is over 10 MB even after shrinking.");
+        setError(t.tooBig);
         return;
       }
 
@@ -111,11 +113,11 @@ export function DocumentField({
 
       const ticket = await createUploadUrlAction({}, ticketData);
       if (ticket.error || !ticket.url || !ticket.key) {
-        setError(ticket.error ?? "Could not start the upload.");
+        setError(ticket.error ?? t.couldNotStart);
         return;
       }
 
-      setStatus("Uploading…");
+      setStatus(t.uploading);
       let response: Response;
       try {
         response = await fetch(ticket.url, {
@@ -125,15 +127,13 @@ export function DocumentField({
         });
       } catch (cause) {
         console.error("[document] the upload request was blocked", cause);
-        setError(
-          "The browser couldn't reach the storage service — usually the bucket's CORS rule. Open DevTools → Console for the exact error.",
-        );
+        setError(t.blocked);
         return;
       }
 
       if (!response.ok) {
         console.error("[document] storage refused the upload", response.status);
-        setError(`Storage refused the upload (HTTP ${response.status}).`);
+        setError(t.refused(response.status));
         return;
       }
 
@@ -142,7 +142,7 @@ export function DocumentField({
       if (keyRef.current) keyRef.current.value = ticket.key;
     } catch (cause) {
       console.error("[document] upload failed before it started", cause);
-      setError("Something went wrong preparing the file. Please try again.");
+      setError(t.somethingWrong);
     } finally {
       setStatus(null);
       event.target.value = "";
@@ -154,6 +154,10 @@ export function DocumentField({
       {/* What the surrounding form actually submits. */}
       <input ref={keyRef} type="hidden" name={name} defaultValue={key} />
 
+      {/* The native file button speaks the browser's language, not the
+          site's, so it is hidden and a label in the page language stands in
+          for it. The input stays focusable and is what the form label names. */}
+      <div className="flex flex-wrap items-center gap-3">
       <input
         id={fieldId}
         type="file"
@@ -164,10 +168,22 @@ export function DocumentField({
         // the key instead, which is the thing that actually matters.
         required={required && !haveDocument}
         onChange={handleFile}
-        className="block w-full text-sm text-ink-muted file:mr-3 file:rounded-lg file:border-0
-                   file:bg-brand-600 file:px-4 file:py-2 file:text-sm file:font-semibold
-                   file:text-white hover:file:bg-brand-700 disabled:opacity-60"
+        className="peer sr-only"
       />
+      <label
+        htmlFor={fieldId}
+        aria-hidden
+        className="cursor-pointer rounded-lg bg-brand-600 px-4 py-2 text-sm font-semibold text-white
+                   transition hover:bg-brand-700 peer-focus-visible:outline-2
+                   peer-focus-visible:outline-offset-2 peer-focus-visible:outline-brand-600
+                   peer-disabled:cursor-not-allowed peer-disabled:opacity-60"
+      >
+        {t.chooseFile}
+      </label>
+      <span className="min-w-0 truncate text-sm text-ink-muted" dir="auto">
+        {fileName ?? t.noFile}
+      </span>
+      </div>
 
       {status ? (
         <p role="status" className="text-xs text-ink-muted">
@@ -178,10 +194,7 @@ export function DocumentField({
       {haveDocument && !status ? (
         <div className="flex flex-wrap items-center gap-3">
           <p role="status" className="text-xs font-medium text-success-ink">
-            {fileName
-              ? `Uploaded ${fileName}.`
-              : "A document is on file."}{" "}
-            Choose a different file to replace it.
+            {fileName ? t.uploaded(fileName) : t.onFile} {t.replace}
           </p>
           {canView ? (
             <span className="flex items-center gap-2 text-xs">
@@ -191,7 +204,7 @@ export function DocumentField({
                 disabled={linking}
                 className="font-medium text-brand-ink underline-offset-4 hover:underline disabled:opacity-60"
               >
-                {linking ? "…" : "View"}
+                {linking ? "…" : t.view}
               </button>
               <span aria-hidden className="text-ink-subtle">
                 ·
@@ -202,7 +215,7 @@ export function DocumentField({
                 disabled={linking}
                 className="font-medium text-brand-ink underline-offset-4 hover:underline disabled:opacity-60"
               >
-                Download
+                {t.download}
               </button>
             </span>
           ) : null}
@@ -217,7 +230,7 @@ export function DocumentField({
 
       <DocumentPreview
         url={previewUrl}
-        title="Your document"
+        title={t.yourDocument}
         kind={previewKind(key)}
         onClose={closePreview}
       />

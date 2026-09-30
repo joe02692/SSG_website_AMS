@@ -3,7 +3,8 @@
 import { useActionState, useId, useState } from "react";
 import Link from "next/link";
 import { signUpAction, type AuthState } from "@/app/auth/actions";
-import { ROLE_DESCRIPTIONS, ROLE_LABELS, type Role } from "@/lib/roles";
+import type { Role } from "@/lib/roles";
+import { useT } from "@/lib/i18n/client";
 import { SCOUT_STAGES } from "@/lib/onboarding";
 import { Field, inputClass } from "@/components/ui/field";
 import { SubmitButton } from "@/components/ui/submit-button";
@@ -17,24 +18,13 @@ const initialState: AuthState = {};
  */
 const CHOICES: {
   value: Role;
-  badge: string | null;
+  badge: "comingSoon" | "needsApproval" | null;
   disabled: boolean;
 }[] = [
   { value: "scout", badge: null, disabled: false },
-  { value: "parent", badge: "Coming Soon", disabled: true },
-  { value: "leader", badge: "Needs Approval", disabled: false },
+  { value: "parent", badge: "comingSoon", disabled: true },
+  { value: "leader", badge: "needsApproval", disabled: false },
 ];
-
-/**
- * One "Leader" choice, and it does not name a role.
- *
- * Which role an approved leader ends up with — Stage Leader, Stage Admin,
- * Site Admin — is chosen by the head admin at approval time. Offering that
- * choice here would let the applicant propose their own privileges, which is
- * the mistake the invite-code system made in a different shape.
- */
-const LEADER_CHOICE_DESCRIPTION =
-  "Runs or oversees a stage. Your request goes to the group for approval.";
 
 export function SignupForm() {
   const [state, formAction, pending] = useActionState(
@@ -43,6 +33,9 @@ export function SignupForm() {
   );
   const [role, setRole] = useState<Role>("scout");
   const id = useId();
+  const all = useT();
+  const t = all.auth.signup;
+  const stageNames = all.stages;
 
   return (
     <form action={formAction} className="space-y-4" noValidate>
@@ -66,7 +59,7 @@ export function SignupForm() {
 
       <fieldset className="pb-4">
         <legend className="mb-2 font-display text-base font-medium text-brand-ink">
-          Are you a...
+          {t.areYou}
         </legend>
         <div className="grid gap-2">
           {CHOICES.map((choice) => {
@@ -98,7 +91,7 @@ export function SignupForm() {
                 <span className="min-w-0">
                   <span className="flex flex-wrap items-center gap-2 sm:gap-3">
                     <strong className="font-display text-base font-medium leading-tight sm:text-lg">
-                      {choice.value === "leader" ? "Leader" : ROLE_LABELS[choice.value]}
+                      {choice.value === "leader" ? t.leader : all.roles.labels[choice.value]}
                     </strong>
                     {choice.badge ? (
                       <span
@@ -106,14 +99,14 @@ export function SignupForm() {
                           choice.disabled ? "bg-[#5f6461]" : "bg-forest"
                         }`}
                       >
-                        {choice.badge}
+                        {t[choice.badge]}
                       </span>
                     ) : null}
                   </span>
                   <span className="mt-0.5 block text-xs font-medium leading-snug">
                     {choice.value === "leader"
-                      ? LEADER_CHOICE_DESCRIPTION
-                      : ROLE_DESCRIPTIONS[choice.value]}
+                      ? t.leaderDescription
+                      : all.roles.descriptions[choice.value]}
                   </span>
                 </span>
               </label>
@@ -128,7 +121,7 @@ export function SignupForm() {
       </fieldset>
 
       <Field
-        label="Full Name"
+        label={t.fullName}
         htmlFor={`${id}-name`}
         error={state.fieldErrors?.fullName}
       >
@@ -139,12 +132,12 @@ export function SignupForm() {
           autoComplete="name"
           required
           className={inputClass}
-          placeholder="Ex: Ali Mohamed"
+          placeholder={t.fullNamePlaceholder}
         />
       </Field>
 
       <Field
-        label="Email Address"
+        label={t.email}
         htmlFor={`${id}-email`}
         error={state.fieldErrors?.email}
       >
@@ -154,13 +147,14 @@ export function SignupForm() {
           type="email"
           autoComplete="email"
           required
-          className={inputClass}
+          dir="ltr"
+          className={`${inputClass} rtl:text-right`}
           placeholder="you@example.com"
         />
       </Field>
 
       <Field
-        label="Password"
+        label={t.password}
         htmlFor={`${id}-password`}
                 error={state.fieldErrors?.password}
       >
@@ -172,16 +166,16 @@ export function SignupForm() {
           required
           minLength={10}
           className={inputClass}
-          placeholder="10 characters minimum"
+          placeholder={t.passwordPlaceholder}
         />
       </Field>
 
       {role === "leader" ? (
         <>
           <Field
-            label="Which stage do you work with?"
+            label={t.whichStage}
             htmlFor={`${id}-stage`}
-            hint="So the group knows who you are when they review your request."
+            hint={t.whichStageHint}
             error={state.fieldErrors?.requestedStage}
           >
             <select
@@ -190,19 +184,17 @@ export function SignupForm() {
               defaultValue=""
               className={inputClass}
             >
-              <option value="">Choose a stage…</option>
+              <option value="">{t.chooseStage}</option>
               {SCOUT_STAGES.map((stage) => (
                 <option key={stage.value} value={stage.value}>
-                  {stage.label}
+                  {stageNames[stage.value as keyof typeof stageNames] ?? stage.label}
                 </option>
               ))}
             </select>
           </Field>
 
           <p className="rounded-xl border-2 border-line bg-surface-raised px-4 py-3 text-sm text-ink-muted">
-            Your account is created straight away but stays locked until the
-            group approves it. You&apos;ll be able to sign in and check the
-            status at any time.
+            {t.lockedNote}
           </p>
         </>
       ) : null}
@@ -210,19 +202,19 @@ export function SignupForm() {
       <div className="pt-3">
       <SubmitButton
         pending={pending}
-        pendingLabel={role === "leader" ? "Sending request…" : "Creating account…"}
+        pendingLabel={role === "leader" ? t.sendingRequest : t.creatingAccount}
       >
-        {role === "leader" ? "Send Request" : "Create Account"}
+        {role === "leader" ? t.sendRequest : t.createAccount}
       </SubmitButton>
       </div>
 
       <p className="text-center font-display text-[15px] font-medium text-brand-ink">
-        Already registered?{" "}
+        {t.already}{" "}
         <Link
           href="/login"
           className="text-maroon underline underline-offset-4 hover:opacity-75"
         >
-          Sign in
+          {t.signIn}
         </Link>
       </p>
     </form>

@@ -2,6 +2,8 @@
 
 import { useActionState, useState } from "react";
 import { deleteMemberAction, type DeleteState } from "@/app/members/actions";
+import { useT } from "@/lib/i18n/client";
+import { fill } from "@/lib/i18n/fill";
 
 const initialState: DeleteState = {};
 
@@ -22,16 +24,17 @@ export function DeleteMemberButton({
     initialState,
   );
   const [armed, setArmed] = useState(false);
+  const t = useT().members.controls;
 
   if (!armed) {
     return (
-      <div className="text-right">
+      <div className="text-end">
         <button
           type="button"
           onClick={() => setArmed(true)}
           className="text-xs font-medium text-danger-ink underline-offset-4 hover:underline"
         >
-          Delete
+          {t.delete}
         </button>
         {state.error ? (
           <p role="alert" className="mt-1 text-xs text-danger-ink">
@@ -46,7 +49,7 @@ export function DeleteMemberButton({
     <form action={formAction} className="flex flex-col items-end gap-1">
       <input type="hidden" name="memberId" value={memberId} />
       <p className="text-xs text-ink-muted">
-        Delete <span className="font-medium text-ink">{name}</span> for good?
+        {fill(t.deleteQuestion, <span className="font-medium text-ink" dir="auto">{name}</span>)}
       </p>
       <div className="flex items-center gap-2">
         <button
@@ -54,14 +57,14 @@ export function DeleteMemberButton({
           disabled={pending}
           className="rounded-md bg-danger-solid px-2 py-1 text-xs font-semibold text-white transition hover:opacity-90 disabled:opacity-70"
         >
-          {pending ? "Deleting…" : "Yes, delete"}
+          {pending ? t.deleting : t.yesDelete}
         </button>
         <button
           type="button"
           onClick={() => setArmed(false)}
           className="text-xs font-medium text-ink-muted hover:text-ink"
         >
-          Cancel
+          {t.cancel}
         </button>
       </div>
       {state.error ? (

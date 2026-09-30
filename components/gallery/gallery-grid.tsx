@@ -3,6 +3,7 @@
 import { useEffect, useRef, useState } from "react";
 import { Photo, type PhotoSource } from "@/components/gallery/photo";
 import { LIGHT_DISMISS, lightDismissFallback } from "@/components/ui/dialog-utils";
+import { useT } from "@/lib/i18n/client";
 
 /**
  * Photo cards that open a full-screen viewer.
@@ -23,6 +24,7 @@ export type GalleryItem = {
 export function GalleryGrid({ items: albums }: { items: GalleryItem[] }) {
   const dialog = useRef<HTMLDialogElement>(null);
   const [current, setCurrent] = useState(0);
+  const t = useT().gallery;
 
   useEffect(() => {
     const d = dialog.current;
@@ -46,8 +48,8 @@ export function GalleryGrid({ items: albums }: { items: GalleryItem[] }) {
             <button
               type="button"
               onClick={() => open(i)}
-              aria-label={`${album.name ?? album.alt} — open photo ${i + 1} of ${albums.length}`}
-              className="group relative block aspect-4/3 w-full overflow-hidden rounded-xl bg-forest text-left"
+              aria-label={t.openPhoto(album.name ?? album.alt, i + 1, albums.length)}
+              className="group relative block aspect-4/3 w-full overflow-hidden rounded-xl bg-forest text-start"
             >
               <Photo
                 source={album.source}
@@ -84,10 +86,12 @@ export function GalleryGrid({ items: albums }: { items: GalleryItem[] }) {
       <dialog
         ref={dialog}
         {...LIGHT_DISMISS}
-        aria-label={`${photo.name ? `${photo.name}, photo` : "Photo"} ${current + 1} of ${albums.length}`}
+        aria-label={t.viewerLabel(photo.name, current + 1, albums.length)}
         onKeyDown={(e) => {
-          if (e.key === "ArrowRight") step(1);
-          if (e.key === "ArrowLeft") step(-1);
+          // "Forward" is the reading direction: → in English, ← in Arabic.
+          const rtl = getComputedStyle(e.currentTarget).direction === "rtl";
+          if (e.key === "ArrowRight") step(rtl ? -1 : 1);
+          if (e.key === "ArrowLeft") step(rtl ? 1 : -1);
         }}
         className="lightbox on-dark m-auto h-[min(92dvh,900px)] max-h-none w-[min(96vw,1200px)] max-w-none bg-transparent p-0 text-white"
       >
@@ -100,11 +104,11 @@ export function GalleryGrid({ items: albums }: { items: GalleryItem[] }) {
                   <span className="mx-2" aria-hidden>·</span>
                 </>
               ) : null}
-              {current + 1} / {albums.length}
+              {t.counter(current + 1, albums.length)}
             </p>
             <form method="dialog">
               <button
-                aria-label="Close photo"
+                aria-label={t.closePhoto}
                 className="grid size-10 place-items-center rounded-full bg-white/10 text-2xl leading-none transition hover:bg-white/20"
               >
                 ×
@@ -123,18 +127,18 @@ export function GalleryGrid({ items: albums }: { items: GalleryItem[] }) {
             <button
               type="button"
               onClick={() => step(-1)}
-              aria-label="Previous photo"
-              className="absolute left-1 top-1/2 grid size-11 -translate-y-1/2 place-items-center rounded-full bg-black/45 text-2xl transition hover:bg-black/65 sm:left-3"
+              aria-label={t.previousPhoto}
+              className="absolute start-1 top-1/2 grid size-11 -translate-y-1/2 place-items-center rounded-full bg-black/45 text-2xl transition hover:bg-black/65 sm:start-3"
             >
-              ‹
+              <span aria-hidden className="rtl:-scale-x-100">‹</span>
             </button>
             <button
               type="button"
               onClick={() => step(1)}
-              aria-label="Next photo"
-              className="absolute right-1 top-1/2 grid size-11 -translate-y-1/2 place-items-center rounded-full bg-black/45 text-2xl transition hover:bg-black/65 sm:right-3"
+              aria-label={t.nextPhoto}
+              className="absolute end-1 top-1/2 grid size-11 -translate-y-1/2 place-items-center rounded-full bg-black/45 text-2xl transition hover:bg-black/65 sm:end-3"
             >
-              ›
+              <span aria-hidden className="rtl:-scale-x-100">›</span>
             </button>
           </div>
           <p className="px-1 pt-3 text-center text-sm text-white/75">{photo.alt}</p>

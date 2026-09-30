@@ -4,7 +4,7 @@
  * people who have asked their device for reduced motion. Decorative only —
  * the page's heading says the same thing in words.
  */
-export function ConstructionSticker() {
+export function ConstructionSticker({ top, bottom }: { top: string; bottom: string }) {
   return (
     <div aria-hidden className="sticker-wobble relative w-[min(78vw,300px)] -rotate-6">
       <svg viewBox="0 0 300 300" className="w-full drop-shadow-[0_10px_18px_rgb(30_68_40/0.28)]">
@@ -23,11 +23,11 @@ export function ConstructionSticker() {
 
         {/* Curved lettering */}
         <text fontFamily="var(--font-display), sans-serif" fontWeight="800" fontSize="22" letterSpacing="3" fill="#912e37">
-          <textPath href="#arc-top" startOffset="50%" textAnchor="middle">UNDER CONSTRUCTION</textPath>
+          <textPath href="#arc-top" startOffset="50%" textAnchor="middle">{top}</textPath>
         </text>
         <text fontFamily="var(--font-display), sans-serif" fontWeight="700" fontSize="15" letterSpacing="2" fill="#1e4428">
           <textPath href="#arc-bottom" startOffset="50%" textAnchor="middle" dominantBaseline="hanging">
-            SCOUTS AT WORK
+            {bottom}
           </textPath>
         </text>
 

@@ -5,17 +5,18 @@ import { SectionHeading } from "@/components/landing/section-heading";
 import { Timeline, type RopeEntry } from "@/components/landing/timeline";
 import { ValueIcon } from "@/components/landing/icons";
 import { Scenery } from "@/components/history/scenery";
-import { CAMPS, FOUNDED, MILESTONES, VALUES } from "@/lib/site-content";
+import { FOUNDED } from "@/lib/site-content";
+import { getLocale, getT } from "@/lib/i18n/server";
+import { localizedCamps, localizedMilestones, localizedValues } from "@/lib/i18n/content";
+import type { Locale } from "@/lib/i18n/config";
 import { cloudinaryConfigured, getAlbumPhotos, getAlbums } from "@/lib/cloudinary";
 
-export const metadata: Metadata = {
-  title: "Our History",
-  description: `How El-Salam Scouting Group grew from Tanta in ${FOUNDED} — every milestone and every camp since, with photos.`,
-};
+export async function generateMetadata(): Promise<Metadata> {
+  const t = (await getT()).history;
+  return { title: t.metaTitle, description: t.metaDescription(FOUNDED) };
+}
 
 const years = new Date().getFullYear() - FOUNDED;
-const yearsInWords =
-  years >= 55 ? "Nearly sixty" : years >= 45 ? "Nearly fifty" : `${years}`;
 
 /**
  * Milestones and camps, oldest first, each camp with its photos if its
@@ -23,11 +24,11 @@ const yearsInWords =
  * that by year + season in its name — so a camp whose place was typed
  * differently when uploading still finds its photos.
  */
-async function ropeEntries(): Promise<RopeEntry[]> {
+async function ropeEntries(locale: Locale): Promise<RopeEntry[]> {
   const albums = cloudinaryConfigured() ? await getAlbums() : [];
 
   const camps = await Promise.all(
-    CAMPS.map(async (camp): Promise<RopeEntry> => {
+    localizedCamps(locale).map(async (camp): Promise<RopeEntry> => {
       const album =
         albums.find((a) => a.slug === camp.slug) ??
         albums.find(
@@ -46,7 +47,7 @@ async function ropeEntries(): Promise<RopeEntry[]> {
     }),
   );
 
-  const milestones: RopeEntry[] = MILESTONES.map((m) => ({
+  const milestones: RopeEntry[] = localizedMilestones(locale).map((m) => ({
     kind: "milestone",
     key: `milestone-${m.year}`,
     ...m,
@@ -59,7 +60,10 @@ async function ropeEntries(): Promise<RopeEntry[]> {
 }
 
 export default async function HistoryPage() {
-  const entries = await ropeEntries();
+  const locale = await getLocale();
+  const t = (await getT()).history;
+  const entries = await ropeEntries(locale);
+  const firstCampYear = Math.min(...entries.filter((e) => e.kind === "camp").map((e) => e.year));
   const withPhotos = entries.filter((e) => e.kind === "camp" && e.photos.length).length;
 
   return (
@@ -70,29 +74,26 @@ export default async function HistoryPage() {
         <section className="relative mx-auto w-[calc(100%-40px)] max-w-[880px] pt-8 sm:pt-10">
           <p className="flex items-center gap-4 text-[11px] font-semibold uppercase tracking-[0.2em] text-maroon sm:text-xs">
             <span aria-hidden className="h-px flex-1 bg-maroon/60" />
-            Same values · A brighter tomorrow
+            {t.eyebrow}
             <span aria-hidden className="h-px flex-1 bg-maroon/60" />
           </p>
           <h1 className="mt-5 text-[clamp(34px,6vw,50px)] font-bold leading-none text-maroon">
-            Our History
+            {t.title}
           </h1>
           <p className="mt-2 text-[clamp(18px,2.6vw,23px)] font-bold leading-snug text-forest">
-            {yearsInWords} years of Scouting, from Tanta outwards
+            {t.subtitle(years)}
           </p>
           <p className="mt-2 max-w-[640px] text-[clamp(15px,1.8vw,17px)] leading-relaxed text-[#141414]/85">
-            What began in Tanta in 1977 now reaches sports clubs, youth centres
-            and schools across Egypt. The uniform has changed; the promise
-            hasn&apos;t.
+            {t.intro}
           </p>
         </section>
 
         <section aria-labelledby="rope-heading" className="relative mx-auto w-[calc(100%-40px)] max-w-[880px]">
           <h2 id="rope-heading" className="sr-only">
-            Milestones and camps, from {FOUNDED} to today
+            {t.ropeHeading(FOUNDED)}
           </h2>
           <p className="mt-6 text-sm text-ink-muted">
-            Every milestone and every camp since {CAMPS[0].year}
-            {withPhotos ? ` — tap a camp's photo to see all its pictures.` : "."}
+            {t.ropeNote(firstCampYear, withPhotos > 0)}
           </p>
           <Timeline entries={entries} />
         </section>
@@ -103,17 +104,17 @@ export default async function HistoryPage() {
         <div className="mx-auto flex w-[calc(100%-40px)] max-w-[1100px] flex-col items-start gap-4 py-8 sm:flex-row sm:items-center sm:justify-between">
           <div>
             <h2 id="moments-heading" className="text-[clamp(24px,4vw,32px)] leading-tight text-sun">
-              Moments That Matter
+              {t.momentsTitle}
             </h2>
             <p className="mt-1 text-[15px] text-white/90 sm:text-base">
-              Camps, hikes, service projects and more — one adventure at a time.
+              {t.momentsBody}
             </p>
           </div>
           <Link
             href="/gallery"
             className="shrink-0 rounded-md bg-maroon px-6 py-2.5 text-base font-bold text-white shadow-lg shadow-black/20 transition hover:-translate-y-0.5"
           >
-            See All
+            {t.seeAll}
           </Link>
         </div>
       </section>
@@ -126,12 +127,12 @@ export default async function HistoryPage() {
           <div className="reveal max-w-2xl">
             <SectionHeading
               id="values-heading"
-              title="What We Stand For"
-              subtitle="Three words on every neckerchief"
+              title={t.valuesTitle}
+              subtitle={t.valuesSubtitle}
             />
           </div>
           <ul className="mt-6 grid gap-4 md:grid-cols-3">
-            {VALUES.map((v) => (
+            {localizedValues(locale).map((v) => (
               <li
                 key={v.title}
                 className="reveal group rounded-2xl border-2 border-line bg-surface-raised p-5 transition hover:-translate-y-1 hover:border-leaf hover:shadow-lg"
@@ -147,26 +148,26 @@ export default async function HistoryPage() {
         </div>
       </section>
 
-      <NextSteps />
+      <NextSteps seeStages={t.seeStages} joinUs={t.joinUs} />
     </SiteShell>
   );
 }
 
 /** Closing links, so a page never ends in a dead end. */
-function NextSteps() {
+function NextSteps({ seeStages, joinUs }: { seeStages: string; joinUs: string }) {
   return (
     <div className="mx-auto flex w-[calc(100%-40px)] max-w-[1100px] flex-wrap gap-3 py-10">
       <Link
         href="/stages"
         className="rounded-md bg-forest px-5 py-2.5 text-sm font-bold text-cream transition hover:opacity-90"
       >
-        See our stages →
+        {seeStages} <span aria-hidden className="inline-block rtl:-scale-x-100">→</span>
       </Link>
       <Link
         href="/signup"
         className="rounded-md bg-sun px-5 py-2.5 text-sm font-bold text-forest transition hover:opacity-90"
       >
-        Join Us
+        {joinUs}
       </Link>
     </div>
   );

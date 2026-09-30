@@ -27,7 +27,7 @@ export function NavLink({
     <Link
       href={href}
       aria-current={current ? "page" : undefined}
-      className={`relative ${className} after:absolute after:inset-x-0 after:-bottom-1.5 after:h-[3px] after:origin-left after:rounded-full after:bg-sun after:transition-transform ${
+      className={`relative ${className} after:absolute after:inset-x-0 after:-bottom-1.5 after:h-[3px] after:origin-left rtl:after:origin-right after:rounded-full after:bg-sun after:transition-transform ${
         current ? "after:scale-x-100" : "after:scale-x-0 hover:after:scale-x-100"
       }`}
     >

@@ -2,16 +2,19 @@ import type { Metadata } from "next";
 import Link from "next/link";
 import { SiteShell } from "@/components/site-shell";
 import { requireSiteAdmin } from "@/lib/dal";
-import { ROLE_LABELS, isHeadSiteAdminRole, type Role } from "@/lib/roles";
+import { isHeadSiteAdminRole, type Role } from "@/lib/roles";
 import { createClient } from "@/lib/supabase/server";
 import { DeleteMemberButton } from "@/components/members/delete-member-button";
 import { RequestReview } from "@/components/members/request-review";
 import { ChangeRole } from "@/components/members/change-role";
 import { RecoveryLinkButton } from "@/components/members/recovery-link-button";
+import { getLocale, getT } from "@/lib/i18n/server";
+import { intlLocale } from "@/lib/i18n/config";
+import { optionLabel } from "@/lib/i18n/onboarding";
 
-export const metadata: Metadata = {
-  title: "Members",
-};
+export async function generateMetadata(): Promise<Metadata> {
+  return { title: (await getT()).members.page.metaTitle };
+}
 
 type RequestRow = {
   id: string;
@@ -44,9 +47,9 @@ const COUNTED_ROLES: Role[] = [
   "scout",
 ];
 
-function formatDate(value: string | null): string {
+function formatDate(value: string | null, locale: string): string {
   if (!value) return "—";
-  return new Date(value).toLocaleDateString("en-GB", {
+  return new Date(value).toLocaleDateString(locale, {
     day: "numeric",
     month: "short",
     year: "numeric",
@@ -73,6 +76,10 @@ export default async function MembersPage() {
   // Deciding who becomes a leader — and changing anyone's role afterwards —
   // is narrower still: the head site admin alone.
   const canDecideRoles = isHeadSiteAdminRole(viewer.role);
+  const all = await getT();
+  const t = all.members.page;
+  const locale = await getLocale();
+  const dateLocale = intlLocale(locale);
 
   const supabase = await createClient();
 
@@ -117,11 +124,10 @@ export default async function MembersPage() {
     <SiteShell>
       <div className="mx-auto max-w-6xl px-4 py-12 sm:px-6 sm:py-16">
         <h1 className="text-2xl sm:text-[28px] font-semibold tracking-tight text-ink">
-          Members
+          {t.title}
         </h1>
         <p className="mt-2 text-ink-muted">
-          Everyone registered in the system, and the leader requests waiting for
-          your decision.
+          {t.intro}
         </p>
 
         <p className="mt-4">
@@ -129,7 +135,8 @@ export default async function MembersPage() {
             href="/members/scouts"
             className="inline-flex rounded-lg border border-line bg-surface-raised px-4 py-2.5 text-sm font-semibold text-ink transition hover:border-brand-300"
           >
-            Registrations →
+            {t.registrations}{" "}
+            <span aria-hidden className="ms-1 inline-block rtl:-scale-x-100">→</span>
           </Link>
         </p>
 
@@ -140,7 +147,7 @@ export default async function MembersPage() {
               className="rounded-lg border border-line bg-surface-raised px-4 py-2.5"
             >
               <dt className="text-xs uppercase tracking-wider text-ink-subtle">
-                {ROLE_LABELS[role]}s
+                {all.roles.plural[role]}
               </dt>
               <dd className="text-lg font-semibold text-ink">
                 {counts[role] ?? 0}
@@ -155,24 +162,24 @@ export default async function MembersPage() {
             id="members-heading"
             className="text-xl font-semibold tracking-tight text-ink"
           >
-            All members
+            {t.allMembers}
           </h2>
-          <div className="mt-4 overflow-x-auto rounded-xl border border-line">
-            <table className="w-full min-w-130 text-left text-sm">
+          <div className="mt-4 relative overflow-x-auto rounded-xl border border-line">
+            <table className="w-full min-w-130 text-start text-sm">
               <thead className="border-b border-line bg-surface text-xs uppercase tracking-wider text-ink-subtle">
                 <tr>
                   <th scope="col" className="px-4 py-3 font-medium">
-                    Name
+                    {t.name}
                   </th>
                   <th scope="col" className="px-4 py-3 font-medium">
-                    Role
+                    {t.role}
                   </th>
                   <th scope="col" className="px-4 py-3 font-medium">
-                    Joined
+                    {t.joined}
                   </th>
                   {canDecideRoles ? (
                     <th scope="col" className="px-4 py-3 font-medium">
-                      <span className="sr-only">Actions</span>
+                      <span className="sr-only">{t.actions}</span>
                     </th>
                   ) : null}
                 </tr>
@@ -181,17 +188,17 @@ export default async function MembersPage() {
                 {members.map((member) => (
                   <tr key={member.id}>
                     <td className="px-4 py-3 font-medium text-ink">
-                      {member.full_name ?? "—"}
+                      <bdi>{member.full_name ?? "—"}</bdi>
                     </td>
                     <td className="px-4 py-3">
                       <span
                         className={`rounded-full px-2.5 py-1 text-xs font-medium ${ROLE_BADGE[member.role]}`}
                       >
-                        {ROLE_LABELS[member.role]}
+                        {all.roles.labels[member.role]}
                       </span>
                     </td>
                     <td className="px-4 py-3 text-ink-muted">
-                      {formatDate(member.created_at)}
+                      {formatDate(member.created_at, dateLocale)}
                     </td>
                     {canDecideRoles ? (
                       <td className="px-4 py-3">
@@ -200,7 +207,7 @@ export default async function MembersPage() {
                           <div className="flex flex-col items-end gap-2">
                             <ChangeRole
                               memberId={member.id}
-                              name={member.full_name ?? "this member"}
+                              name={member.full_name ?? t.thisMember}
                               current={member.role}
                             />
                             {/* Password reset by link, because there is no
@@ -209,11 +216,11 @@ export default async function MembersPage() {
                                 who forgets their password has no way back. */}
                             <RecoveryLinkButton
                               memberId={member.id}
-                              name={member.full_name ?? "this member"}
+                              name={member.full_name ?? t.thisMember}
                             />
                             <DeleteMemberButton
                               memberId={member.id}
-                              name={member.full_name ?? "this member"}
+                              name={member.full_name ?? t.thisMember}
                             />
                           </div>
                         )}
@@ -236,34 +243,33 @@ export default async function MembersPage() {
               id="requests-heading"
               className="text-xl font-semibold tracking-tight text-ink"
             >
-              Leader requests
+              {t.leaderRequests}
               {requests.length > 0 ? (
-                <span className="ml-2 rounded-full bg-brand-600 px-2 py-0.5 align-middle text-xs font-semibold text-white">
+                <span className="ms-2 rounded-full bg-brand-600 px-2 py-0.5 align-middle text-xs font-semibold text-white">
                   {requests.length}
                 </span>
               ) : null}
             </h2>
             <p className="mt-1 text-sm text-ink-muted">
-              People who have asked to join as leaders. They have no access to
-              anything until you approve them, and you choose the role.
+              {t.requestsIntro}
             </p>
 
             {requests.length === 0 ? (
               <div className="mt-4 rounded-2xl border border-dashed border-line bg-surface p-8 text-center">
                 <p className="text-sm text-ink-muted">
-                  No requests waiting.
+                  {t.noRequests}
                 </p>
               </div>
             ) : (
-              <div className="mt-4 overflow-x-auto rounded-xl border border-line">
-                <table className="w-full min-w-150 text-left text-sm">
+              <div className="mt-4 relative overflow-x-auto rounded-xl border border-line">
+                <table className="w-full min-w-150 text-start text-sm">
                   <thead className="border-b border-line bg-surface text-xs uppercase tracking-wider text-ink-subtle">
                     <tr>
-                      <th scope="col" className="px-4 py-3 font-medium">Name</th>
-                      <th scope="col" className="px-4 py-3 font-medium">Stage</th>
-                      <th scope="col" className="px-4 py-3 font-medium">Asked</th>
-                      <th scope="col" className="px-4 py-3 text-right font-medium">
-                        Decision
+                      <th scope="col" className="px-4 py-3 font-medium">{t.name}</th>
+                      <th scope="col" className="px-4 py-3 font-medium">{t.stage}</th>
+                      <th scope="col" className="px-4 py-3 font-medium">{t.asked}</th>
+                      <th scope="col" className="px-4 py-3 text-end font-medium">
+                        {t.decision}
                       </th>
                     </tr>
                   </thead>
@@ -271,22 +277,22 @@ export default async function MembersPage() {
                     {requests.map((request) => (
                       <tr key={request.id}>
                         <td className="px-4 py-3 font-medium text-ink">
-                          {request.full_name ?? "—"}
+                          <bdi>{request.full_name ?? "—"}</bdi>
                         </td>
                         <td className="whitespace-nowrap px-4 py-3 text-ink-muted">
                           {request.stages
-                            ? request.stages.name_en
+                            ? optionLabel(locale, request.stages.name_en)
                             : "—"}
                         </td>
                         <td className="whitespace-nowrap px-4 py-3 text-ink-muted">
                           {request.requested_at
-                            ? formatDate(request.requested_at)
+                            ? formatDate(request.requested_at, dateLocale)
                             : "—"}
                         </td>
                         <td className="px-4 py-3">
                           <RequestReview
                             memberId={request.id}
-                            name={request.full_name ?? "this person"}
+                            name={request.full_name ?? t.thisPerson}
                           />
                         </td>
                       </tr>

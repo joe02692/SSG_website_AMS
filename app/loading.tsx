@@ -1,12 +1,15 @@
+import { getT } from "@/lib/i18n/server";
+
 /**
  * Shown instantly while a page that reads live data (dashboard, members,
  * gallery) is being prepared, so a tap always gets a response. It looks like
  * the page chrome with grey placeholder blocks where the content will go.
  */
-export default function Loading() {
+export default async function Loading() {
+  const t = await getT();
   return (
     <div role="status" aria-live="polite" className="flex flex-1 flex-col">
-      <span className="sr-only">Loading…</span>
+      <span className="sr-only">{t.pages.loading}</span>
       <div aria-hidden className="h-[72px] bg-forest" />
       <div aria-hidden className="h-1.5 bg-sun" />
       <div aria-hidden className="mx-auto w-[calc(100%-40px)] max-w-[1100px] animate-pulse py-10 motion-reduce:animate-none">

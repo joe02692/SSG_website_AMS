@@ -11,17 +11,20 @@ import { signOutAction } from "@/app/auth/actions";
 import { BrandLogo } from "@/components/brand-logo";
 import { MobileMenu } from "@/components/mobile-menu";
 import { NavLink } from "@/components/nav-link";
+import { LanguageSwitch } from "@/components/language-switch";
+import { getT } from "@/lib/i18n/server";
+import type { Dictionary } from "@/lib/i18n/dictionaries";
 
 // Split in two so leaders' "Seasonal Plan" link can sit right after
 // "Our History" without the whole nav waiting on the sign-in check.
-const NAV_BEFORE = [
-  { href: "/", label: "Home" },
-  { href: "/history", label: "Our History" },
+const navBefore = (t: Dictionary) => [
+  { href: "/", label: t.chrome.nav.home },
+  { href: "/history", label: t.chrome.nav.history },
 ];
-const NAV_AFTER = [
-  { href: "/stages", label: "Stages" },
-  { href: "/gallery", label: "Activities" },
-  { href: "/signup", label: "Join Us" },
+const navAfter = (t: Dictionary) => [
+  { href: "/stages", label: t.chrome.nav.stages },
+  { href: "/gallery", label: t.chrome.nav.activities },
+  { href: "/signup", label: t.chrome.nav.joinUs },
 ];
 
 const navLink = "whitespace-nowrap text-sm xl:text-[15px] font-bold text-white transition hover:text-butter";
@@ -35,7 +38,7 @@ const ghostButton =
   "whitespace-nowrap rounded-md border-2 border-white/40 px-3 py-2 text-sm font-bold text-white transition hover:border-white";
 
 const menuLink =
-  "block w-full rounded-lg px-3 py-2.5 text-left text-base text-cream transition hover:bg-cream/10";
+  "block w-full rounded-lg px-3 py-2.5 text-start text-base text-cream transition hover:bg-cream/10";
 
 /**
  * The auth-dependent corner of the header.
@@ -47,11 +50,12 @@ const menuLink =
  */
 async function HeaderAuth() {
   const profile = await getCurrentProfile();
+  const t = await getT();
 
   if (!profile) {
     return (
       <Link href="/login" className={sunButton}>
-        Log in
+        {t.chrome.logIn}
       </Link>
     );
   }
@@ -63,10 +67,10 @@ async function HeaderAuth() {
       <>
         <Link href="/pending" className={sunButton}>
           {/* The full label doesn't fit beside the logo on a 320px phone. */}
-          <span className="sm:hidden">Status</span>
-          <span className="hidden sm:inline">Request status</span>
+          <span className="sm:hidden">{t.chrome.status}</span>
+          <span className="hidden sm:inline">{t.chrome.requestStatus}</span>
         </Link>
-        <SignOutButton className={`hidden lg:block ${ghostButton}`} />
+        <SignOutButton label={t.chrome.signOut} className={`hidden lg:block ${ghostButton}`} />
       </>
     );
   }
@@ -74,9 +78,9 @@ async function HeaderAuth() {
   return (
     <>
       <Link href="/dashboard" className={sunButton}>
-        Dashboard
+        {t.chrome.dashboard}
       </Link>
-      <SignOutButton className={`hidden lg:block ${ghostButton}`} />
+      <SignOutButton label={t.chrome.signOut} className={`hidden lg:block ${ghostButton}`} />
     </>
   );
 }
@@ -84,14 +88,15 @@ async function HeaderAuth() {
 /** "Seasonal Plan" — leaders and staff only. Sits beside "Our History". */
 async function LeaderNavLink({ mobile = false }: { mobile?: boolean }) {
   const profile = await getCurrentProfile();
+  const t = await getT();
   if (!profile || !isStaffRole(profile.role)) return null;
   return mobile ? (
     <Link href="/seasonal-plan" className={menuLink}>
-      Seasonal Plan
+      {t.chrome.nav.seasonalPlan}
     </Link>
   ) : (
     <NavLink href="/seasonal-plan" className={navLink}>
-      Seasonal Plan
+      {t.chrome.nav.seasonalPlan}
     </NavLink>
   );
 }
@@ -99,17 +104,18 @@ async function LeaderNavLink({ mobile = false }: { mobile?: boolean }) {
 /** Members-area links, for the desktop nav. Nothing for signed-out visitors. */
 async function StaffLinks() {
   const profile = await getCurrentProfile();
+  const t = await getT();
   if (!profile) return null;
   return (
     <>
       {isStageRole(profile.role) ? (
         <NavLink href="/dashboard/stage" className={navLink}>
-          Stage
+          {t.chrome.nav.stage}
         </NavLink>
       ) : null}
       {isSiteAdminRole(profile.role) ? (
         <NavLink href="/members" className={navLink}>
-          Members
+          {t.chrome.nav.members}
         </NavLink>
       ) : null}
     </>
@@ -119,11 +125,12 @@ async function StaffLinks() {
 /** The same, plus sign-in / sign-out, for the mobile menu. */
 async function MenuAuth() {
   const profile = await getCurrentProfile();
+  const t = await getT();
 
   if (!profile) {
     return (
       <Link href="/login" className={menuLink}>
-        Log in
+        {t.chrome.logIn}
       </Link>
     );
   }
@@ -132,9 +139,9 @@ async function MenuAuth() {
     return (
       <>
         <Link href="/pending" className={menuLink}>
-          Request status
+          {t.chrome.requestStatus}
         </Link>
-        <SignOutButton className={menuLink} />
+        <SignOutButton label={t.chrome.signOut} className={menuLink} />
       </>
     );
   }
@@ -142,28 +149,28 @@ async function MenuAuth() {
   return (
     <>
       <Link href="/dashboard" className={menuLink}>
-        Dashboard
+        {t.chrome.dashboard}
       </Link>
       {isStageRole(profile.role) ? (
         <Link href="/dashboard/stage" className={menuLink}>
-          Stage
+          {t.chrome.nav.stage}
         </Link>
       ) : null}
       {isSiteAdminRole(profile.role) ? (
         <Link href="/members" className={menuLink}>
-          Members
+          {t.chrome.nav.members}
         </Link>
       ) : null}
-      <SignOutButton className={menuLink} />
+      <SignOutButton label={t.chrome.signOut} className={menuLink} />
     </>
   );
 }
 
-function SignOutButton({ className }: { className: string }) {
+function SignOutButton({ className, label }: { className: string; label: string }) {
   return (
     <form action={signOutAction} className="contents">
       <button type="submit" className={className}>
-        Sign out
+        {label}
       </button>
     </form>
   );
@@ -174,26 +181,29 @@ function AuthPlaceholder() {
   return <div aria-hidden className="h-11 w-24 rounded-md bg-white/10" />;
 }
 
-export function SiteHeader() {
+export async function SiteHeader() {
+  const t = await getT();
+  const before = navBefore(t);
+  const after = navAfter(t);
   return (
     <header className="header-lift on-dark sticky top-0 z-50 w-full bg-forest">
       {/* Keyboard and screen-reader users can jump the navigation entirely.
           Visible only when focused. */}
       <a
         href="#main"
-        className="sr-only focus:not-sr-only focus:absolute focus:left-4 focus:top-3 focus:z-50
+        className="sr-only focus:not-sr-only focus:absolute focus:start-4 focus:top-3 focus:z-50
                    focus:rounded-md focus:bg-sun focus:px-4 focus:py-2
                    focus:text-sm focus:font-bold focus:text-forest"
       >
-        Skip to content
+        {t.chrome.skipToContent}
       </a>
 
       <div className="mx-auto flex h-[72px] max-w-[1200px] items-center justify-between gap-2 px-3 min-[380px]:px-5 sm:gap-4 sm:px-8">
         <BrandLogo />
 
-        <div className="flex items-center gap-2 sm:gap-4">
-          <nav aria-label="Main" className="hidden items-center gap-4 lg:flex xl:gap-5">
-            {NAV_BEFORE.map((item) => (
+        <div className="flex items-center gap-2 sm:gap-4 lg:gap-3 xl:gap-4">
+          <nav aria-label={t.chrome.nav.main} className="hidden items-center gap-3 lg:flex xl:gap-5">
+            {before.map((item) => (
               <NavLink key={item.href} href={item.href} className={navLink}>
                 {item.label}
               </NavLink>
@@ -201,7 +211,7 @@ export function SiteHeader() {
             <Suspense fallback={null}>
               <LeaderNavLink />
             </Suspense>
-            {NAV_AFTER.map((item) => (
+            {after.map((item) => (
               <NavLink key={item.href} href={item.href} className={navLink}>
                 {item.label}
               </NavLink>
@@ -211,12 +221,14 @@ export function SiteHeader() {
             </Suspense>
           </nav>
 
+          <LanguageSwitch compact className="hidden sm:inline-flex" />
+
           <Suspense fallback={<AuthPlaceholder />}>
             <HeaderAuth />
           </Suspense>
 
           <MobileMenu>
-            {NAV_BEFORE.map((item) => (
+            {before.map((item) => (
               <Link key={item.href} href={item.href} className={menuLink}>
                 {item.label}
               </Link>
@@ -224,7 +236,7 @@ export function SiteHeader() {
             <Suspense fallback={null}>
               <LeaderNavLink mobile />
             </Suspense>
-            {NAV_AFTER.map((item) => (
+            {after.map((item) => (
               <Link key={item.href} href={item.href} className={menuLink}>
                 {item.label}
               </Link>
@@ -232,6 +244,7 @@ export function SiteHeader() {
             <Suspense fallback={null}>
               <MenuAuth />
             </Suspense>
+            <LanguageSwitch className={`${menuLink} mt-2 border-t border-cream/15 pt-4`} />
           </MobileMenu>
         </div>
       </div>

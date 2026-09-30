@@ -3,7 +3,16 @@ import { Photo } from "@/components/gallery/photo";
 import type { GalleryAlbum } from "@/lib/cloudinary";
 
 /** One album on /gallery: cover photo, name, count. */
-export function AlbumCard({ album, priority }: { album: GalleryAlbum; priority?: boolean }) {
+export function AlbumCard({
+  album,
+  priority,
+  photoCount,
+}: {
+  album: GalleryAlbum;
+  priority?: boolean;
+  /** "12 photos", already in the page's language. */
+  photoCount: string;
+}) {
   return (
     <Link
       href={`/gallery/${encodeURIComponent(album.slug)}`}
@@ -33,12 +42,12 @@ export function AlbumCard({ album, priority }: { album: GalleryAlbum; priority?:
             {album.name}
           </span>
           <span className="block text-xs text-cream/85">
-            {album.photoCount} {album.photoCount === 1 ? "photo" : "photos"}
+            {photoCount}
           </span>
         </span>
         <span
           aria-hidden
-          className="grid size-8 shrink-0 place-items-center rounded-full bg-sun text-forest transition group-hover:translate-x-0.5"
+          className="grid size-8 shrink-0 place-items-center rounded-full bg-sun text-forest transition group-hover:translate-x-0.5 rtl:-scale-x-100 rtl:group-hover:-translate-x-0.5"
         >
           →
         </span>

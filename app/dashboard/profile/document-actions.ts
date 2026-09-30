@@ -7,6 +7,8 @@ import { getCurrentProfile } from "@/lib/dal";
 import { isStaffRole } from "@/lib/roles";
 import { nameSlug } from "@/lib/documents";
 import { incomingPrefix } from "@/lib/storage-paths";
+import { getLocale } from "@/lib/i18n/server";
+import { localizeState } from "@/lib/i18n/onboarding";
 import {
   ALLOWED_TYPES,
   MAX_UPLOAD_BYTES,
@@ -42,7 +44,7 @@ const EXTENSIONS: Record<string, string> = {
  *   • the content type is pinned into the signature
  *   • the URL expires in five minutes
  */
-export async function createUploadUrlAction(
+async function createUploadUrl(
   _prev: UploadTicket,
   formData: FormData,
 ): Promise<UploadTicket> {
@@ -115,7 +117,7 @@ export type OwnDocumentLink = {
  * Minted on click, not at page render — a URL signed while the page was being
  * built has often expired by the time anyone presses the button.
  */
-export async function getOwnDocumentUrlAction(
+async function getOwnDocumentUrl(
   _prev: OwnDocumentLink,
   formData: FormData,
 ): Promise<OwnDocumentLink> {
@@ -168,7 +170,7 @@ export async function getOwnDocumentUrlAction(
 }
 
 /** Removes the file from storage and forgets the key. */
-export async function removeDocumentAction(
+async function removeDocument(
   _prev: DocumentState,
 ): Promise<DocumentState> {
   const profile = await getCurrentProfile();
@@ -203,4 +205,27 @@ export async function removeDocumentAction(
 
   revalidatePath("/dashboard/profile");
   return { notice: "Document removed." };
+}
+
+/** createUploadUrl with its messages in the reader's language. */
+export async function createUploadUrlAction(
+  _prev: UploadTicket,
+  formData: FormData,
+): Promise<UploadTicket> {
+  return localizeState(await createUploadUrl(_prev, formData), await getLocale());
+}
+
+/** getOwnDocumentUrl with its messages in the reader's language. */
+export async function getOwnDocumentUrlAction(
+  _prev: OwnDocumentLink,
+  formData: FormData,
+): Promise<OwnDocumentLink> {
+  return localizeState(await getOwnDocumentUrl(_prev, formData), await getLocale());
+}
+
+/** removeDocument with its messages in the reader's language. */
+export async function removeDocumentAction(
+  _prev: DocumentState,
+): Promise<DocumentState> {
+  return localizeState(await removeDocument(_prev), await getLocale());
 }

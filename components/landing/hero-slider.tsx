@@ -10,6 +10,7 @@ import {
   type ReactNode,
 } from "react";
 import type { HeroSlide } from "@/lib/site-content";
+import { useT } from "@/lib/i18n/client";
 
 const INTERVAL_MS = 6000;
 const REDUCED = "(prefers-reduced-motion: reduce)";
@@ -65,6 +66,7 @@ export function HeroSlider({
     seen: slides.length > 1 ? [0, 1] : [0],
   });
   const goTo = (to: number) => go({ to, count: slides.length });
+  const t = useT();
   const reduced = useSyncExternalStore(
     subscribeReduced,
     () => window.matchMedia(REDUCED).matches,
@@ -78,10 +80,14 @@ export function HeroSlider({
     const el = bar.current;
     const item = el?.children[index] as HTMLElement | undefined;
     if (!el || !item) return;
-    const left = item.offsetLeft - el.offsetLeft;
-    const right = left + item.offsetWidth;
-    if (left < el.scrollLeft || right > el.scrollLeft + el.clientWidth) {
-      el.scrollTo({ left: left - 16, behavior: reduced ? "auto" : "smooth" });
+    // Measured on screen rather than with offsetLeft/scrollLeft, which
+    // count from the opposite side (and go negative) in right-to-left pages.
+    const box = el.getBoundingClientRect();
+    const r = item.getBoundingClientRect();
+    const rtl = getComputedStyle(el).direction === "rtl";
+    if (r.left < box.left || r.right > box.right) {
+      const delta = rtl ? r.right - box.right + 16 : r.left - box.left - 16;
+      el.scrollBy({ left: delta, behavior: reduced ? "auto" : "smooth" });
     }
   }, [index, reduced]);
 
@@ -129,8 +135,8 @@ export function HeroSlider({
           <div
             ref={bar}
             role="group"
-            aria-label="Choose a photo"
-            className="no-scrollbar mx-auto flex w-full max-w-[1200px] items-start snap-x snap-mandatory gap-4 overflow-x-auto scroll-px-4 px-4 pb-5 [mask-image:linear-gradient(to_right,transparent,#000_16px,#000_calc(100%-56px),transparent)] sm:gap-6 sm:px-8 sm:pb-7"
+            aria-label={t.home.choosePhoto}
+            className="no-scrollbar mx-auto flex w-full max-w-[1200px] items-start snap-x snap-mandatory gap-4 overflow-x-auto scroll-px-4 px-4 pb-5 [mask-image:linear-gradient(to_right,transparent,#000_16px,#000_calc(100%-56px),transparent)] rtl:[mask-image:linear-gradient(to_left,transparent,#000_16px,#000_calc(100%-56px),transparent)] sm:gap-6 sm:px-8 sm:pb-7"
           >
             {slides.map((slide, i) => {
               const active = i === index;
@@ -140,8 +146,8 @@ export function HeroSlider({
                   type="button"
                   onClick={() => goTo(i)}
                   aria-current={active ? "true" : undefined}
-                  aria-label={`${slide.label}: ${slide.title} — photo ${i + 1} of ${slides.length}`}
-                  className="group w-[44%] shrink-0 snap-start pt-3 text-left sm:w-[29%] lg:w-[calc((100%-5*1.5rem)/6)]"
+                  aria-label={t.home.slideLabel(slide.label, slide.title, i + 1, slides.length)}
+                  className="group w-[44%] shrink-0 snap-start pt-3 text-start sm:w-[29%] lg:w-[calc((100%-5*1.5rem)/6)]"
                 >
                   <span aria-hidden className="relative block h-[3px] overflow-hidden rounded-full bg-white/30">
                     {active ? (

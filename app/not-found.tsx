@@ -1,20 +1,21 @@
 import type { Metadata } from "next";
 import Link from "next/link";
 import { SiteShell } from "@/components/site-shell";
+import { getT } from "@/lib/i18n/server";
 
-export const metadata: Metadata = {
-  title: "Page not found",
-  robots: { index: false },
-};
-
-const LINKS = [
-  { href: "/history", label: "Our History" },
-  { href: "/stages", label: "Our Stages" },
-  { href: "/gallery", label: "Camp Gallery" },
-];
+export async function generateMetadata(): Promise<Metadata> {
+  const t = (await getT()).pages.notFound;
+  return { title: t.metaTitle, robots: { index: false } };
+}
 
 /** Shown for any address that doesn't exist, and for notFound() calls. */
-export default function NotFound() {
+export default async function NotFound() {
+  const t = (await getT()).pages.notFound;
+  const links = [
+    { href: "/history", label: t.history },
+    { href: "/stages", label: t.stages },
+    { href: "/gallery", label: t.gallery },
+  ];
   return (
     <SiteShell>
       <section className="mx-auto flex w-[calc(100%-40px)] max-w-[640px] flex-col items-center py-16 text-center sm:py-24">
@@ -22,28 +23,27 @@ export default function NotFound() {
           404
         </p>
         <h1 className="mt-4 text-[clamp(24px,4.5vw,32px)] leading-tight text-maroon">
-          This trail doesn&apos;t lead anywhere
+          {t.heading}
         </h1>
         <p className="mt-3 max-w-md text-[15px] leading-relaxed text-ink-muted">
-          The page may have moved, or the link may have a typo. Let&apos;s get
-          you back to camp.
+          {t.body}
         </p>
         <div className="mt-6 flex flex-wrap justify-center gap-3">
           <Link
             href="/"
             className="rounded-md bg-forest px-6 py-2.5 text-sm font-bold text-cream transition hover:opacity-90"
           >
-            Back to the homepage
+            {t.home}
           </Link>
           <Link
             href="/signup"
             className="rounded-md bg-sun px-6 py-2.5 text-sm font-bold text-forest transition hover:opacity-90"
           >
-            Join Us
+            {t.joinUs}
           </Link>
         </div>
         <ul className="mt-8 flex flex-wrap justify-center gap-x-5 gap-y-2 text-sm">
-          {LINKS.map((l) => (
+          {links.map((l) => (
             <li key={l.href}>
               <Link href={l.href} className="font-semibold text-maroon underline underline-offset-4 hover:opacity-75">
                 {l.label}

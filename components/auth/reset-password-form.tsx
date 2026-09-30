@@ -4,6 +4,7 @@ import { useActionState, useId } from "react";
 import { updatePasswordAction, type AuthState } from "@/app/auth/actions";
 import { Field, inputClass } from "@/components/ui/field";
 import { SubmitButton } from "@/components/ui/submit-button";
+import { useT } from "@/lib/i18n/client";
 
 const initialState: AuthState = {};
 
@@ -13,6 +14,7 @@ export function ResetPasswordForm() {
     initialState,
   );
   const id = useId();
+  const t = useT().auth.reset;
 
   return (
     <form action={formAction} className="space-y-5" noValidate>
@@ -26,9 +28,9 @@ export function ResetPasswordForm() {
       ) : null}
 
       <Field
-        label="New password"
+        label={t.newPassword}
         htmlFor={`${id}-password`}
-        hint="At least 10 characters."
+        hint={t.newPasswordHint}
         error={state.fieldErrors?.password}
       >
         <input
@@ -43,7 +45,7 @@ export function ResetPasswordForm() {
       </Field>
 
       <Field
-        label="Confirm new password"
+        label={t.confirm}
         htmlFor={`${id}-confirm`}
         error={state.fieldErrors?.confirmPassword}
       >
@@ -58,8 +60,8 @@ export function ResetPasswordForm() {
         />
       </Field>
 
-      <SubmitButton pending={pending} pendingLabel="Saving…">
-        Set new password
+      <SubmitButton pending={pending} pendingLabel={t.pending}>
+        {t.submit}
       </SubmitButton>
     </form>
   );

@@ -2,6 +2,7 @@ import Image from "next/image";
 import type { ReactNode } from "react";
 import { SiteShell } from "@/components/site-shell";
 import { FOUNDED, GROUP_PHOTO } from "@/lib/site-content";
+import { getT } from "@/lib/i18n/server";
 
 /**
  * Sign in, sign up, forgot and reset password.
@@ -11,8 +12,9 @@ import { FOUNDED, GROUP_PHOTO } from "@/lib/site-content";
  * homepage — so signing in feels like arriving somewhere, not filling in a
  * form in a void. On phones the photo is dropped and the form is the page.
  */
-export default function AuthLayout({ children }: { children: ReactNode }) {
+export default async function AuthLayout({ children }: { children: ReactNode }) {
   const photo = GROUP_PHOTO;
+  const t = (await getT()).auth;
   return (
     <SiteShell>
       <div className="lg:grid lg:min-h-[calc(100dvh-72px)] lg:grid-cols-[minmax(0,1fr)_minmax(0,1fr)]">
@@ -38,10 +40,9 @@ export default function AuthLayout({ children }: { children: ReactNode }) {
             />
             <div className="absolute inset-0 bg-linear-to-t from-forest via-forest/35 to-forest/5" />
             <div className="absolute inset-x-10 bottom-12 text-cream">
-              <p className="font-display text-4xl font-bold text-sun">Be prepared.</p>
+              <p className="font-display text-4xl font-bold text-sun">{t.layoutMotto}</p>
               <p className="mt-3 max-w-sm text-[15px] text-cream/85">
-                One of Egypt&apos;s oldest scout groups — scouting since{" "}
-                {FOUNDED}.
+                {t.layoutBlurb(FOUNDED)}
               </p>
             </div>
           </div>

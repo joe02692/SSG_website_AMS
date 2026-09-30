@@ -1,6 +1,7 @@
 "use client";
 
 import { useEffect, useRef } from "react";
+import { useT } from "@/lib/i18n/client";
 
 /**
  * A modal preview of one stored document — the birth certificate popup.
@@ -33,6 +34,7 @@ export function DocumentPreview({
   downloading?: boolean;
 }) {
   const dialogRef = useRef<HTMLDialogElement>(null);
+  const t = useT().account.documents;
 
   useEffect(() => {
     const dialog = dialogRef.current;
@@ -54,7 +56,7 @@ export function DocumentPreview({
   return (
     <dialog
       ref={dialogRef}
-      aria-label={`Birth certificate — ${title}`}
+      aria-label={t.previewLabel(title)}
       // Clicking the backdrop lands on the dialog itself; anything inside the
       // content div stops there, so only true backdrop clicks close it.
       onClick={(event) => {
@@ -66,13 +68,13 @@ export function DocumentPreview({
     >
       <div className="flex items-center gap-3 border-b border-line px-4 py-3">
         <div className="min-w-0">
-          <p className="truncate text-sm font-semibold text-ink">{title}</p>
+          <p className="truncate text-sm font-semibold text-ink"><bdi>{title}</bdi></p>
           <p className="text-xs text-ink-subtle">
-            This link expires in about a minute.
+            {t.expires}
           </p>
         </div>
 
-        <div className="ml-auto flex shrink-0 items-center gap-2">
+        <div className="ms-auto flex shrink-0 items-center gap-2">
           {onDownload ? (
             <button
               type="button"
@@ -81,17 +83,17 @@ export function DocumentPreview({
               className="rounded-lg bg-brand-600 px-3 py-1.5 text-xs font-semibold text-white
                          transition hover:bg-brand-700 disabled:opacity-60"
             >
-              {downloading ? "…" : "Download"}
+              {downloading ? "…" : t.download}
             </button>
           ) : null}
           <button
             type="button"
             onClick={() => dialogRef.current?.close()}
-            aria-label="Close"
+            aria-label={t.close}
             className="rounded-lg border border-line px-2.5 py-1.5 text-xs font-medium text-ink-muted
                        transition hover:border-brand-300 hover:text-ink"
           >
-            Close
+            {t.close}
           </button>
         </div>
       </div>
@@ -104,7 +106,7 @@ export function DocumentPreview({
              the file between the browser and Backblaze. */
           <img
             src={url}
-            alt={`Birth certificate for ${title}`}
+            alt={t.previewAlt(title)}
             className="mx-auto max-h-full w-auto rounded-lg"
           />
         ) : null}
@@ -112,7 +114,7 @@ export function DocumentPreview({
         {url && kind === "pdf" ? (
           <iframe
             src={url}
-            title={`Birth certificate for ${title}`}
+            title={t.previewAlt(title)}
             className="h-[70vh] w-full rounded-lg border border-line bg-white"
           />
         ) : null}
