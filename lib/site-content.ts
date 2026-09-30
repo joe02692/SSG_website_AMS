@@ -31,6 +31,17 @@ import slide09 from "@/public/images/slide-09.jpg";
 import slide10 from "@/public/images/slide-10.jpg";
 import slide11 from "@/public/images/slide-11.jpg";
 import slide12 from "@/public/images/slide-12.jpg";
+import slide13 from "@/public/images/slide-13.jpg";
+import slide14 from "@/public/images/slide-14.jpg";
+import slide15 from "@/public/images/slide-15.jpg";
+import slide16 from "@/public/images/slide-16.jpg";
+import slide17 from "@/public/images/slide-17.jpg";
+import slide18 from "@/public/images/slide-18.jpg";
+import slide19 from "@/public/images/slide-19.jpg";
+import slide20 from "@/public/images/slide-20.jpg";
+import slide21 from "@/public/images/slide-21.jpg";
+import slide22 from "@/public/images/slide-22.jpg";
+import slide23 from "@/public/images/slide-23.jpg";
 import activity1 from "@/public/images/activity-1.jpg";
 import activity2 from "@/public/images/activity-2.jpg";
 import activity3 from "@/public/images/activity-3.jpg";
@@ -58,6 +69,7 @@ export type HeroSlide = Photo & {
   /** CSS object-position — which part of the photo to keep when the hero is
    *  wider than the photo. Default "50% 35%". */
   focus?: string;
+
 };
 
 /**
@@ -81,8 +93,29 @@ export const HERO_SLIDES: HeroSlide[] = [
   { src: slide09, label: "Patrols", title: "Patrol circle on the grass", alt: "Young guides sitting in a circle on the grass for a patrol meeting" },
   { src: slide10, focus: "50% 15%", label: "Leaders", title: "The team behind it all", alt: "Young leaders posing as a team under a tree, one sitting on another's shoulders" },
   { src: slide11, label: "Cubs", title: "Best friends, matching bracelets", alt: "Two young cubs hugging and showing off matching bead bracelets" },
-  { src: slide12, label: "Seniors", title: "Golden hour on the garden wall", alt: "Senior guides sitting together along a garden wall at golden hour" },
+  { src: slide12, label: "Seniors", title: "Golden hour on the garden wall", alt: "Senior guides sitting together along a garden wall at golden hour" },  // Added 30 Sep 2026 from the group's own photos, full resolution: turned
+  // to sRGB (several were Adobe RGB or iPhone Display P3), resized to 3840px
+  // wide — the largest size the site ever serves — and stripped of EXIF/GPS.
+  { src: slide13, focus: "50% 40%", label: "Closing Ceremony", title: "Closing ceremony 2025 — a generation hands over to the next", alt: "Leaders and rovers celebrating on stage behind giant SCOUTS letters at the 2025 closing ceremony" },
+  { src: slide14, focus: "50% 40%", label: "Ramadan", title: "Welcome signs for the group iftar", alt: "Cubs and a leader holding hand-lettered Arabic welcome signs at the group's Ramadan iftar" },
+  { src: slide15, focus: "50% 60%", label: "Trips", title: "Guides at Luxor Temple", alt: "A large group of guides and their leaders posing in front of the giant statues of Luxor Temple" },
+  { src: slide16, focus: "45% 40%", label: "Trips", title: "Golden hour on the Nile", alt: "A scout in a wide-brimmed hat looking out from a boat on the Nile at sunset" },
+  { src: slide17, focus: "55% 45%", label: "Trips", title: "Waving from the Nile boat", alt: "Scouts and leaders cheering and waving from the bow of a white Nile boat" },
+  { src: slide18, focus: "50% 60%", label: "The whole group", title: "Every stage in one picture", alt: "A panoramic photo of the whole group, from the youngest cubs to the rovers, making the scout sign in a palm garden" },
+  { src: slide19, focus: "47% 45%", label: "Leaders", title: "A bracelet for a new friend", alt: "A smiling guide leader ties a bead bracelet on a young girl's wrist as they sit on the grass" },
+  { src: slide20, focus: "50% 45%", label: "Closing Ceremony", title: "Closing ceremony 2024", alt: "Leaders and rovers gathered in front of the big screen at the 2024 closing ceremony" },
+  { src: slide21, focus: "50% 70%", label: "Rovers", title: "A night of colour", alt: "Rovers and scouts covered in coloured powder, grinning together at night" },
+  { src: slide22, focus: "50% 60%", label: "The whole group", title: "All together under the clouds", alt: "The whole group lined up for a photo in a green garden under a cloudy sky" },
+  { src: slide23, focus: "50% 55%", label: "Trips", title: "Scouts at the Pyramids", alt: "Young scouts making the scout sign with the Pyramids of Giza behind them" },
 ];
+
+/**
+ * Slides taken out of the slideshow for now (30 Sep 2026), by their number
+ * in HERO_SLIDES above (1 = slide-01). They stay listed — and their Arabic
+ * stays in lib/i18n/content.ts — so bringing one back is just deleting its
+ * number here.
+ */
+export const HIDDEN_SLIDES: number[] = [1, 2, 4, 5, 7, 9, 11];
 
 export const STATS = [
   { value: "4", label: "Branches" },

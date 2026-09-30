@@ -109,7 +109,7 @@ export function HeroSlider({
                 alt={slide.alt}
                 fill
                 priority={i === 0}
-                sizes="100vw"
+                sizes={coverSizes(slide.src.width / slide.src.height)}
                 quality={90}
                 placeholder="blur"
                 style={{ objectPosition: slide.focus ?? "50% 35%" }}
@@ -167,4 +167,19 @@ export function HeroSlider({
       ) : null}
     </>
   );
+}
+
+/**
+ * The `sizes` for a photo that COVERS the hero.
+ *
+ * "100vw" is only right when the photo is cropped top and bottom. On a phone
+ * held upright — or for a very wide photo like the panorama — it is cropped
+ * at the sides instead, and drawn at (hero height × its aspect ratio), much
+ * wider than the screen. Told "100vw", the browser fetched a 1200px file for
+ * a photo drawn over 3000 device pixels wide, which is why it looked soft.
+ * The hero is at most ~92% of the viewport's height.
+ */
+function coverSizes(aspect: number): string {
+  const drawn = aspect * 0.92; // photo width in viewport heights when height-bound
+  return `(max-aspect-ratio: ${Math.round(drawn * 1000)}/1000) ${Math.ceil(drawn * 100)}vh, 100vw`;
 }
