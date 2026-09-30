@@ -1,13 +1,20 @@
 import Link from "next/link";
 import { BrandLogo } from "@/components/brand-logo";
 import { CONTACT, FOUNDED } from "@/lib/site-content";
-import { FacebookIcon, InstagramIcon, PhoneIcon } from "@/components/landing/contact-icons";
-import { getT } from "@/lib/i18n/server";
+import {
+  FacebookIcon,
+  InstagramIcon,
+  LinkedInIcon,
+  PhoneIcon,
+  SoundCloudIcon,
+} from "@/components/landing/contact-icons";
+import { getLocale, getT } from "@/lib/i18n/server";
 
 const linkClass = "text-cream/80 transition hover:text-sun";
 
 export async function SiteFooter() {
   const t = await getT();
+  const locale = await getLocale();
   const f = t.chrome.footer;
   const explore = [
     { href: "/history", label: f.ourHistory },
@@ -82,6 +89,34 @@ export async function SiteFooter() {
               <a href={CONTACT.facebook.url} target="_blank" rel="noopener noreferrer" className={`${linkClass} inline-flex items-center gap-2`}>
                 <FacebookIcon className="size-4" />
                 {f.facebook}<span className="sr-only">{t.chrome.opensNewTab}</span>
+              </a>
+            </li>
+            <li>
+              <a href={CONTACT.linkedin.url} target="_blank" rel="noopener noreferrer" className={`${linkClass} inline-flex items-center gap-2`}>
+                <LinkedInIcon className="size-4" />
+                {f.linkedin}<span className="sr-only">{t.chrome.opensNewTab}</span>
+              </a>
+            </li>
+            <li>
+              <a href={CONTACT.soundcloud.url} target="_blank" rel="noopener noreferrer" className={`${linkClass} inline-flex items-center gap-2`}>
+                <SoundCloudIcon className="size-4" />
+                {f.soundcloud}<span className="sr-only">{t.chrome.opensNewTab}</span>
+              </a>
+            </li>
+            <li>
+              {/* The World Organization of the Scout Movement, which the
+                  Egyptian federation — and so El-Salam — belongs to. */}
+              <a
+                href={locale === "ar" ? "https://www.scout.org/ar" : "https://www.scout.org"}
+                target="_blank"
+                rel="noopener noreferrer"
+                className={`${linkClass} inline-flex items-center gap-2`}
+              >
+                <svg aria-hidden viewBox="0 0 20 20" className="size-4 shrink-0" fill="none" stroke="currentColor" strokeWidth="1.6">
+                  <circle cx="10" cy="10" r="8" />
+                  <path d="M2 10h16M10 2c2.2 2.2 3.2 4.8 3.2 8s-1 5.8-3.2 8c-2.2-2.2-3.2-4.8-3.2-8s1-5.8 3.2-8z" />
+                </svg>
+                {f.wosm}<span className="sr-only">{t.chrome.opensNewTab}</span>
               </a>
             </li>
           </ul>

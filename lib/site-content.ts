@@ -51,6 +51,9 @@ import activity6 from "@/public/images/activity-6.jpg";
 
 export const FOUNDED = 1977;
 
+/** The Al Rehab branch (Al Rehab Sports Club) — confirmed by Zyad, 30 Sep 2026. */
+export const REHAB_FOUNDED = 2010;
+
 export type Photo = { src: StaticImageData; alt: string };
 export type Album = Photo & { name: string };
 
@@ -110,12 +113,13 @@ export const HERO_SLIDES: HeroSlide[] = [
 ];
 
 /**
- * Slides taken out of the slideshow for now (30 Sep 2026), by their number
+ * Slides taken out of the slideshow for now (30 Sep 2026; 22 — the garden
+ * under the clouds — added the same day), by their number
  * in HERO_SLIDES above (1 = slide-01). They stay listed — and their Arabic
  * stays in lib/i18n/content.ts — so bringing one back is just deleting its
  * number here.
  */
-export const HIDDEN_SLIDES: number[] = [1, 2, 4, 5, 7, 9, 11];
+export const HIDDEN_SLIDES: number[] = [1, 2, 4, 5, 7, 9, 11, 22];
 
 export const STATS = [
   { value: "4", label: "Branches" },
@@ -173,6 +177,12 @@ export const MILESTONES: {
     title: "Founded in Tanta",
     body: "El-Salam Scout Group is founded in Tanta — still the group's oldest home — and sets out to spread Scouting well beyond one city.",
     icon: "sprout",
+  },
+  {
+    year: REHAB_FOUNDED,
+    title: "Al Rehab branch opens",
+    body: "El-Salam opens its branch at Al Rehab Sports Club, bringing the group to a new generation of scouts east of Cairo.",
+    icon: "house",
   },
   {
     year: 2026,
@@ -347,5 +357,11 @@ export const CONTACT = {
   facebook: {
     label: "El-Salam Scouts · Al Rehab",
     url: "https://www.facebook.com/share/1CAy5asLoZ/",
+  },
+  linkedin: {
+    url: "https://www.linkedin.com/company/elsalam-scout-groups/",
+  },
+  soundcloud: {
+    url: "https://on.soundcloud.com/jM1XiXJjvlOwUbTR2j",
   },
 };

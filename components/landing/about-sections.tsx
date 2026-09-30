@@ -1,7 +1,7 @@
 import Image from "next/image";
 import { SectionHeading } from "@/components/landing/section-heading";
 import { GoalIcon } from "@/components/landing/about-icons";
-import { FOUNDED } from "@/lib/site-content";
+import { FOUNDED, REHAB_FOUNDED } from "@/lib/site-content";
 import { getLocale, getT } from "@/lib/i18n/server";
 import {
   localizedAboutPoints,
@@ -11,7 +11,9 @@ import {
   localizedSeason,
   localizedWider,
 } from "@/lib/i18n/content";
-import teamPhoto from "@/public/images/slide-10.jpg";
+// The Al Rehab branch in its early days, with the group banner at Al Rehab
+// Sports Club (sent by Zyad, 30 Sep 2026).
+import teamPhoto from "@/public/images/rehab-2010.jpg";
 
 /**
  * The homepage's three "who we are" sections — About us, Our goals and About
@@ -77,10 +79,10 @@ export async function AboutUs() {
             placeholder="blur"
             sizes="(min-width: 1024px) 520px, 100vw"
             quality={90}
-            className="object-cover object-[50%_20%]"
+            className="object-cover object-[50%_62%]"
           />
           <span className="absolute start-3 top-3 rounded-full bg-sun px-3 py-1 text-sm font-bold text-forest shadow">
-            {t.since(FOUNDED)}
+            {t.rehabSince(REHAB_FOUNDED)}
           </span>
         </div>
         <div className="rounded-2xl border-2 border-line bg-surface-raised p-5">

@@ -1,5 +1,11 @@
 import { SectionHeading } from "@/components/landing/section-heading";
-import { FacebookIcon, InstagramIcon, PhoneIcon } from "@/components/landing/contact-icons";
+import {
+  FacebookIcon,
+  InstagramIcon,
+  LinkedInIcon,
+  PhoneIcon,
+  SoundCloudIcon,
+} from "@/components/landing/contact-icons";
 import { CONTACT } from "@/lib/site-content";
 import { getT } from "@/lib/i18n/server";
 
@@ -35,6 +41,24 @@ export async function ContactUs() {
       Icon: FacebookIcon,
       external: true,
     },
+    {
+      href: CONTACT.linkedin.url,
+      label: t.linkedin,
+      value: t.linkedinName,
+      valueDir: "auto" as const,
+      hint: t.linkedinHint,
+      Icon: LinkedInIcon,
+      external: true,
+    },
+    {
+      href: CONTACT.soundcloud.url,
+      label: t.soundcloud,
+      value: t.soundcloudName,
+      valueDir: "auto" as const,
+      hint: t.soundcloudHint,
+      Icon: SoundCloudIcon,
+      external: true,
+    },
   ];
   return (
     <section
@@ -47,7 +71,7 @@ export async function ContactUs() {
         title={t.title}
         subtitle={t.subtitle}
       />
-      <ul className="mt-6 grid gap-4 md:grid-cols-3">
+      <ul className="mt-6 grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
         {cards.map(({ href, label, value, valueDir, hint, Icon, external }) => (
           <li key={label}>
             <a

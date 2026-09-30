@@ -8,7 +8,7 @@ import { AboutScouting, AboutUs, OurGoals } from "@/components/landing/about-sec
 import { ContactUs } from "@/components/landing/contact-us";
 import { FOUNDED, STAGES } from "@/lib/site-content";
 import { getLocale, getT } from "@/lib/i18n/server";
-import { localizedSlides, localizedStats } from "@/lib/i18n/content";
+import { localizedSlides, localizedStats, shuffled } from "@/lib/i18n/content";
 import historyPhoto from "@/public/images/hero-2.jpg";
 import stagesPhoto from "@/public/images/activity-2.jpg";
 import activitiesPhoto from "@/public/images/activity-4.jpg";
@@ -61,7 +61,7 @@ export default async function HomePage() {
           it fills the screen below the 72px header, but never goes wider
           than about 1.6:1. Phones get most of the screen. */}
       <section className="relative flex h-[clamp(480px,82svh,720px)] w-full flex-col overflow-hidden bg-forest lg:h-[clamp(560px,min(calc(100svh_-_72px),62vw),1000px)]">
-        <HeroSlider slides={localizedSlides(locale)}>
+        <HeroSlider slides={shuffled(localizedSlides(locale))}>
           <h1>
             <span className="mb-2 block font-sans text-[clamp(0.95rem,3.4vw,28px)] leading-none tracking-[-0.02em] text-white [text-shadow:0_1px_10px_rgb(0_0_0/0.45)]">
               {h.heroTagline}

@@ -87,6 +87,17 @@ const SLIDES_AR = [
   { label: "الرحلات", title: "الكشافة عند الأهرامات", alt: "كشافة صغار يؤدّون التحية الكشفية والأهرامات خلفهم" },
 ];
 
+/** A fresh random order on every visit (Fisher–Yates), so returning
+ *  visitors don't always open on the same photo. */
+export function shuffled<T>(items: T[]): T[] {
+  const out = [...items];
+  for (let i = out.length - 1; i > 0; i--) {
+    const j = Math.floor(Math.random() * (i + 1));
+    [out[i], out[j]] = [out[j], out[i]];
+  }
+  return out;
+}
+
 export function localizedSlides(locale: Locale) {
   // Translated first, filtered second, so each slide keeps its own Arabic.
   return HERO_SLIDES.map((slide, i) => ({ ...slide, ...over(locale, SLIDES_AR[i]) })).filter(
@@ -186,6 +197,10 @@ const MILESTONES_AR: Record<number, { title: string; body: string }> = {
   1977: {
     title: "التأسيس في طنطا",
     body: "تأسست مجموعة السلام الكشفية في طنطا — بيتها الأقدم حتى اليوم — وانطلقت لنشر الحركة الكشفية إلى ما هو أبعد من مدينة واحدة.",
+  },
+  2010: {
+    title: "افتتاح فرع الرحاب",
+    body: "افتتحت مجموعة السلام فرعها في نادي الرحاب الرياضي، لتصل الحركة الكشفية إلى جيل جديد من الكشافة شرق القاهرة.",
   },
   2026: {
     title: "التحول الرقمي",
