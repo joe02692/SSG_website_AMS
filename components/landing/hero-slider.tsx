@@ -136,7 +136,7 @@ export function HeroSlider({
             ref={bar}
             role="group"
             aria-label={t.home.choosePhoto}
-            className="no-scrollbar mx-auto flex w-full max-w-[1200px] items-start snap-x snap-mandatory gap-4 overflow-x-auto scroll-px-4 px-4 pb-5 [mask-image:linear-gradient(to_right,transparent,#000_16px,#000_calc(100%-56px),transparent)] rtl:[mask-image:linear-gradient(to_left,transparent,#000_16px,#000_calc(100%-56px),transparent)] sm:gap-6 sm:px-8 sm:pb-7"
+            className="no-scrollbar mx-auto flex w-full max-w-[1200px] items-start snap-x snap-mandatory gap-4 overflow-x-auto scroll-px-4 px-4 pb-3 [mask-image:linear-gradient(to_right,transparent,#000_16px,#000_calc(100%-56px),transparent)] rtl:[mask-image:linear-gradient(to_left,transparent,#000_16px,#000_calc(100%-56px),transparent)] sm:gap-6 sm:px-8 sm:pb-4"
           >
             {slides.map((slide, i) => {
               const active = i === index;
@@ -147,9 +147,9 @@ export function HeroSlider({
                   onClick={() => goTo(i)}
                   aria-current={active ? "true" : undefined}
                   aria-label={t.home.slideLabel(slide.label, slide.title, i + 1, slides.length)}
-                  className="group w-[44%] shrink-0 snap-start pt-3 text-start sm:w-[29%] lg:w-[calc((100%-5*1.5rem)/6)]"
+                  className="group w-[44%] shrink-0 snap-start py-3 text-start sm:w-[29%] lg:w-[calc((100%-5*1.5rem)/6)]"
                 >
-                  <span aria-hidden className="relative block h-[3px] overflow-hidden rounded-full bg-white/30">
+                  <span aria-hidden className="relative block h-[3px] overflow-hidden rounded-full bg-white/30 transition-colors group-hover:bg-white/55">
                     {active ? (
                       <span
                         key={index}
@@ -158,20 +158,6 @@ export function HeroSlider({
                         onAnimationEnd={() => goTo(index + 1)}
                       />
                     ) : null}
-                  </span>
-                  <span
-                    className={`mt-3 block text-[11px] font-bold tracking-wide sm:text-xs ${
-                      active ? "text-sun" : "text-white/75 group-hover:text-white"
-                    }`}
-                  >
-                    {slide.label}
-                  </span>
-                  <span
-                    className={`mt-1 line-clamp-2 text-[13px] leading-snug sm:text-sm ${
-                      active ? "text-white" : "text-white/65 group-hover:text-white/90"
-                    }`}
-                  >
-                    {slide.title}
                   </span>
                 </button>
               );

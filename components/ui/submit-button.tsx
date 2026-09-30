@@ -2,7 +2,7 @@
 
 import { useT } from "@/lib/i18n/client";
 
-/** The design's primary action: full-width forest bar, cream Fustat label. */
+/** The design's primary action: full-width forest bar, cream bold label. */
 export function SubmitButton({
   pending,
   children,

@@ -13,7 +13,6 @@ const en = {
   welcome: "Welcome",
   intro:
     "One of Egypt's oldest scout groups, from Tanta to Al Rehab and Madinaty. We hike, camp, serve our community — and grow up a little braver for it.",
-  registrationOpen: "New season registration is currently available",
   about: {
     title: "About Us",
     subtitle: (year: number) => `One of Egypt's oldest scout groups — since ${year}`,
@@ -88,7 +87,6 @@ const ar: typeof en = {
   welcome: "أهلًا بكم",
   intro:
     "من أعرق المجموعات الكشفية في مصر، من طنطا إلى الرحاب ومدينتي. نخرج في الرحلات، ونقيم المخيمات، ونخدم مجتمعنا — ونكبر مع كل تجربة أكثر شجاعة.",
-  registrationOpen: "التسجيل للموسم الجديد متاح الآن",
   about: {
     title: "من نحن",
     subtitle: (year) => `من أعرق المجموعات الكشفية في مصر — منذ عام ${year}`,

@@ -1,5 +1,5 @@
 import type { Metadata, Viewport } from "next";
-import { Fustat, Geologica } from "next/font/google";
+import { Noto_Sans, Noto_Sans_Arabic } from "next/font/google";
 import { Analytics } from "@vercel/analytics/next";
 import { SITE_URL } from "@/lib/site-url";
 import { I18nProvider } from "@/lib/i18n/client";
@@ -7,17 +7,19 @@ import { dirOf } from "@/lib/i18n/config";
 import { getLocale, getT } from "@/lib/i18n/server";
 import "./globals.css";
 
-// Body text. Latin only — Geologica has no Arabic glyphs at all.
-const geologica = Geologica({
-  variable: "--font-geologica",
+// The same type family World Scouting uses on scout.org: Noto Sans for Latin
+// text and Noto Sans Arabic for Arabic. (scout.org's headline face, "Scouts GT
+// Planar", is a custom font licensed to WOSM only, so headings here use Noto
+// Sans in bold instead.) Both are variable fonts, so every weight is one file.
+const notoSans = Noto_Sans({
+  variable: "--font-noto",
   subsets: ["latin"],
   display: "swap",
 });
 
-// Headings in English, and ALL Arabic text: Fustat is the site's Arabic face.
-const fustat = Fustat({
-  variable: "--font-fustat",
-  subsets: ["latin", "arabic"],
+const notoSansArabic = Noto_Sans_Arabic({
+  variable: "--font-noto-arabic",
+  subsets: ["arabic"],
   display: "swap",
 });
 
@@ -59,7 +61,7 @@ export default async function RootLayout({ children }: LayoutProps<"/">) {
     <html
       lang={locale}
       dir={dirOf(locale)}
-      className={`${geologica.variable} ${fustat.variable} h-full antialiased`}
+      className={`${notoSans.variable} ${notoSansArabic.variable} h-full antialiased`}
     >
       <body className="flex min-h-full flex-col font-sans">
         <I18nProvider locale={locale}>{children}</I18nProvider>

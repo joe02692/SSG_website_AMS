@@ -202,7 +202,7 @@ export async function SiteHeader() {
         <BrandLogo />
 
         <div className="flex items-center gap-2 sm:gap-4 lg:gap-3 xl:gap-4">
-          <nav aria-label={t.chrome.nav.main} className="hidden items-center gap-3 lg:flex xl:gap-5">
+          <nav aria-label={t.chrome.nav.main} className="hidden items-center gap-2.5 lg:flex xl:gap-5">
             {before.map((item) => (
               <NavLink key={item.href} href={item.href} className={navLink}>
                 {item.label}

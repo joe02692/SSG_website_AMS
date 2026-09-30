@@ -114,23 +114,6 @@ export default async function HomePage() {
         </dl>
       </section>
 
-      {/* ------------------------------------------------------ Register banner */}
-      <section className="mx-auto mt-8 flex w-[calc(100%-40px)] max-w-[1100px] flex-col items-center gap-4 rounded-2xl bg-sun px-6 py-6 text-center text-forest sm:flex-row sm:justify-between sm:px-8 sm:text-start">
-        <p className="flex items-center gap-3 text-[clamp(16px,2vw,19px)] font-medium leading-tight">
-          <span aria-hidden className="relative flex size-3 shrink-0">
-            <span className="absolute inline-flex size-full animate-ping rounded-full bg-leaf opacity-60 motion-reduce:hidden" />
-            <span className="relative inline-flex size-3 rounded-full bg-leaf" />
-          </span>
-          {h.registrationOpen}
-        </p>
-        <Link
-          href="/signup"
-          className="shrink-0 rounded-md bg-leaf px-6 py-2.5 text-sm font-bold text-white transition hover:bg-brand-700"
-        >
-          {h.joinUs}
-        </Link>
-      </section>
-
       {/* ------------------------------ About us · Our goals · About Scouting */}
       <AboutUs />
       <OurGoals />

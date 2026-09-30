@@ -63,12 +63,12 @@
   --color-accent-500: #ffdd32;
   --color-accent-600: #7a5d00; /* text colour for the small "badge" chips */
 
-  /* Geologica for text, Fustat for display. Geologica has no Arabic glyphs,
-     so Fustat — which does — is second in the body stack: the browser falls
-     back per character, so "مجموعة السلام الكشفية" renders in Fustat inside
-     an otherwise-Geologica sentence without anyone marking it up. */
-  --font-sans: var(--font-geologica), var(--font-fustat), ui-sans-serif, system-ui, sans-serif;
-  --font-display: var(--font-fustat), var(--font-geologica), ui-sans-serif, system-ui, sans-serif;
+  /* Noto Sans + Noto Sans Arabic, as on scout.org. Noto Sans has no Arabic
+     glyphs, so Noto Sans Arabic is second in the stack: the browser falls
+     back per character, so "مجموعة السلام الكشفية" inside an English
+     sentence renders in Noto Sans Arabic without anyone marking it up. */
+  --font-sans: var(--font-noto), var(--font-noto-arabic), ui-sans-serif, system-ui, sans-serif;
+  --font-display: var(--font-noto), var(--font-noto-arabic), ui-sans-serif, system-ui, sans-serif;
 }
 
 /* ---------------------------------------------------------------------------
@@ -158,6 +158,9 @@ body {
    the logged-in pages read as the same site as the homepage. */
 :where(h1, h2, h3) {
   font-family: var(--font-display);
+  /* Bold, as scout.org sets its headings. :where() keeps this at zero
+     specificity, so a heading's own font-* class still wins. */
+  font-weight: 700;
 }
 
 /* One focus ring for the whole app. :focus-visible means mouse users never
@@ -383,11 +386,11 @@ dialog.lightbox[open]::backdrop {
 /* ---------------------------------------------------------------------------
    Arabic (html[lang="ar"], dir="rtl").
    --------------------------------------------------------------------------- */
-/* Fustat carries Arabic; Geologica has no Arabic glyphs, so body text uses
-   Fustat first in Arabic rather than falling back letter by letter. */
+/* Arabic pages put Noto Sans Arabic first, so its own punctuation and
+   spacing are used; Latin words and digits still come from Noto Sans. */
 html[lang="ar"] {
-  --font-sans: var(--font-fustat), ui-sans-serif, system-ui, sans-serif;
-  --font-display: var(--font-fustat), ui-sans-serif, system-ui, sans-serif;
+  --font-sans: var(--font-noto-arabic), var(--font-noto), ui-sans-serif, system-ui, sans-serif;
+  --font-display: var(--font-noto-arabic), var(--font-noto), ui-sans-serif, system-ui, sans-serif;
 }
 /* Letter-spacing pulls joined Arabic letters apart, and Arabic has no
    capitals for `uppercase` to act on — so both are switched off. */
