@@ -9,6 +9,7 @@ import {
 import { ASSIGNABLE_ROLES } from "@/lib/roles";
 import { useT } from "@/lib/i18n/client";
 import { fill } from "@/lib/i18n/fill";
+import { StageAdminStage, type StageAdminsByStage } from "@/components/members/stage-admin-stage";
 
 const initialState: ReviewState = {};
 
@@ -26,9 +27,14 @@ const APPROVAL_ROLES = ASSIGNABLE_ROLES.filter((role) => role !== "scout");
 export function RequestReview({
   memberId,
   name,
+  requestedStage = "",
+  stageAdmins = {},
 }: {
   memberId: string;
   name: string;
+  /** The stage they asked for at signup — the stage picker's starting value. */
+  requestedStage?: string;
+  stageAdmins?: StageAdminsByStage;
 }) {
   const [approveState, approve, approving] = useActionState(
     approveRequestAction,
@@ -39,6 +45,8 @@ export function RequestReview({
     initialState,
   );
   const [armed, setArmed] = useState(false);
+  const [role, setRole] = useState<string>("stage_leader");
+  const [stage, setStage] = useState(requestedStage);
   const all = useT();
   const t = all.members.controls;
 
@@ -77,16 +85,26 @@ export function RequestReview({
           <input type="hidden" name="memberId" value={memberId} />
           <select
             name="role"
-            defaultValue="stage_leader"
+            value={role}
+            onChange={(event) => setRole(event.target.value)}
             aria-label={t.roleToGive(name)}
             className="rounded-lg border border-line-strong bg-surface-raised px-2 py-1 text-xs text-ink"
           >
-            {APPROVAL_ROLES.map((role) => (
-              <option key={role} value={role}>
-                {all.roles.labels[role]}
+            {APPROVAL_ROLES.map((r) => (
+              <option key={r} value={r}>
+                {all.roles.labels[r]}
               </option>
             ))}
           </select>
+          {role === "stage_admin" ? (
+            <StageAdminStage
+              memberId={memberId}
+              name={name}
+              value={stage}
+              onChange={setStage}
+              stageAdmins={stageAdmins}
+            />
+          ) : null}
           <button
             type="submit"
             disabled={approving}

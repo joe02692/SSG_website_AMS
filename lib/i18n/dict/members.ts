@@ -98,6 +98,19 @@ const en = {
     view: "View",
     download: "Download",
   },
+  stageAdmins: {
+    stage: "Stage",
+    chooseStage: "Choose a stage…",
+    stageFor: (name: string) => `Stage for ${name}`,
+    /** "{name}" is replaced by the admins' names on screen. */
+    full: (stage: string) =>
+      `Heads up: ${stage} already has 2 stage admins ({name}). The group's limit is 2 per stage.`,
+    fullShort: "Already has 2 stage admins",
+    of: (stage: string) => `of ${stage}`,
+    noStage: "no stage set",
+    chooseStageError: "Choose the stage this stage admin will run.",
+    migrationMissing: "Run migration 0022 in Supabase to assign stages to stage admins.",
+  },
   results: {
     nowRole: (name: string | null, role: string) => `${name ?? "That member"} is now a ${role}.`,
     alreadyRole: (name: string | null, role: string) => `${name ?? "They"} is already a ${role}.`,
@@ -203,6 +216,18 @@ const ar: typeof en = {
     createLink: "إنشاء الرابط",
     view: "عرض",
     download: "تنزيل",
+  },
+  stageAdmins: {
+    stage: "المرحلة",
+    chooseStage: "اختر مرحلة…",
+    stageFor: (name) => `مرحلة ${name}`,
+    full: (stage) =>
+      `تنبيه: مرحلة ${stage} لديها بالفعل مسؤولا مرحلة ({name}). الحد في المجموعة مسؤولان لكل مرحلة.`,
+    fullShort: "لديها مسؤولا مرحلة بالفعل",
+    of: (stage) => `— ${stage}`,
+    noStage: "بلا مرحلة",
+    chooseStageError: "اختر المرحلة التي سيديرها مسؤول المرحلة.",
+    migrationMissing: "شغّل ملف الترحيل 0022 في Supabase لتحديد مراحل مسؤولي المراحل.",
   },
   results: {
     nowRole: (name, role) => `أصبح دور ${name ?? "هذا العضو"} الآن: ${role}.`,

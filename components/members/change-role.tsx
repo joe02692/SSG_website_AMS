@@ -4,6 +4,7 @@ import { useActionState, useState } from "react";
 import { changeRoleAction, type ReviewState } from "@/app/members/actions";
 import { ASSIGNABLE_ROLES, type Role } from "@/lib/roles";
 import { useT } from "@/lib/i18n/client";
+import { StageAdminStage, type StageAdminsByStage } from "@/components/members/stage-admin-stage";
 
 const initialState: ReviewState = {};
 
@@ -18,16 +19,26 @@ export function ChangeRole({
   memberId,
   name,
   current,
+  currentStage = "",
+  stageAdmins = {},
 }: {
   memberId: string;
   name: string;
   current: Role;
+  /** Their stage, if they are a stage admin now. */
+  currentStage?: string;
+  stageAdmins?: StageAdminsByStage;
 }) {
   const [state, formAction, pending] = useActionState(
     changeRoleAction,
     initialState,
   );
   const [open, setOpen] = useState(false);
+  const initialRole = (ASSIGNABLE_ROLES as readonly string[]).includes(current)
+    ? current
+    : "stage_leader";
+  const [role, setRole] = useState<string>(initialRole);
+  const [stage, setStage] = useState(currentStage);
   const all = useT();
   const t = all.members.controls;
 
@@ -60,20 +71,26 @@ export function ChangeRole({
       <input type="hidden" name="memberId" value={memberId} />
       <select
         name="role"
-        defaultValue={
-          (ASSIGNABLE_ROLES as readonly string[]).includes(current)
-            ? current
-            : "stage_leader"
-        }
+        value={role}
+        onChange={(event) => setRole(event.target.value)}
         aria-label={t.newRoleFor(name)}
         className="rounded-lg border border-line-strong bg-surface-raised px-2 py-1 text-xs text-ink"
       >
-        {ASSIGNABLE_ROLES.map((role) => (
-          <option key={role} value={role}>
-            {all.roles.labels[role]}
+        {ASSIGNABLE_ROLES.map((r) => (
+          <option key={r} value={r}>
+            {all.roles.labels[r]}
           </option>
         ))}
       </select>
+      {role === "stage_admin" ? (
+        <StageAdminStage
+          memberId={memberId}
+          name={name}
+          value={stage}
+          onChange={setStage}
+          stageAdmins={stageAdmins}
+        />
+      ) : null}
       <button
         type="submit"
         disabled={pending}

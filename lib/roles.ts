@@ -140,3 +140,9 @@ export function isAssignableRole(value: unknown): value is AssignableRole {
 export function isPendingRole(role: Role | null | undefined): boolean {
   return role === PENDING_ROLE;
 }
+
+/**
+ * The group's rule: at most this many Stage Admins per stage. The members
+ * page reminds the head admin when a stage is full; it does not block.
+ */
+export const STAGE_ADMIN_LIMIT = 2;

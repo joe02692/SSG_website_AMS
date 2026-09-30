@@ -2,7 +2,7 @@ import type { Metadata } from "next";
 import Link from "next/link";
 import { SiteShell } from "@/components/site-shell";
 import { requireSiteAdmin } from "@/lib/dal";
-import { isHeadSiteAdminRole, type Role } from "@/lib/roles";
+import { STAGE_ADMIN_LIMIT, isHeadSiteAdminRole, type Role } from "@/lib/roles";
 import { createClient } from "@/lib/supabase/server";
 import { DeleteMemberButton } from "@/components/members/delete-member-button";
 import { RequestReview } from "@/components/members/request-review";
@@ -11,6 +11,7 @@ import { RecoveryLinkButton } from "@/components/members/recovery-link-button";
 import { getLocale, getT } from "@/lib/i18n/server";
 import { intlLocale } from "@/lib/i18n/config";
 import { optionLabel } from "@/lib/i18n/onboarding";
+import { stageAdminsByStage } from "@/lib/stage-admins";
 
 export async function generateMetadata(): Promise<Metadata> {
   return { title: (await getT()).members.page.metaTitle };
@@ -20,7 +21,7 @@ type RequestRow = {
   id: string;
   full_name: string | null;
   requested_at: string | null;
-  stages: { name_en: string } | null;
+  stages: { code: string; name_en: string } | null;
 };
 
 const ROLE_BADGE: Record<Role, string> = {
@@ -106,7 +107,7 @@ export default async function MembersPage() {
     // on first.
     supabase
       .from("profiles")
-      .select("id, full_name, requested_at, stages:requested_stage_id(name_en)")
+      .select("id, full_name, requested_at, stages:requested_stage_id(code, name_en)")
       .eq("role", "pending_leader")
       .order("requested_at", { ascending: true })
       .limit(MAX_ROWS),
@@ -114,6 +115,13 @@ export default async function MembersPage() {
 
   const members = (memberRows ?? []) as MemberRow[];
   const requests = (requestRows ?? []) as unknown as RequestRow[];
+  // Who runs which stage — for the stage pickers and the "stage is full"
+  // reminder (the group allows two stage admins per stage).
+  const stageAdmins = canDecideRoles
+    ? await stageAdminsByStage()
+    : { byStage: {}, byMember: {} as Record<string, string>, migrationMissing: false };
+  const sa = all.members.stageAdmins;
+  const stageName = (code: string) => all.stages[code as keyof typeof all.stages] ?? code;
 
   const counts = members.reduce<Record<string, number>>((acc, m) => {
     acc[m.role] = (acc[m.role] ?? 0) + 1;
@@ -195,6 +203,9 @@ export default async function MembersPage() {
                         className={`rounded-full px-2.5 py-1 text-xs font-medium ${ROLE_BADGE[member.role]}`}
                       >
                         {all.roles.labels[member.role]}
+                        {member.role === "stage_admin" && canDecideRoles && !stageAdmins.migrationMissing
+                          ? ` ${stageAdmins.byMember[member.id] ? sa.of(stageName(stageAdmins.byMember[member.id])) : `(${sa.noStage})`}`
+                          : null}
                       </span>
                     </td>
                     <td className="px-4 py-3 text-ink-muted">
@@ -209,6 +220,8 @@ export default async function MembersPage() {
                               memberId={member.id}
                               name={member.full_name ?? t.thisMember}
                               current={member.role}
+                              currentStage={stageAdmins.byMember[member.id] ?? ""}
+                              stageAdmins={stageAdmins.byStage}
                             />
                             {/* Password reset by link, because there is no
                                 working mailer until the group has a domain —
@@ -253,6 +266,11 @@ export default async function MembersPage() {
             <p className="mt-1 text-sm text-ink-muted">
               {t.requestsIntro}
             </p>
+            {stageAdmins.migrationMissing ? (
+              <p className="mt-2 rounded-lg border border-warning-line bg-warning-surface px-3 py-2 text-sm text-warning-ink">
+                {sa.migrationMissing}
+              </p>
+            ) : null}
 
             {requests.length === 0 ? (
               <div className="mt-4 rounded-2xl border border-dashed border-line bg-surface p-8 text-center">
@@ -283,6 +301,14 @@ export default async function MembersPage() {
                           {request.stages
                             ? optionLabel(locale, request.stages.name_en)
                             : "—"}
+                          {/* The reminder asked for: this stage already has
+                              its two stage admins. */}
+                          {request.stages &&
+                          (stageAdmins.byStage[request.stages.code]?.length ?? 0) >= STAGE_ADMIN_LIMIT ? (
+                            <span className="mt-1 block w-max rounded-full border border-warning-line bg-warning-surface px-2 py-0.5 text-xs font-semibold text-warning-ink">
+                              {sa.fullShort}
+                            </span>
+                          ) : null}
                         </td>
                         <td className="whitespace-nowrap px-4 py-3 text-ink-muted">
                           {request.requested_at
@@ -293,6 +319,8 @@ export default async function MembersPage() {
                           <RequestReview
                             memberId={request.id}
                             name={request.full_name ?? t.thisPerson}
+                            requestedStage={request.stages?.code ?? ""}
+                            stageAdmins={stageAdmins.byStage}
                           />
                         </td>
                       </tr>

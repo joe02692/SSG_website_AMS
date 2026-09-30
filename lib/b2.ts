@@ -5,6 +5,8 @@ import {
   DeleteObjectCommand,
   HeadObjectCommand,
   GetObjectCommand,
+  ListObjectsV2Command,
+  ListObjectVersionsCommand,
   PutObjectCommand,
   S3Client,
 } from "@aws-sdk/client-s3";
@@ -238,5 +240,77 @@ export async function copyObject(from: string, to: string): Promise<void> {
   const source = `${bucketName()}/${from.split("/").map(encodeURIComponent).join("/")}`;
   await client().send(
     new CopyObjectCommand({ Bucket: bucketName(), CopySource: source, Key: to }),
+  );
+}
+
+/**
+ * Writes bytes the server already holds (used for seasonal plans, which the
+ * server downloads from `_incoming/` to check before filing). Metadata values
+ * must be ASCII in S3, so callers URL-encode them.
+ */
+export async function putObject(
+  key: string,
+  body: Uint8Array,
+  contentType: string,
+  metadata: Record<string, string> = {},
+): Promise<void> {
+  await client().send(
+    new PutObjectCommand({
+      Bucket: bucketName(),
+      Key: key,
+      Body: body,
+      ContentType: contentType,
+      Metadata: metadata,
+    }),
+  );
+}
+
+export type ListedObject = { key: string; size: number; lastModified: Date | null };
+
+/** Every current object under a prefix (up to 1,000 — plenty for a folder). */
+export async function listObjects(prefix: string): Promise<ListedObject[]> {
+  const result = await client().send(
+    new ListObjectsV2Command({ Bucket: bucketName(), Prefix: prefix, MaxKeys: 1000 }),
+  );
+  return (result.Contents ?? [])
+    .filter((o): o is typeof o & { Key: string } => Boolean(o.Key))
+    .map((o) => ({ key: o.Key, size: o.Size ?? 0, lastModified: o.LastModified ?? null }));
+}
+
+/** An object's user metadata (x-amz-meta-*), or null if it doesn't exist. */
+export async function objectMetadata(key: string): Promise<Record<string, string> | null> {
+  try {
+    const head = await client().send(new HeadObjectCommand({ Bucket: bucketName(), Key: key }));
+    return head.Metadata ?? {};
+  } catch {
+    return null;
+  }
+}
+
+/**
+ * Deletes every object under a prefix FOR GOOD — including older versions.
+ *
+ * B2 keeps previous versions of a file by default, and a plain S3 delete only
+ * hides the latest one; the bytes would stay in the bucket (and on the bill).
+ * Deleting each version by its id removes them completely. `keep` names one
+ * key whose CURRENT version survives (the file that was just uploaded); its
+ * older versions still go.
+ */
+export async function deleteAllVersions(prefix: string, keep?: string): Promise<void> {
+  const result = await client().send(
+    new ListObjectVersionsCommand({ Bucket: bucketName(), Prefix: prefix, MaxKeys: 1000 }),
+  );
+  const entries = [
+    ...(result.Versions ?? []).map((v) => ({ key: v.Key, id: v.VersionId, latest: v.IsLatest })),
+    ...(result.DeleteMarkers ?? []).map((m) => ({ key: m.Key, id: m.VersionId, latest: false })),
+  ];
+  await Promise.all(
+    entries
+      .filter((e) => e.key && !(keep && e.key === keep && e.latest))
+      .map((e) =>
+        client()
+          .send(new DeleteObjectCommand({ Bucket: bucketName(), Key: e.key, VersionId: e.id }))
+          .catch(() => undefined),
+      ),
   );
 }

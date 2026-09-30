@@ -63,6 +63,25 @@ function describeAdminWriteError(
  * act on the admin's own account, and doing that needs to know who they are,
  * not merely that they are allowed.
  */
+/**
+ * For a Stage Admin, the stage the head admin picked (form field "stage", a
+ * stage code) as its numeric id. `undefined` means "not a stage admin, leave
+ * the column alone"; an `error` means a stage admin without a valid stage.
+ */
+async function adminStageFrom(
+  role: string,
+  formData: FormData,
+): Promise<{ id?: number | null; error?: string }> {
+  if (role !== "stage_admin") return {};
+  const code = formData.get("stage");
+  const message = (await getT()).members.stageAdmins.chooseStageError;
+  if (typeof code !== "string" || !code) return { error: message };
+  const supabase = await createClient();
+  const { data } = await supabase.from("stages").select("id").eq("code", code).maybeSingle();
+  if (!data) return { error: message };
+  return { id: (data as { id: number }).id };
+}
+
 async function requireHeadAdmin() {
   const profile = await getCurrentProfile();
   if (!isHeadSiteAdminRole(profile?.role)) return null;
@@ -296,6 +315,9 @@ async function approveRequest(
     return { error: "Choose a role to give them." };
   }
 
+  const adminStage = await adminStageFrom(role, formData);
+  if (adminStage.error) return { error: adminStage.error };
+
   const supabase = await createClient();
   const { data: target } = await supabase
     .from("profiles")
@@ -324,6 +346,9 @@ async function approveRequest(
       role: role as AssignableRole,
       reviewed_by: admin.id,
       reviewed_at: new Date().toISOString(),
+      // Only sent for stage admins, so approvals keep working on a database
+      // where migration 0022 hasn't been run yet.
+      ...(adminStage.id !== undefined ? { admin_stage_id: adminStage.id } : {}),
     })
     .eq("id", memberId)
     // Re-checking the role in the WHERE clause closes the gap between reading
@@ -432,9 +457,20 @@ async function changeRole(
   if (target.role === "head_site_admin") {
     return { error: "Head site admin accounts can't be changed from here." };
   }
-  if (target.role === role) {
+  // A stage admin can be moved to another stage without changing role.
+  if (target.role === role && role !== "stage_admin") {
     return { notice: (await getT()).members.results.alreadyRole(target.full_name, (await getT()).roles.labels[role]) };
   }
+
+  const adminStage = await adminStageFrom(role, formData);
+  if (adminStage.error) return { error: adminStage.error };
+  // Leaving the stage admin role clears the stage; becoming one sets it.
+  const stageUpdate =
+    adminStage.id !== undefined
+      ? { admin_stage_id: adminStage.id }
+      : target.role === "stage_admin"
+        ? { admin_stage_id: null }
+        : {};
 
   let adminClient;
   try {
@@ -448,7 +484,7 @@ async function changeRole(
 
   const { error } = await adminClient
     .from("profiles")
-    .update({ role: role as AssignableRole })
+    .update({ role: role as AssignableRole, ...stageUpdate })
     .eq("id", memberId);
 
   if (error) {
