@@ -7,10 +7,15 @@ import { requireRole } from "@/lib/dal";
 import { STAFF_ROLES } from "@/lib/roles";
 import { getObjectBytes } from "@/lib/b2";
 import { SCOUT_STAGES } from "@/lib/onboarding";
+import { ArchiveDownload } from "@/components/seasonal/archive-download";
 import {
+  archiveCounts,
+  isStageCode,
+  listArchive,
   listPlans,
   managedStages,
   readPlanSheets,
+  type ArchivedPlan,
   type PlanFile,
   type PlanSheet,
 } from "@/lib/seasonal-plans";
@@ -44,9 +49,16 @@ export default async function SeasonalPlanPage({
   const managed = await managedStages(profile);
 
   let plans: Record<string, PlanFile> = {};
+  let archived: Record<string, number> = {};
   let storageFailed = false;
+  const selected = isStageCode(openStage) ? openStage : null;
+  let archive: ArchivedPlan[] = [];
   try {
-    plans = await listPlans();
+    [plans, archived, archive] = await Promise.all([
+      listPlans(),
+      archiveCounts(),
+      selected ? listArchive(selected) : Promise.resolve([]),
+    ]);
   } catch (error) {
     console.error("[seasonal-plan] could not list plans", error);
     storageFailed = true;
@@ -157,6 +169,16 @@ export default async function SeasonalPlanPage({
                       {t.open}
                     </Link>
                   ) : null}
+                  {archived[stage.value] ? (
+                    <Link
+                      href={`/seasonal-plan?stage=${stage.value}#plan-archive`}
+                      scroll={false}
+                      className="inline-flex w-full items-center justify-center gap-1.5 rounded-md border border-line px-3 py-1.5 text-xs font-semibold text-ink-muted transition hover:border-leaf hover:text-ink"
+                    >
+                      <ArchiveIcon />
+                      {t.archiveLink(archived[stage.value])}
+                    </Link>
+                  ) : null}
                   <PlanControls
                     stage={stage.value}
                     hasPlan={Boolean(plan)}
@@ -246,8 +268,42 @@ export default async function SeasonalPlanPage({
             )}
           </section>
         ) : null}
+
+        {/* ------------------------------------------- Earlier plans (archive) */}
+        {selected && archive.length > 0 ? (
+          <section id="plan-archive" aria-labelledby="plan-archive-heading" className="mt-10 scroll-mt-24">
+            <h2 id="plan-archive-heading" className="flex items-center gap-2 text-[clamp(18px,2.6vw,22px)] text-maroon">
+              <ArchiveIcon />
+              {t.archiveTitle(all.stages[selected as keyof typeof all.stages])}
+            </h2>
+            <p className="mt-1 text-sm text-ink-muted">{t.archiveIntro}</p>
+            <ul className="mt-4 divide-y divide-line overflow-hidden rounded-xl border border-line bg-surface-raised">
+              {archive.map((file) => (
+                <li key={file.key} className="flex flex-wrap items-center gap-x-4 gap-y-2 px-4 py-3">
+                  <ExcelIcon />
+                  <span className="min-w-0 flex-1">
+                    <bdi className="block truncate text-sm font-medium text-ink">{file.name}</bdi>
+                    <span className="block text-xs text-ink-muted">
+                      {t.archivedOn(date(file.archivedAt))} · <bdi>{t.size(file.size)}</bdi>
+                    </span>
+                  </span>
+                  <ArchiveDownload stage={selected} fileKey={file.key} />
+                </li>
+              ))}
+            </ul>
+          </section>
+        ) : null}
       </div>
     </SiteShell>
+  );
+}
+
+function ArchiveIcon() {
+  return (
+    <svg aria-hidden viewBox="0 0 20 20" className="size-4 shrink-0" fill="none" stroke="currentColor" strokeWidth="1.7" strokeLinejoin="round">
+      <rect x="2.5" y="3.5" width="15" height="4" rx="1" />
+      <path d="M4 7.5v8a1 1 0 0 0 1 1h10a1 1 0 0 0 1-1v-8M8 11h4" strokeLinecap="round" />
+    </svg>
   );
 }
 

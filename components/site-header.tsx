@@ -12,6 +12,7 @@ import { BrandLogo } from "@/components/brand-logo";
 import { MobileMenu } from "@/components/mobile-menu";
 import { NavLink } from "@/components/nav-link";
 import { LanguageSwitch } from "@/components/language-switch";
+import { HeaderScenery } from "@/components/green-scenery";
 import { getT } from "@/lib/i18n/server";
 import type { Dictionary } from "@/lib/i18n/dictionaries";
 
@@ -32,7 +33,7 @@ const navLink = "whitespace-nowrap text-sm xl:text-[15px] font-bold text-white t
 /* Yellow button, forest text. The design had white text here, which is
    1.34:1 on this yellow — unreadable. Forest is 8.18:1. */
 const sunButton =
-  "whitespace-nowrap rounded-md bg-sun px-3 py-2 text-sm font-bold text-forest transition hover:opacity-85 sm:px-[22px] sm:py-2.5 sm:text-base";
+  "whitespace-nowrap rounded-md bg-sun px-2.5 py-2 text-sm min-[360px]:px-3 font-bold text-forest transition hover:opacity-85 sm:px-[22px] sm:py-2.5 sm:text-base";
 
 const ghostButton =
   "whitespace-nowrap rounded-md border-2 border-white/40 px-3 py-2 text-sm font-bold text-white transition hover:border-white";
@@ -55,7 +56,9 @@ async function HeaderAuth() {
   if (!profile) {
     return (
       <Link href="/login" className={sunButton}>
-        {t.chrome.logIn}
+        {/* Short on phones, so the language switch fits beside it. */}
+        <span className="sm:hidden">{t.chrome.logInShort}</span>
+        <span className="hidden sm:inline">{t.chrome.logIn}</span>
       </Link>
     );
   }
@@ -78,7 +81,8 @@ async function HeaderAuth() {
   return (
     <>
       <Link href="/dashboard" className={sunButton}>
-        {t.chrome.dashboard}
+        <span className="sm:hidden">{t.chrome.dashboardShort}</span>
+        <span className="hidden sm:inline">{t.chrome.dashboard}</span>
       </Link>
       <SignOutButton label={t.chrome.signOut} className={`hidden lg:block ${ghostButton}`} />
     </>
@@ -198,10 +202,12 @@ export async function SiteHeader() {
         {t.chrome.skipToContent}
       </a>
 
-      <div className="mx-auto flex h-[72px] max-w-[1200px] items-center justify-between gap-2 px-3 min-[380px]:px-5 sm:gap-4 sm:px-8">
+      <HeaderScenery />
+
+      <div className="relative mx-auto flex h-[72px] max-w-[1200px] items-center justify-between gap-2 px-3 min-[380px]:px-5 sm:gap-4 sm:px-8">
         <BrandLogo />
 
-        <div className="flex items-center gap-2 sm:gap-4 lg:gap-3 xl:gap-4">
+        <div className="flex items-center gap-1.5 min-[360px]:gap-2 sm:gap-4 lg:gap-3 xl:gap-4">
           <nav aria-label={t.chrome.nav.main} className="hidden items-center gap-2.5 lg:flex xl:gap-5">
             {before.map((item) => (
               <NavLink key={item.href} href={item.href} className={navLink}>
@@ -221,7 +227,8 @@ export async function SiteHeader() {
             </Suspense>
           </nav>
 
-          <LanguageSwitch compact className="hidden sm:inline-flex" />
+          {/* Shown on phones too, so the language is one tap away on the landing page. */}
+          <LanguageSwitch compact className="inline-flex" />
 
           <Suspense fallback={<AuthPlaceholder />}>
             <HeaderAuth />

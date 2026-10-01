@@ -8,6 +8,8 @@ import {
   GALLERY,
   GOALS,
   HERO_SLIDES,
+  SCOUT_LAW,
+  SCOUT_PROMISE,
   HIDDEN_SLIDES,
   MILESTONES,
   SCOUTING_FACTS,
@@ -119,7 +121,6 @@ export function localizedStats(locale: Locale) {
 // ---------------------------------------------------------------- about us --
 const BRANCHES_AR = [
   { name: "نادي طنطا الرياضي", city: "طنطا", note: "بيتنا الأقدم" },
-  { name: "نادي المعلمين بطنطا", city: "طنطا" },
   { name: "نادي الرحاب الرياضي", city: "الرحاب" },
   { name: "نادي مدينتي الرياضي", city: "مدينتي" },
 ];
@@ -134,6 +135,28 @@ const ABOUT_POINTS_AR = [
 ];
 export function localizedAboutPoints(locale: Locale) {
   return ABOUT_POINTS.map((p, i) => pick(locale, p, ABOUT_POINTS_AR[i]));
+}
+
+// ------------------------------------------------- scout promise and law --
+const SCOUT_PROMISE_AR = "أعد بشرفي أن أبذل جهدي في أن أقوم بواجبي نحو الله ثم الوطن، وأن أساعد الناس.";
+const SCOUT_LAW_AR = [
+  { word: "صادق", body: "أن يوثق بشرف الكشاف ويُعتمد عليه." },
+  { word: "مخلص", body: "الكشاف مخلص لله ولوطنه، ومطيع لأولياء أمره ورؤسائه ومرؤوسيه في الحق دون تردد." },
+  { word: "نافع", body: "واجب الكشاف أن يكون نافعًا وأن يساعد الآخرين." },
+  { word: "ودود", body: "الكشاف صديق للجميع، وأخ لكل كشاف آخر." },
+  { word: "مؤدب", body: "الكشاف مؤدب." },
+  { word: "رفيق", body: "الكشاف رفيق بالحيوان، ويحب النبات، ويرى في الطبيعة آية الله." },
+  { word: "مطيع", body: "الكشاف يطيع أوامر والديه وعريف طليعته وقائده." },
+  { word: "بشوش", body: "الكشاف بشوش يقابل الصعوبات بصدر رحب." },
+  { word: "مقتصد", body: "الكشاف مقتصد." },
+  { word: "نظيف", body: "الكشاف نظيف في الفكر والقول والفعل والمظهر، وفي كل ما يقوم به." },
+  { word: "شجاع", body: "الكشاف شجاع ومقدام." },
+];
+export function localizedPromise(locale: Locale) {
+  return pick(locale, SCOUT_PROMISE, SCOUT_PROMISE_AR);
+}
+export function localizedLaw(locale: Locale) {
+  return SCOUT_LAW.map((l, i) => ({ ...l, ...over(locale, SCOUT_LAW_AR[i]) }));
 }
 
 // --------------------------------------------------------------- our goals --

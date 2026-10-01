@@ -1,3 +1,5 @@
+import { BannerScenery } from "@/components/green-scenery";
+
 /**
  * The band at the top of every inner public page (Stages, Gallery):
  * forest background, a small yellow label above the page's title, and a
@@ -15,8 +17,9 @@ export function PageBanner({
   children?: React.ReactNode;
 }) {
   return (
-    <section className="on-dark relative bg-forest text-cream">
-      <div className="mx-auto w-[calc(100%-40px)] max-w-[1100px] py-9 sm:py-11">
+    <section className="on-dark relative overflow-hidden bg-forest text-cream">
+      <BannerScenery />
+      <div className="relative mx-auto w-[calc(100%-40px)] max-w-[1100px] py-9 sm:py-11">
         <p className="w-fit font-display text-sm font-semibold uppercase tracking-[0.14em] text-sun">
           {eyebrow}
         </p>
@@ -29,7 +32,7 @@ export function PageBanner({
           </p>
         ) : null}
       </div>
-      <div aria-hidden className="h-1.5 bg-sun" />
+      <div aria-hidden className="relative h-1.5 bg-sun" />
     </section>
   );
 }

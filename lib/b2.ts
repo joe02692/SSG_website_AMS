@@ -296,7 +296,12 @@ export async function objectMetadata(key: string): Promise<Record<string, string
  * key whose CURRENT version survives (the file that was just uploaded); its
  * older versions still go.
  */
-export async function deleteAllVersions(prefix: string, keep?: string): Promise<void> {
+export async function deleteAllVersions(
+  prefix: string,
+  keep?: string,
+  /** Only this exact key — "plan.xls" must not also catch "plan.xlsx". */
+  exact = false,
+): Promise<void> {
   const result = await client().send(
     new ListObjectVersionsCommand({ Bucket: bucketName(), Prefix: prefix, MaxKeys: 1000 }),
   );
@@ -306,7 +311,7 @@ export async function deleteAllVersions(prefix: string, keep?: string): Promise<
   ];
   await Promise.all(
     entries
-      .filter((e) => e.key && !(keep && e.key === keep && e.latest))
+      .filter((e) => e.key && (!exact || e.key === prefix) && !(keep && e.key === keep && e.latest))
       .map((e) =>
         client()
           .send(new DeleteObjectCommand({ Bucket: bucketName(), Key: e.key, VersionId: e.id }))

@@ -29,11 +29,11 @@ export async function LanguageSwitch({
         aria-label={t.chrome.switchToLabel}
         className={
           compact
-            ? `items-center gap-1.5 whitespace-nowrap rounded-md border-2 border-white/40 px-2.5 py-1.5 text-sm font-bold text-white transition hover:border-white ${className}`
+            ? `items-center gap-1.5 whitespace-nowrap rounded-md border-2 border-white/40 px-2 py-1.5 text-sm font-bold text-white transition hover:border-white sm:px-2.5 ${className}`
             : `flex items-center gap-2 ${className}`
         }
       >
-        <svg aria-hidden viewBox="0 0 20 20" className={`size-4 shrink-0 ${compact ? "lg:max-xl:hidden" : ""}`} fill="none" stroke="currentColor" strokeWidth="1.6">
+        <svg aria-hidden viewBox="0 0 20 20" className={`size-4 shrink-0 ${compact ? "max-sm:hidden lg:max-xl:hidden" : ""}`} fill="none" stroke="currentColor" strokeWidth="1.6">
           <circle cx="10" cy="10" r="8" />
           <path d="M2 10h16M10 2c2.2 2.2 3.2 4.8 3.2 8s-1 5.8-3.2 8c-2.2-2.2-3.2-4.8-3.2-8s1-5.8 3.2-8z" />
         </svg>

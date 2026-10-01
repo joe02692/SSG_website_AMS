@@ -5,18 +5,21 @@
  * never in the way of a click.
  */
 const INK = "#e3d6b8";
+const SNOW = "#f3ead5";
 
-function Mountains({ className }: { className: string }) {
+type Paint = { className: string; ink?: string; snow?: string };
+
+export function Mountains({ className, ink = INK, snow = SNOW }: Paint) {
   return (
-    <svg viewBox="0 0 320 140" className={className} fill={INK}>
+    <svg viewBox="0 0 320 140" className={className} fill={ink}>
       <path d="M0 140 70 52l28 30 52-66 70 82 30-26 70 68Z" />
-      <path d="m150 16-15 19 10-3 5 8 6-9 9 5Z" fill="#f3ead5" />
-      <path d="m70 52-10 13 7-2 3 6 5-7 6 3Z" fill="#f3ead5" />
+      <path d="m150 16-15 19 10-3 5 8 6-9 9 5Z" fill={snow} />
+      <path d="m70 52-10 13 7-2 3 6 5-7 6 3Z" fill={snow} />
     </svg>
   );
 }
 
-function Pines({ className }: { className: string }) {
+export function Pines({ className, ink = INK }: Paint) {
   // Three stacked triangles on a short trunk.
   const tree = (x: number, h: number, key: number) => {
     const top = 156 - h;
@@ -34,7 +37,7 @@ function Pines({ className }: { className: string }) {
     );
   };
   return (
-    <svg viewBox="0 0 300 160" className={className} fill={INK}>
+    <svg viewBox="0 0 300 160" className={className} fill={ink}>
       {[
         [30, 120],
         [75, 150],
@@ -49,19 +52,19 @@ function Pines({ className }: { className: string }) {
   );
 }
 
-function Tent({ className }: { className: string }) {
+export function Tent({ className, ink = INK, snow = SNOW }: Paint) {
   return (
-    <svg viewBox="0 0 200 120" className={className} fill={INK}>
+    <svg viewBox="0 0 200 120" className={className} fill={ink}>
       <path d="M100 8 18 110h164Z" />
-      <path d="M100 8 70 110h60Z" fill="#f3ead5" />
-      <path d="M100 8v-6M0 112h200" stroke={INK} strokeWidth="4" strokeLinecap="round" />
+      <path d="M100 8 70 110h60Z" fill={snow} />
+      <path d="M100 8v-6M0 112h200" stroke={ink} strokeWidth="4" strokeLinecap="round" />
     </svg>
   );
 }
 
-function Birds({ className }: { className: string }) {
+export function Birds({ className, ink = INK }: Paint) {
   return (
-    <svg viewBox="0 0 160 70" className={className} fill="none" stroke={INK} strokeWidth="4" strokeLinecap="round" strokeLinejoin="round">
+    <svg viewBox="0 0 160 70" className={className} fill="none" stroke={ink} strokeWidth="4" strokeLinecap="round" strokeLinejoin="round">
       <path d="M10 40q10-10 18 0q8-10 18 0" />
       <path d="M70 18q8-8 14 0q6-8 14 0" />
       <path d="M112 44q9-9 16 0q7-9 16 0" />

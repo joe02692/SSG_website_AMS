@@ -18,14 +18,14 @@ export function BrandLogo({ className = "" }: { className?: string }) {
   return (
     <Link
       href="/"
-      className={`flex shrink-0 items-center gap-2 text-white sm:gap-2.5 ${className}`}
+      className={`flex shrink-0 items-center gap-1.5 text-white min-[360px]:gap-2 sm:gap-2.5 ${className}`}
     >
       <Image
         src={logo}
         alt=""
         priority
         sizes="64px"
-        className="h-9 w-auto min-[380px]:h-10 sm:h-12"
+        className="h-8 w-auto min-[360px]:h-9 min-[380px]:h-10 sm:h-12"
       />
       <span className="flex flex-col leading-tight">
         <span className="font-display text-[0.95rem] font-bold min-[380px]:text-base sm:text-lg">

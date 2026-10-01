@@ -104,17 +104,32 @@ export function HeroSlider({
             aria-hidden={i !== index}
           >
             {seen.includes(i) ? (
-              <Image
-                src={slide.src}
-                alt={slide.alt}
-                fill
-                priority={i === 0}
-                sizes={coverSizes(slide.src.width / slide.src.height)}
-                quality={90}
-                placeholder="blur"
-                style={{ objectPosition: slide.focus ?? "50% 35%" }}
-                className={`object-cover ${i === index ? "ken-burns" : ""}`}
-              />
+              <>
+                {/* Phones only: the photo's own blurred colours fill the
+                    space around it, so the whole picture can be shown (as on
+                    a computer) instead of a tall, zoomed-in slice. Uses the
+                    tiny built-in blur placeholder — no extra download. */}
+                {slide.src.blurDataURL ? (
+                  <div
+                    aria-hidden
+                    className="absolute inset-0 scale-125 bg-cover bg-center blur-2xl brightness-75 sm:hidden"
+                    style={{ backgroundImage: `url(${slide.src.blurDataURL})` }}
+                  />
+                ) : null}
+                <Image
+                  src={slide.src}
+                  alt={slide.alt}
+                  fill
+                  priority={i === 0}
+                  sizes={`(max-width: 639px) 100vw, ${coverSizes(slide.src.width / slide.src.height)}`}
+                  quality={90}
+                  placeholder="blur"
+                  style={{ "--focus": slide.focus ?? "50% 35%" } as CSSProperties}
+                  className={`object-contain object-[50%_18%] sm:object-cover sm:[object-position:var(--focus)] ${
+                    i === index ? "ken-burns" : ""
+                  }`}
+                />
+              </>
             ) : null}
           </div>
         ))}

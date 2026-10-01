@@ -122,7 +122,7 @@ export const HERO_SLIDES: HeroSlide[] = [
 export const HIDDEN_SLIDES: number[] = [1, 2, 4, 5, 7, 9, 11, 22];
 
 export const STATS = [
-  { value: "4", label: "Branches" },
+  { value: "3", label: "Branches" },
   { value: "3", label: "Cities" },
   // Counted from the registration form's list, so it can't drift from it.
   { value: String(SCOUT_STAGES.length), label: "Stages" },
@@ -265,7 +265,6 @@ export const GALLERY: Album[] = [
 /** Where the group meets. From the old site's "Branches" section. */
 export const BRANCHES = [
   { name: "Tanta Sports Club", city: "Tanta", note: "Our oldest home" },
-  { name: "Tanta Teachers Club", city: "Tanta" },
   { name: "Al Rehab Sports Club", city: "Al Rehab" },
   { name: "Madinaty Sports Club", city: "Madinaty" },
 ];
@@ -274,6 +273,29 @@ export const ABOUT_POINTS = [
   "Gharbia's leading scout group, under the Egyptian Federation for Scouts and Girl Guides.",
   "Present in sports clubs, youth centres and both public and private schools.",
   "Teams that have represented Egypt at scout events at home and around the world.",
+];
+
+/**
+ * The Scout Promise and the eleven articles of the Scout Law as used in
+ * Egypt (replaced "Our Goals" on the homepage, 30 Sep 2026). Arabic wording
+ * follows the Arabic Scout Law text (ar.wikipedia "كشافة"); the English is a
+ * translation for the English version of the site.
+ */
+export const SCOUT_PROMISE =
+  "On my honour, I promise to do my best to do my duty to God and then my country, and to help other people.";
+
+export const SCOUT_LAW: { word: string; body: string }[] = [
+  { word: "Trustworthy", body: "A Scout's honour is to be trusted and relied on." },
+  { word: "Loyal", body: "A Scout is loyal to God and to the homeland, and obeys parents and leaders in what is right, without hesitation." },
+  { word: "Helpful", body: "A Scout's duty is to be useful and to help others." },
+  { word: "Friendly", body: "A Scout is a friend to all, and a brother or sister to every other Scout." },
+  { word: "Courteous", body: "A Scout is courteous." },
+  { word: "Kind", body: "A Scout is kind to animals, loves plants, and sees in nature a sign of God." },
+  { word: "Obedient", body: "A Scout obeys their parents, patrol leader and Scout leader." },
+  { word: "Cheerful", body: "A Scout is cheerful and meets difficulties with an open heart." },
+  { word: "Thrifty", body: "A Scout is thrifty." },
+  { word: "Clean", body: "A Scout is clean in thought, word, deed and appearance, and in everything they do." },
+  { word: "Brave", body: "A Scout is brave and bold." },
 ];
 
 export type GoalIcon = "citizen" | "talent" | "globe" | "tent" | "friends" | "service";

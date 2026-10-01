@@ -1,13 +1,13 @@
 import Image from "next/image";
 import { SectionHeading } from "@/components/landing/section-heading";
-import { GoalIcon } from "@/components/landing/about-icons";
 import { FOUNDED, REHAB_FOUNDED } from "@/lib/site-content";
 import { getLocale, getT } from "@/lib/i18n/server";
 import {
   localizedAboutPoints,
   localizedBranches,
   localizedFacts,
-  localizedGoals,
+  localizedLaw,
+  localizedPromise,
   localizedSeason,
   localizedWider,
 } from "@/lib/i18n/content";
@@ -119,10 +119,28 @@ export async function OurGoals() {
           title={t.title}
           subtitle={t.subtitle}
         />
-        <ol className="mt-7 grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
-          {localizedGoals(locale).map((goal, i) => (
+        {/* The Scout Promise */}
+        <figure className="reveal relative mt-7 overflow-hidden rounded-2xl bg-forest px-6 py-6 text-cream sm:px-9 sm:py-8">
+          <span
+            aria-hidden
+            className="pointer-events-none absolute -top-6 end-4 font-display text-[140px] leading-none text-sun/15 select-none"
+          >
+            ”
+          </span>
+          <figcaption className="text-sm font-semibold uppercase tracking-[0.14em] text-butter">
+            {t.promiseLabel}
+          </figcaption>
+          <blockquote className="relative mt-2 font-display text-[clamp(19px,2.6vw,26px)] font-bold leading-relaxed text-sun">
+            {localizedPromise(locale)}
+          </blockquote>
+        </figure>
+
+        {/* The Scout Law — eleven articles */}
+        <h3 className="mt-10 font-display text-[clamp(20px,3vw,24px)] text-maroon">{t.lawTitle}</h3>
+        <ol className="mt-4 grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
+          {localizedLaw(locale).map((law, i) => (
             <li
-              key={goal.title}
+              key={law.word}
               className="reveal group relative overflow-hidden rounded-2xl border-2 border-line bg-surface-raised p-5 transition hover:-translate-y-1 hover:border-leaf hover:shadow-lg"
             >
               {/* Big faint number, drawn by CSS (::before) so it is pure
@@ -132,11 +150,14 @@ export async function OurGoals() {
                 data-n={String(i + 1).padStart(2, "0")}
                 className="absolute end-3 top-1 font-display text-[56px] font-extrabold leading-none text-butter/70 before:content-[attr(data-n)]"
               />
-              <span className="relative grid size-12 place-items-center rounded-full bg-sun text-forest transition group-hover:rotate-6">
-                <GoalIcon name={goal.icon} />
+              <span
+                aria-hidden
+                className="relative grid size-11 place-items-center rounded-full bg-sun font-display text-lg font-extrabold text-forest transition group-hover:rotate-6"
+              >
+                {i + 1}
               </span>
-              <h3 className="relative mt-3 text-lg font-bold text-forest">{goal.title}</h3>
-              <p className="relative mt-1 text-[15px] leading-relaxed text-ink-muted">{goal.body}</p>
+              <h4 className="relative mt-3 text-xl font-bold text-forest">{law.word}</h4>
+              <p className="relative mt-1 text-[15px] leading-relaxed text-ink-muted">{law.body}</p>
             </li>
           ))}
         </ol>

@@ -14,7 +14,8 @@ import {
 } from "@/lib/b2";
 import { incomingPrefix } from "@/lib/storage-paths";
 import {
-  clearPlanFolder,
+  archiveCurrentPlans,
+  archiveFolder,
   isRealExcel,
   isStageCode,
   listPlans,
@@ -102,24 +103,25 @@ export async function savePlanAction(formData: FormData): Promise<PlanResult> {
   const bytes = await getObjectBytes(key);
   if (!bytes) return { error: words.uploadFailed };
   if (bytes.byteLength > MAX_PLAN_BYTES) {
-    await deleteAllVersions(key);
+    await deleteAllVersions(key, undefined, true);
     return { error: words.tooBig };
   }
   if (!isRealExcel(ext, bytes)) {
-    await deleteAllVersions(key);
+    await deleteAllVersions(key, undefined, true);
     return { error: words.notExcel };
   }
 
   const target = planKey(who.stage, ext);
   try {
+    // One current file per stage: the old plan moves to the Archive folder
+    // first (never deleted), then the new one takes its place.
+    await archiveCurrentPlans(who.stage);
     await putObject(target, bytes, PLAN_TYPES[ext], {
       "uploaded-by": encodeURIComponent(who.profile.full_name ?? ""),
       "original-name": encodeURIComponent(originalName),
     });
-    // One file per stage: the old plan (any extension, any older version) goes
-    // for good, and so does the temporary upload.
-    await clearPlanFolder(who.stage, target);
-    await deleteAllVersions(key);
+    // The temporary upload is no longer needed.
+    await deleteAllVersions(key, undefined, true);
   } catch (error) {
     console.error("[seasonal-plan] could not file the plan", error);
     return { error: words.couldNotSave };
@@ -129,16 +131,16 @@ export async function savePlanAction(formData: FormData): Promise<PlanResult> {
   return { notice: words.saved };
 }
 
-/** Deletes a stage's plan, for good. */
+/** Takes a stage's plan down — into the Archive, never deleted. */
 export async function deletePlanAction(formData: FormData): Promise<PlanResult> {
   const words = await t();
   const who = await managerFor(formData.get("stage"));
   if ("error" in who) return { error: who.error };
   if (storageMissing()) return { error: words.storageMissing };
   try {
-    await clearPlanFolder(who.stage);
+    await archiveCurrentPlans(who.stage);
   } catch (error) {
-    console.error("[seasonal-plan] could not delete the plan", error);
+    console.error("[seasonal-plan] could not archive the plan", error);
     return { error: words.couldNotDelete };
   }
   revalidatePath("/seasonal-plan");
@@ -163,6 +165,27 @@ export async function planDownloadAction(formData: FormData): Promise<PlanLink> 
     return { url: await presignDownload(plan.key, name) };
   } catch (error) {
     console.error("[seasonal-plan] could not sign a download URL", error);
+    return { error: words.couldNotOpen };
+  }
+}
+
+/** A one-minute download link for an archived plan. Any leader may ask. */
+export async function archiveDownloadAction(formData: FormData): Promise<PlanLink> {
+  const words = await t();
+  const profile = await getCurrentProfile();
+  if (!profile) return { error: words.signInFirst };
+  if (!isStaffRole(profile.role)) return { error: words.notAllowed };
+  const stage = formData.get("stage");
+  const key = String(formData.get("key") ?? "");
+  // Only a file inside that stage's own Archive folder, never a path trick.
+  if (!isStageCode(stage) || !key.startsWith(archiveFolder(stage)) || key.includes("..") || !planExtension(key)) {
+    return { error: words.notAllowed };
+  }
+  if (storageMissing()) return { error: words.storageMissing };
+  try {
+    return { url: await presignDownload(key, key.slice(archiveFolder(stage).length)) };
+  } catch (error) {
+    console.error("[seasonal-plan] could not sign an archive download URL", error);
     return { error: words.couldNotOpen };
   }
 }

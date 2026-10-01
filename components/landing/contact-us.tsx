@@ -73,7 +73,7 @@ export async function ContactUs() {
       />
       <ul className="mt-6 grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
         {cards.map(({ href, label, value, valueDir, hint, Icon, external }) => (
-          <li key={label}>
+          <li key={label} className="min-w-0">
             <a
               href={href}
               {...(external ? { target: "_blank", rel: "noopener noreferrer" } : {})}

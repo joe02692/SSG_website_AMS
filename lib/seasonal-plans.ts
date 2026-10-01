@@ -2,7 +2,7 @@ import "server-only";
 
 import * as XLSX from "@e965/xlsx";
 import type { Profile } from "@/lib/dal";
-import { deleteAllVersions, listObjects, objectMetadata } from "@/lib/b2";
+import { copyObject, deleteAllVersions, listObjects, objectMetadata } from "@/lib/b2";
 import { SCOUT_STAGES } from "@/lib/onboarding";
 import { adminStageCode } from "@/lib/stage-admins";
 import { planExtension, type PlanExtension } from "@/lib/seasonal-plan-rules";
@@ -14,8 +14,11 @@ import { planExtension, type PlanExtension } from "@/lib/seasonal-plan-rules";
  *   Seasonal Plans/Cubs/Cubs seasonal plan.xlsx
  *   Seasonal Plans/Senior Guides/Senior Guides seasonal plan.xls
  *
- * Replacing or deleting a plan removes the old file FOR GOOD, including
- * Backblaze's hidden older versions (Zyad's decision, 30 Sep 2026).
+ * Replacing or removing a plan never deletes it: the old file moves to the
+ * stage's Archive folder, dated, and leaders can still open it from the page
+ * (Zyad's decision, 30 Sep 2026 — it replaced "delete for good"):
+ *
+ *   Seasonal Plans/Cubs/Archive/2026-09-30 14-05 — Cubs plan.xlsx
  *
  * Who can do what — checked in app/seasonal-plan/actions.ts on every call:
  *   • view / download: every leader and staff role (the page itself is
@@ -81,7 +84,7 @@ export async function listPlans(): Promise<Record<string, PlanFile>> {
     const folder = planFolder(code);
     // Newest wins, should a stray second file ever sit in the folder.
     const inFolder = objects
-      .filter((o) => o.key.startsWith(folder) && planExtension(o.key))
+      .filter((o) => o.key.startsWith(folder) && !o.key.startsWith(archiveFolder(code)) && planExtension(o.key))
       .sort((a, b) => (b.lastModified?.getTime() ?? 0) - (a.lastModified?.getTime() ?? 0));
     const current = inFolder[0];
     if (!current) continue;
@@ -107,9 +110,81 @@ export async function listPlans(): Promise<Record<string, PlanFile>> {
   return byStage;
 }
 
-/** Removes every file (and every old version) in a stage's plan folder, except `keep`. */
-export async function clearPlanFolder(stageCode: string, keep?: string): Promise<void> {
-  await deleteAllVersions(planFolder(stageCode), keep);
+// ------------------------------------------------------------ Archive
+
+/** "kashafa" → "Seasonal Plans/Scouts/Archive/" */
+export function archiveFolder(stageCode: string): string {
+  return `${planFolder(stageCode)}Archive/`;
+}
+
+/** "2026-09-30 14-05" in Cairo time — sorts by date, and is safe in a file name. */
+function stamp(date: Date): string {
+  const p = new Intl.DateTimeFormat("en-GB", {
+    timeZone: "Africa/Cairo", year: "numeric", month: "2-digit", day: "2-digit", hour: "2-digit", minute: "2-digit", hour12: false,
+  }).formatToParts(date);
+  const v = (t: string) => p.find((x) => x.type === t)?.value ?? "00";
+  return `${v("year")}-${v("month")}-${v("day")} ${v("hour")}-${v("minute")}`;
+}
+
+/** A file name without characters that would invent folders or break downloads. */
+function safeName(name: string): string {
+  return name.replace(/[\\/:*?"<>|\u0000-\u001f]/g, " ").replace(/\s+/g, " ").trim().slice(0, 120) || "plan";
+}
+
+/**
+ * Moves the stage's current plan file(s) into its Archive folder — copied
+ * (keeping who uploaded it) and only then removed from the stage folder.
+ * Nothing is ever deleted outright. Called before a new plan is saved and
+ * when a plan is taken down.
+ */
+export async function archiveCurrentPlans(stageCode: string): Promise<number> {
+  const folder = planFolder(stageCode);
+  const current = (await listObjects(folder)).filter(
+    (o) => !o.key.startsWith(archiveFolder(stageCode)) && planExtension(o.key),
+  );
+  const when = stamp(new Date());
+  for (const file of current) {
+    const meta = await objectMetadata(file.key);
+    const ext = planExtension(file.key)!;
+    const original = decode(meta?.["original-name"]);
+    const base = safeName((original ?? file.key.split("/").pop() ?? "plan").replace(/\.[^.]+$/, ""));
+    let target = `${archiveFolder(stageCode)}${when} — ${base}.${ext}`;
+    // Two archives in the same minute keep both.
+    for (let n = 2; (await listObjects(target)).some((o) => o.key === target); n++) {
+      target = `${archiveFolder(stageCode)}${when} — ${base} (${n}).${ext}`;
+    }
+    await copyObject(file.key, target);
+    // Only the exact key — and only after the copy succeeded.
+    await deleteAllVersions(file.key, undefined, true);
+  }
+  return current.length;
+}
+
+/** How many archived plans each stage has (one listing for all stages). */
+export async function archiveCounts(): Promise<Record<string, number>> {
+  const objects = await listObjects(`${PLAN_ROOT}/`);
+  const counts: Record<string, number> = {};
+  for (const code of STAGE_CODES) {
+    const n = objects.filter((o) => o.key.startsWith(archiveFolder(code)) && planExtension(o.key)).length;
+    if (n) counts[code] = n;
+  }
+  return counts;
+}
+
+export type ArchivedPlan = { key: string; name: string; size: number; archivedAt: string | null };
+
+/** A stage's archived plans, newest first. */
+export async function listArchive(stageCode: string): Promise<ArchivedPlan[]> {
+  const folder = archiveFolder(stageCode);
+  return (await listObjects(folder))
+    .filter((o) => planExtension(o.key))
+    .map((o) => ({
+      key: o.key,
+      name: o.key.slice(folder.length),
+      size: o.size,
+      archivedAt: o.lastModified?.toISOString() ?? null,
+    }))
+    .sort((a, b) => (b.archivedAt ?? "").localeCompare(a.archivedAt ?? "") || b.name.localeCompare(a.name));
 }
 
 // ------------------------------------------------------------ Checking files

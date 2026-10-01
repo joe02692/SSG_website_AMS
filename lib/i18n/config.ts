@@ -1,14 +1,15 @@
 /**
- * Languages the site speaks. English is the default; Arabic is right-to-left.
+ * Languages the site speaks. Arabic (right-to-left) is the main language —
+ * every first visit opens in Arabic (Zyad's decision, 30 Sep 2026).
  *
  * The choice is kept in a cookie (not in the URL), so every existing link,
- * redirect and bookmark keeps working in both languages. A visitor with no
- * cookie gets Arabic if their browser asks for it first, English otherwise.
+ * redirect and bookmark keeps working in both languages. Pressing "EN" saves
+ * English for that visitor from then on.
  */
 export const LOCALES = ["en", "ar"] as const;
 export type Locale = (typeof LOCALES)[number];
 
-export const DEFAULT_LOCALE: Locale = "en";
+export const DEFAULT_LOCALE: Locale = "ar";
 export const LOCALE_COOKIE = "lang";
 
 export function isLocale(value: unknown): value is Locale {

@@ -1,6 +1,7 @@
 import type { Metadata } from "next";
 import Link from "next/link";
 import { SiteShell } from "@/components/site-shell";
+import { BannerScenery } from "@/components/green-scenery";
 import { requireUser, getCurrentProfile } from "@/lib/dal";
 import { isSiteAdminRole, isStageRole } from "@/lib/roles";
 import { getLocale, getT } from "@/lib/i18n/server";
@@ -53,8 +54,9 @@ export default async function DashboardPage({
       {/* Welcome band — the site's forest, so the members area reads as the
           same place as the homepage rather than a separate admin tool. */}
       <section className="on-dark relative overflow-hidden bg-forest text-cream">
+        <BannerScenery />
         <div aria-hidden className="absolute inset-x-0 bottom-0 h-1.5 bg-sun" />
-        <div className="mx-auto max-w-6xl px-5 py-10 sm:px-8 sm:py-12">
+        <div className="relative mx-auto max-w-6xl px-5 py-10 sm:px-8 sm:py-12">
           <p className="font-display text-base text-sun">
             {t.welcomeBack}
           </p>
