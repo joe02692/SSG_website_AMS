@@ -2,7 +2,7 @@ import type { Metadata } from "next";
 import Link from "next/link";
 import { SiteShell } from "@/components/site-shell";
 import { requireHeadSiteAdmin } from "@/lib/dal";
-import { STAGE_ADMIN_LIMIT, isHeadSiteAdminRole, type Role } from "@/lib/roles";
+import { STAGE_ADMIN_LIMIT, isHeadSiteAdminRole, isRequestablePosition, type Role } from "@/lib/roles";
 import { createClient } from "@/lib/supabase/server";
 import { DeleteMemberButton } from "@/components/members/delete-member-button";
 import { RequestReview } from "@/components/members/request-review";
@@ -23,6 +23,8 @@ type RequestRow = {
   id: string;
   full_name: string | null;
   requested_at: string | null;
+  /** The role they asked for at signup (0024). A wish; null before 0024. */
+  requested_position?: string | null;
   stages: { code: string; name_en: string } | null;
 };
 
@@ -128,13 +130,24 @@ export default async function MembersPage() {
       .order("created_at", { ascending: true })
       .limit(MAX_ROWS),
     // Pending requests, oldest first — whoever has waited longest is decided
-    // on first.
+    // on first. requested_position arrives with 0024; if it isn't there yet
+    // the query is retried without it, so the list never disappears.
     supabase
       .from("profiles")
-      .select("id, full_name, requested_at, stages:requested_stage_id(code, name_en)")
+      .select("id, full_name, requested_at, requested_position, stages:requested_stage_id(code, name_en)")
       .eq("role", "pending_leader")
       .order("requested_at", { ascending: true })
-      .limit(MAX_ROWS),
+      .limit(MAX_ROWS)
+      .then(async (result) =>
+        result.error
+          ? supabase
+              .from("profiles")
+              .select("id, full_name, requested_at, stages:requested_stage_id(code, name_en)")
+              .eq("role", "pending_leader")
+              .order("requested_at", { ascending: true })
+              .limit(MAX_ROWS)
+          : result,
+      ),
   ]);
 
   // The event countdown (migration 0023). Read fresh, not from the cache.
@@ -333,6 +346,7 @@ export default async function MembersPage() {
                     <tr>
                       <th scope="col" className="px-4 py-3 font-medium">{t.name}</th>
                       <th scope="col" className="px-4 py-3 font-medium">{t.stage}</th>
+                      <th scope="col" className="px-4 py-3 font-medium">{t.askedFor}</th>
                       <th scope="col" className="px-4 py-3 font-medium">{t.asked}</th>
                       <th scope="col" className="px-4 py-3 text-end font-medium">
                         {t.decision}
@@ -358,6 +372,11 @@ export default async function MembersPage() {
                             </span>
                           ) : null}
                         </td>
+                        <td className="whitespace-nowrap px-4 py-3 text-ink">
+                          {isRequestablePosition(request.requested_position)
+                            ? all.roles.labels[request.requested_position]
+                            : "—"}
+                        </td>
                         <td className="whitespace-nowrap px-4 py-3 text-ink-muted">
                           {request.requested_at
                             ? formatDate(request.requested_at, dateLocale)
@@ -368,6 +387,11 @@ export default async function MembersPage() {
                             memberId={request.id}
                             name={request.full_name ?? t.thisPerson}
                             requestedStage={request.stages?.code ?? ""}
+                            requestedPosition={
+                              isRequestablePosition(request.requested_position)
+                                ? request.requested_position
+                                : undefined
+                            }
                             stageAdmins={stageAdmins.byStage}
                           />
                         </td>

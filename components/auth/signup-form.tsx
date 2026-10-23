@@ -1,9 +1,9 @@
 "use client";
 
-import { useActionState, useId, useState } from "react";
+import { startTransition, useActionState, useId, useState } from "react";
 import Link from "next/link";
 import { signUpAction, type AuthState } from "@/app/auth/actions";
-import type { Role } from "@/lib/roles";
+import { REQUESTABLE_POSITIONS, STAGE_ADMIN_LIMIT, type Role } from "@/lib/roles";
 import { useT } from "@/lib/i18n/client";
 import { SCOUT_STAGES } from "@/lib/onboarding";
 import { Field, inputClass } from "@/components/ui/field";
@@ -26,19 +26,37 @@ const CHOICES: {
   { value: "leader", badge: "needsApproval", disabled: false },
 ];
 
-export function SignupForm() {
+export function SignupForm({
+  seats = null,
+}: {
+  /** Taken stage admin seats per stage code; null when unknown (no 0024 yet). */
+  seats?: Record<string, number> | null;
+}) {
   const [state, formAction, pending] = useActionState(
     signUpAction,
     initialState,
   );
   const [role, setRole] = useState<Role>("scout");
+  const [stage, setStage] = useState("");
+  const [position, setPosition] = useState("");
   const id = useId();
   const all = useT();
   const t = all.auth.signup;
   const stageNames = all.stages;
 
   return (
-    <form action={formAction} className="space-y-4" noValidate>
+    // Submitted by hand rather than with action={…}: React empties a form
+    // after its action runs, which wiped everything typed whenever the server
+    // answered with an error. Now only the field that's wrong needs fixing.
+    <form
+      onSubmit={(event) => {
+        event.preventDefault();
+        const data = new FormData(event.currentTarget);
+        startTransition(() => formAction(data));
+      }}
+      className="space-y-4"
+      noValidate
+    >
       {state.notice ? (
         <p
           role="status"
@@ -181,7 +199,15 @@ export function SignupForm() {
             <select
               id={`${id}-stage`}
               name="requestedStage"
-              defaultValue=""
+              value={stage}
+              onChange={(event) => {
+                const next = event.target.value;
+                setStage(next);
+                // Stage Admin may not be on offer for the new stage.
+                if (position === "stage_admin" && (seats?.[next] ?? 0) >= STAGE_ADMIN_LIMIT) {
+                  setPosition("");
+                }
+              }}
               className={inputClass}
             >
               <option value="">{t.chooseStage}</option>
@@ -192,6 +218,45 @@ export function SignupForm() {
               ))}
             </select>
           </Field>
+
+          {/* What they would like to be. A wish — the head admin decides. Stage
+              Admin shows how many of the stage's two seats are taken and
+              disappears once both are. */}
+          <Field
+            label={t.whichPosition}
+            htmlFor={`${id}-position`}
+            hint={t.whichPositionHint}
+            error={state.fieldErrors?.requestedPosition}
+          >
+            <select
+              id={`${id}-position`}
+              name="requestedPosition"
+              value={position}
+              onChange={(event) => setPosition(event.target.value)}
+              className={inputClass}
+            >
+              <option value="">{t.choosePosition}</option>
+              {REQUESTABLE_POSITIONS.map((value) => {
+                const taken = stage && seats ? (seats[stage] ?? 0) : null;
+                if (value === "stage_admin" && taken !== null && taken >= STAGE_ADMIN_LIMIT) {
+                  return null;
+                }
+                return (
+                  <option key={value} value={value}>
+                    {all.roles.labels[value]}
+                    {value === "stage_admin" && taken !== null
+                      ? ` (${t.seats(taken, STAGE_ADMIN_LIMIT)})`
+                      : ""}
+                  </option>
+                );
+              })}
+            </select>
+          </Field>
+          {stage && seats && (seats[stage] ?? 0) >= STAGE_ADMIN_LIMIT ? (
+            <p className="-mt-2 text-xs text-ink-muted">
+              {t.stageAdminFull(stageNames[stage as keyof typeof stageNames] ?? stage)}
+            </p>
+          ) : null}
 
           <p className="rounded-xl border-2 border-line bg-surface-raised px-4 py-3 text-sm text-ink-muted">
             {t.lockedNote}

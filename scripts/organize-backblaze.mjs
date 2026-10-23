@@ -1,12 +1,17 @@
 #!/usr/bin/env node
 /**
- * One-time tidy-up of the Backblaze bucket into readable folders:
+ * Tidies the Backblaze bucket into the layout the website uses (Oct 2026):
  *
- *   Scouts/<Stage>/<Full name>.jpg
- *   Leaders/Males/<Full name>.jpg
- *   Leaders/Females/<Full name>.jpg
- *   Leaders/Gender not set/<Full name>.jpg   (leaders who haven't answered yet)
- *   _Unfiled/<old path>                      (uploads nobody's record points to)
+ *   Members/Scouts/<Stage>/<Full name> - Birth certificate.jpg
+ *   Members/Leaders/Males/<Full name> - ID card.jpg
+ *   Members/Leaders/Females/<Full name> - ID card.jpg
+ *   Members/Leaders/Gender not set/<Full name> - ID card.jpg
+ *   Members/Former members/…        (filled by the website when you delete an account)
+ *   Seasonal Plans/…                (left exactly as it is)
+ *   _System/Incoming/…              (temporary uploads — left as they are)
+ *   _System/Unfiled/<old path>      (anything no member's record points to)
+ *
+ * Safe to run again at any time; files already in place are skipped.
  *
  * New uploads are filed like this automatically by the website. This script
  * moves the files uploaded BEFORE that change, and updates each member's
@@ -21,7 +26,7 @@
  *
  * Reads from .env.local: NEXT_PUBLIC_SUPABASE_URL, SUPABASE_SERVICE_ROLE_KEY,
  * B2_KEY_ID, B2_APP_KEY, B2_BUCKET, B2_ENDPOINT, B2_REGION.
- * Run migrations 0020 and 0021 in Supabase first.
+ * Run migrations 0020 and 0021 in Supabase first (0024 is not needed for this).
  */
 import { existsSync, readFileSync } from "node:fs";
 import { resolve } from "node:path";
@@ -77,9 +82,14 @@ const STAGE_LABELS = {
   motaqadem: "Senior Scouts",
   jawala: "Rovers",
 };
-const scoutFolder = (code) => `Scouts/${STAGE_LABELS[code] ?? "Stage not set"}`;
+const scoutFolder = (code) => `Members/Scouts/${STAGE_LABELS[code] ?? "Stage not set"}`;
 const leaderFolder = (gender) =>
-  gender === "male" ? "Leaders/Males" : gender === "female" ? "Leaders/Females" : "Leaders/Gender not set";
+  gender === "male"
+    ? "Members/Leaders/Males"
+    : gender === "female"
+      ? "Members/Leaders/Females"
+      : "Members/Leaders/Gender not set";
+const LABELS = { scout: "Birth certificate", leader: "ID card" };
 function fileBaseName(fullName) {
   const cleaned = (fullName ?? "")
     .normalize("NFC")
@@ -137,9 +147,9 @@ async function listAll() {
 // --------------------------------------------------------------- the work --
 const claimed = new Set(); // targets already given out in this run
 
-async function freeTarget(folder, base, ext, current) {
+async function freeTarget(folder, base, tail, current) {
   for (let n = 1; n <= 50; n++) {
-    const key = `${folder}/${base}${n === 1 ? "" : ` (${n})`}.${ext}`;
+    const key = `${folder}/${base}${n === 1 ? "" : ` (${n})`}${tail}`;
     if (key === current) return key;
     if (claimed.has(key)) continue;
     if (!(await exists(key))) return key;
@@ -147,10 +157,10 @@ async function freeTarget(folder, base, ext, current) {
   throw new Error(`no free name for ${folder}/${base}`);
 }
 
-function alreadyFiled(key, folder, base, ext) {
+function alreadyFiled(key, folder, base, tail) {
   const head = `${folder}/${base}`;
-  if (!key.startsWith(head) || !key.toLowerCase().endsWith(`.${ext}`)) return false;
-  const rest = key.slice(head.length, -(ext.length + 1));
+  if (!key.startsWith(head) || !key.endsWith(tail)) return false;
+  const rest = key.slice(head.length, -tail.length);
   return rest === "" || /^ \(\d+\)$/.test(rest);
 }
 
@@ -158,10 +168,11 @@ let moved = 0;
 let skipped = 0;
 let problems = 0;
 
-async function refile({ label, table, column, profileId, key, folder, fullName }) {
+async function refile({ label, table, column, profileId, key, folder, fullName, docLabel }) {
   const ext = (key.split(".").pop() ?? "jpg").toLowerCase();
   const base = fileBaseName(fullName);
-  if (alreadyFiled(key, folder, base, ext)) {
+  const tail = ` - ${docLabel}.${ext}`;
+  if (alreadyFiled(key, folder, base, tail)) {
     claimed.add(key);
     skipped++;
     return;
@@ -171,7 +182,7 @@ async function refile({ label, table, column, profileId, key, folder, fullName }
     problems++;
     return;
   }
-  const target = await freeTarget(folder, base, ext, key);
+  const target = await freeTarget(folder, base, tail, key);
   claimed.add(target);
   console.log(`  ${label}\n      ${key}\n    → ${target}`);
   moved++;
@@ -216,6 +227,7 @@ for (const row of scouts) {
     key: row.document_path,
     folder: scoutFolder(row.stages?.code),
     fullName: row.profiles?.full_name,
+    docLabel: LABELS.scout,
   });
 }
 
@@ -230,31 +242,35 @@ for (const row of leaders) {
     key: row.id_card_path,
     folder: leaderFolder(row.gender),
     fullName: row.profiles?.full_name,
+    docLabel: LABELS.leader,
   });
 }
 
-// Anything left outside the new folders that no record points to: uploads
-// from registrations that were never finished, or replaced files. Kept, just
-// moved out of the way into _Unfiled/.
+// Anything left outside the three top folders that no record points to: old
+// documents of deleted accounts, replaced files, abandoned uploads from the
+// old _incoming/ folder, and the old _Unfiled/ folder. Kept, just moved out
+// of the way into _System/Unfiled/ (keeping their old path, so nothing is
+// ambiguous).
 const referenced = new Set([
   ...scouts.map((r) => r.document_path),
   ...leaders.map((r) => r.id_card_path),
   ...claimed,
 ]);
+const unfiledTarget = (key) =>
+  key.startsWith("_Unfiled/") ? `_System/Unfiled/${key.slice("_Unfiled/".length)}` : `_System/Unfiled/${key}`;
 const loose = (await listAll()).filter(
   (key) =>
     !referenced.has(key) &&
-    !key.startsWith("Scouts/") &&
-    !key.startsWith("Leaders/") &&
-    !key.startsWith("_Unfiled/") &&
-    !key.startsWith("_incoming/") &&
+    !key.startsWith("Members/") &&
+    !key.startsWith("Seasonal Plans/") &&
+    !key.startsWith("_System/") &&
     !key.endsWith(".bzEmpty"),
 );
-console.log(`\nUnreferenced files outside the new folders: ${loose.length}`);
+console.log(`\nUnreferenced files outside Members/, Seasonal Plans/ and _System/: ${loose.length}`);
 for (const key of loose) {
-  console.log(`  ${key}  → _Unfiled/${key}`);
+  console.log(`  ${key}  → ${unfiledTarget(key)}`);
   if (APPLY) {
-    await copy(key, `_Unfiled/${key}`);
+    await copy(key, unfiledTarget(key));
     await remove(key);
   }
 }

@@ -33,13 +33,13 @@ import { attachmentDisposition } from "@/lib/documents";
  * Rules that follow:
  *   • The bucket must stay PRIVATE. Never set it to public in the B2 console.
  *   • Never return a URL from here without checking the caller first.
- *   • The browser only ever uploads to `_incoming/<profile_id>/…`, a key the
- *     server built from the session. Ownership of an upload is checked by
- *     that prefix; ownership of a filed document by the key stored in the
+ *   • The browser only ever uploads to `_System/Incoming/<profile_id>/…`, a
+ *     key the server built from the session. Ownership of an upload is checked
+ *     by that prefix; ownership of a filed document by the key stored in the
  *     member's own database row.
  *   • Filed documents live in readable folders (lib/storage-paths.ts):
- *       Scouts/<Stage>/<Full name>.jpg
- *       Leaders/Males/<Full name>.jpg · Leaders/Females/<Full name>.jpg
+ *       Members/Scouts/<Stage>/<Full name> - Birth certificate.jpg
+ *       Members/Leaders/<Males|Females>/<Full name> - ID card.jpg
  *     They are moved there by the save action, which is the only code that
  *     knows the stage or gender for certain.
  */
@@ -245,7 +245,7 @@ export async function copyObject(from: string, to: string): Promise<void> {
 
 /**
  * Writes bytes the server already holds (used for seasonal plans, which the
- * server downloads from `_incoming/` to check before filing). Metadata values
+ * server downloads from `_System/Incoming/` to check before filing). Metadata values
  * must be ASCII in S3, so callers URL-encode them.
  */
 export async function putObject(

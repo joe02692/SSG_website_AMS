@@ -38,6 +38,12 @@ const en = {
     whichStage: "Which stage do you work with?",
     whichStageHint: "So the group knows who you are when they review your request.",
     chooseStage: "Choose a stage…",
+    whichPosition: "What would you like to be?",
+    whichPositionHint: "The head of the group makes the final choice when approving your request.",
+    choosePosition: "Choose a role…",
+    seats: (taken: number, limit: number) => `${taken}/${limit} taken`,
+    stageAdminFull: (stage: string) =>
+      `${stage} already has its two stage admins, so Stage Admin isn't available for it.`,
     lockedNote:
       "Your account is created straight away but stays locked until the group approves it. You'll be able to sign in and check the status at any time.",
     sendRequest: "Send Request",
@@ -77,6 +83,8 @@ const en = {
     parentsClosed: "Parent accounts aren't open yet. Please check back soon.",
     chooseRole: "Choose how you're joining.",
     chooseStage: "Choose the stage you work with.",
+    choosePosition: "Choose the role you'd like.",
+    stageAdminFull: "That stage already has its two stage admins — choose another role.",
     fixFields: "Please fix the highlighted fields.",
     requestSent:
       "Your request has been sent. We're waiting for an admin to approve it — you'll be able to sign in and check the status any time.",
@@ -129,6 +137,12 @@ const ar: typeof en = {
     whichStage: "ما المرحلة التي تعمل معها؟",
     whichStageHint: "حتى تتعرف عليك المجموعة عند مراجعة طلبك.",
     chooseStage: "اختر مرحلة…",
+    whichPosition: "ما الدور الذي تريده؟",
+    whichPositionHint: "يختار رئيس المجموعة الدور النهائي عند الموافقة على طلبك.",
+    choosePosition: "اختر دورًا…",
+    seats: (taken, limit) => `${taken}/${limit} محجوز`,
+    stageAdminFull: (stage) =>
+      `مرحلة ${stage} لديها بالفعل مسؤولا مرحلة، لذلك دور مسؤول المرحلة غير متاح لها.`,
     lockedNote:
       "يُنشأ حسابك فورًا لكنه يظل مقفلًا حتى توافق عليه المجموعة. يمكنك تسجيل الدخول ومتابعة حالة الطلب في أي وقت.",
     sendRequest: "إرسال الطلب",
@@ -168,6 +182,8 @@ const ar: typeof en = {
     parentsClosed: "حسابات أولياء الأمور غير متاحة بعد. يُرجى العودة قريبًا.",
     chooseRole: "اختر طريقة انضمامك.",
     chooseStage: "اختر المرحلة التي تعمل معها.",
+    choosePosition: "اختر الدور الذي تريده.",
+    stageAdminFull: "هذه المرحلة لديها بالفعل مسؤولا مرحلة — اختر دورًا آخر.",
     fixFields: "يُرجى تصحيح الحقول المحددة.",
     requestSent:
       "تم إرسال طلبك. ننتظر موافقة أحد المسؤولين — يمكنك تسجيل الدخول ومتابعة الحالة في أي وقت.",

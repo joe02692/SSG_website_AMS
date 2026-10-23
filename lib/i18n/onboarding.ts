@@ -46,6 +46,9 @@ const AR: Record<string, string> = {
   "A photo or scan of both sides if possible. Only you and the site admins can see it.":
     "صورة أو نسخة ممسوحة للوجهين إن أمكن. لا يراها غيرك أنت ومسؤولو الموقع.",
   "e.g. Third year": "مثال: الفرقة الثالثة",
+  "Choose your year…": "اختر سنتك الدراسية…",
+  "Other (write it)": "أخرى (اكتبها)",
+  "Write your year": "اكتب سنتك الدراسية",
   "Students only — graduates skip this.": "للطلاب فقط — يتخطاه الخريجون.",
   "Tick every stage you lead. Most leaders serve more than one.":
     "اختر كل مرحلة تقودها. معظم القادة يخدمون في أكثر من مرحلة.",
@@ -54,6 +57,13 @@ const AR: Record<string, string> = {
 
   // ---- Options
   "University student": "طالب جامعي",
+  "First year": "الفرقة الأولى",
+  "Second year": "الفرقة الثانية",
+  "Third year": "الفرقة الثالثة",
+  "Fourth year": "الفرقة الرابعة",
+  "Fifth year": "الفرقة الخامسة",
+  "Sixth year": "الفرقة السادسة",
+  "Seventh year": "الفرقة السابعة",
   Graduate: "خريج",
   "Program committee": "لجنة البرامج",
   "Media committee": "لجنة الإعلام",
@@ -83,6 +93,8 @@ const AR: Record<string, string> = {
   "Please fix the highlighted answers.": "يُرجى تصحيح الإجابات المحددة.",
   "Could not store the certificate. Please try again.": "تعذّر حفظ الشهادة. يُرجى المحاولة مرة أخرى.",
   "That national ID is already registered.": "هذا الرقم القومي مسجّل بالفعل.",
+  "This national ID is already registered to another member.": "هذا الرقم القومي مسجّل بالفعل لعضو آخر.",
+  "Choose your academic year, or write it under Other.": "اختر سنتك الدراسية، أو اكتبها في خانة «أخرى».",
   "Your details have been saved.": "تم حفظ بياناتك.",
   "Choose the year you joined.": "اختر سنة انضمامك.",
   "That year is in the future.": "هذه السنة في المستقبل.",
@@ -118,6 +130,8 @@ const AR: Record<string, string> = {
   "Storage refused the request. Check the server logs.": "رفضت خدمة التخزين الطلب. راجع سجلات الخادم.",
 
   // ---- Members admin (app/admin/actions.ts)
+  "Could not move their documents to Former members, so the account was not deleted. Please try again.":
+    "تعذّر نقل مستنداته إلى مجلد الأعضاء السابقين، لذلك لم يُحذف الحساب. يُرجى المحاولة مرة أخرى.",
   "Only the head site admin can delete accounts.": "المسؤول الرئيسي للموقع وحده يمكنه حذف الحسابات.",
   "Nothing to delete.": "لا يوجد ما يمكن حذفه.",
   "You can't delete your own account.": "لا يمكنك حذف حسابك.",
@@ -202,6 +216,8 @@ export function localizeQuestions(questions: Question[], locale: Locale): Questi
     hint: q.hint ? label(locale, q.hint) : q.hint,
     placeholder: q.placeholder && !/^01X+$/.test(q.placeholder) ? label(locale, q.placeholder) : q.placeholder,
     options: q.options?.map((o) => ({ ...o, label: label(locale, o.label) })),
+    otherLabel: q.otherLabel ? label(locale, q.otherLabel) : q.otherLabel,
+    otherPlaceholder: q.otherPlaceholder ? label(locale, q.otherPlaceholder) : q.otherPlaceholder,
   }));
 }
 

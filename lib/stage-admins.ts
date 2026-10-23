@@ -54,3 +54,20 @@ export async function stageAdminsByStage(): Promise<{
   }
   return { byStage, byMember, migrationMissing: false };
 }
+
+/**
+ * Taken stage admin seats per stage code, for the public signup page
+ * (public.stage_admin_seats(), migration 0024 — counts only, no names).
+ * null when the function isn't there yet: the page then simply doesn't
+ * show counts, and nobody is stopped from asking.
+ */
+export async function stageAdminSeats(): Promise<Record<string, number> | null> {
+  const supabase = await createClient();
+  const { data, error } = await supabase.rpc("stage_admin_seats");
+  if (error || !Array.isArray(data)) return null;
+  const seats: Record<string, number> = {};
+  for (const row of data as { stage_code: string; taken: number }[]) {
+    seats[row.stage_code] = Number(row.taken) || 0;
+  }
+  return seats;
+}

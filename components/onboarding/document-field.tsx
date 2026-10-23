@@ -1,6 +1,6 @@
 "use client";
 
-import { useCallback, useRef, useState, useTransition } from "react";
+import { useCallback, useImperativeHandle, useRef, useState, useTransition, type RefObject } from "react";
 import { compressImage } from "@/lib/compress-image";
 import { DocumentPreview, previewKind } from "@/components/ui/document-preview";
 import {
@@ -12,6 +12,14 @@ import { useT } from "@/lib/i18n/client";
 const MAX_BYTES = 10 * 1024 * 1024;
 const ACCEPTED = ["image/jpeg", "image/png", "image/webp", "application/pdf"];
 
+/** What DetailsForm can ask of the document field when the form is sent. */
+export type DocumentController = {
+  /** A new file is chosen and waiting to be uploaded. */
+  hasPending: () => boolean;
+  /** Uploads the waiting file and returns its key (or an error to show). */
+  upload: () => Promise<{ key?: string; error?: string }>;
+};
+
 /**
  * A document upload that lives INSIDE another form.
  *
@@ -21,24 +29,22 @@ const ACCEPTED = ["image/jpeg", "image/png", "image/webp", "application/pdf"];
  * DocumentUpload component writes straight to the row, so it cannot run here —
  * there is nothing yet to write to.
  *
- * So the two halves are split. The file goes to Backblaze the moment it is
- * chosen (to `_incoming/<profile_id>/…`, a key built server-side from the
- * session, which exists long before any details row does). Saving the form
- * then files it as Scouts/<Stage>/<Name> or Leaders/<Males|Females>/<Name>. The resulting key
- * is parked in a hidden input, and the surrounding form's action writes it as
- * a column when it creates the row. One insert, no orphan row, and no window
- * where a member is registered without their document.
- *
- * A file uploaded by someone who then abandons the form is an orphan object in
- * the bucket's `_incoming/` folder. That is the deliberate trade: a few stray
- * objects there, versus blocking registration on an upload that cannot
- * happen yet. They are cheap and private.
+ * So the two halves are split. Choosing a file only prepares it (shrinks a
+ * photo, checks type and size) and keeps it in the page. Nothing is uploaded
+ * until the member presses Save AND checkDetailsAction has approved every
+ * other answer (Zyad, Oct 2026: "only upload if all details are correct").
+ * DetailsForm then calls upload() through `controller`: the file goes to the
+ * member's temporary uploads folder (a key built server-side from the
+ * session), its key is put in the form, and the save files it under Members/.
+ * One insert, no orphan row, and no window where a member is registered
+ * without their document.
  */
 export function DocumentField({
   fieldId,
   name,
   required,
   existingPath,
+  controller,
 }: {
   fieldId: string;
   /** Column this key is stored in — document_path or id_card_path. */
@@ -46,6 +52,8 @@ export function DocumentField({
   required?: boolean;
   /** Set when re-editing: a document is already on file. */
   existingPath?: string;
+  /** Filled in here so the surrounding form can upload at the right moment. */
+  controller?: RefObject<DocumentController | null>;
 }) {
   const [key, setKey] = useState<string>(existingPath ?? "");
   const [fileName, setFileName] = useState<string | null>(null);
@@ -54,10 +62,13 @@ export function DocumentField({
   const [previewUrl, setPreviewUrl] = useState<string | null>(null);
   const [linking, startLinking] = useTransition();
   const keyRef = useRef<HTMLInputElement>(null);
+  /** The prepared file, waiting for the form to be approved. */
+  const pendingRef = useRef<File | null>(null);
   const t = useT().account.documents;
 
   const busy = status !== null;
-  const haveDocument = key !== "";
+  const [hasPending, setHasPending] = useState(false);
+  const haveDocument = key !== "" || hasPending;
   // Only a key that was already saved can be fetched back; one uploaded a
   // moment ago is not on the row yet, so there is nothing for the server to
   // look up.
@@ -107,14 +118,32 @@ export function DocumentField({
         return;
       }
 
+      // Kept here, not uploaded: see the note at the top of this file.
+      pendingRef.current = file;
+      setHasPending(true);
+      setFileName(original.name);
+    } catch (cause) {
+      console.error("[document] could not prepare the file", cause);
+      setError(t.somethingWrong);
+    } finally {
+      setStatus(null);
+      event.target.value = "";
+    }
+  }
+
+  /** Called by the form once every other answer has been approved. */
+  const upload = useCallback(async (): Promise<{ key?: string; error?: string }> => {
+    const file = pendingRef.current;
+    if (!file) return { key };
+    setError(null);
+    try {
       const ticketData = new FormData();
       ticketData.set("contentType", file.type);
       ticketData.set("size", String(file.size));
 
       const ticket = await createUploadUrlAction({}, ticketData);
       if (ticket.error || !ticket.url || !ticket.key) {
-        setError(ticket.error ?? t.couldNotStart);
-        return;
+        return { error: ticket.error ?? t.couldNotStart };
       }
 
       setStatus(t.uploading);
@@ -127,27 +156,32 @@ export function DocumentField({
         });
       } catch (cause) {
         console.error("[document] the upload request was blocked", cause);
-        setError(t.blocked);
-        return;
+        return { error: t.blocked };
       }
-
       if (!response.ok) {
         console.error("[document] storage refused the upload", response.status);
-        setError(t.refused(response.status));
-        return;
+        return { error: t.refused(response.status) };
       }
 
+      pendingRef.current = null;
+      setHasPending(false);
       setKey(ticket.key);
-      setFileName(original.name);
       if (keyRef.current) keyRef.current.value = ticket.key;
+      return { key: ticket.key };
     } catch (cause) {
       console.error("[document] upload failed before it started", cause);
-      setError(t.somethingWrong);
+      return { error: t.somethingWrong };
     } finally {
       setStatus(null);
-      event.target.value = "";
     }
-  }
+  }, [key, t]);
+
+  // What the surrounding form calls when it is sent (see DetailsForm).
+  useImperativeHandle(
+    controller,
+    () => ({ hasPending: () => pendingRef.current !== null, upload }),
+    [upload],
+  );
 
   return (
     <div className="space-y-2">
@@ -194,9 +228,14 @@ export function DocumentField({
       {haveDocument && !status ? (
         <div className="flex flex-wrap items-center gap-3">
           <p role="status" className="text-xs font-medium text-success-ink">
-            {fileName ? t.uploaded(fileName) : t.onFile} {t.replace}
+            {hasPending && fileName
+              ? t.ready(fileName)
+              : fileName
+                ? t.uploaded(fileName)
+                : t.onFile}{" "}
+            {t.replace}
           </p>
-          {canView ? (
+          {canView && !hasPending ? (
             <span className="flex items-center gap-2 text-xs">
               <button
                 type="button"

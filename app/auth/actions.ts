@@ -5,7 +5,13 @@ import { revalidatePath } from "next/cache";
 import { headers } from "next/headers";
 import { createClient } from "@/lib/supabase/server";
 import { SCOUT_STAGES } from "@/lib/onboarding";
-import { COMING_SOON_ROLES, SELF_SERVE_ROLES } from "@/lib/roles";
+import {
+  COMING_SOON_ROLES,
+  SELF_SERVE_ROLES,
+  STAGE_ADMIN_LIMIT,
+  isRequestablePosition,
+} from "@/lib/roles";
+import { stageAdminSeats } from "@/lib/stage-admins";
 import { HOUR, MINUTE, clientIp, withinLimits } from "@/lib/rate-limit";
 import { getT } from "@/lib/i18n/server";
 
@@ -48,6 +54,7 @@ export async function signUpAction(
   const fullName = str(formData, "fullName");
   const requestedRole = str(formData, "role");
   const requestedStage = str(formData, "requestedStage");
+  const requestedPosition = str(formData, "requestedPosition");
 
   const fieldErrors: Record<string, string> = {};
 
@@ -83,6 +90,22 @@ export async function signUpAction(
   if (isLeaderRequest && !STAGE_CODES.includes(requestedStage)) {
     fieldErrors.requestedStage = e.chooseStage;
   }
+  // The role they'd like (0024). Still only a wish — the head admin decides.
+  if (isLeaderRequest && !isRequestablePosition(requestedPosition)) {
+    fieldErrors.requestedPosition = e.choosePosition;
+  }
+  // Stage Admin is only on offer while the stage has a free seat. The form
+  // hides it once both are taken; this catches a page left open meanwhile.
+  if (
+    isLeaderRequest &&
+    requestedPosition === "stage_admin" &&
+    STAGE_CODES.includes(requestedStage)
+  ) {
+    const seats = await stageAdminSeats();
+    if (seats && (seats[requestedStage] ?? 0) >= STAGE_ADMIN_LIMIT) {
+      fieldErrors.requestedPosition = e.stageAdminFull;
+    }
+  }
 
   if (Object.keys(fieldErrors).length > 0) {
     return { fieldErrors, error: e.fixFields };
@@ -114,7 +137,9 @@ export async function signUpAction(
           : isSelfServe
             ? requestedRole
             : "scout",
-        ...(isLeaderRequest ? { requested_stage: requestedStage } : {}),
+        ...(isLeaderRequest
+          ? { requested_stage: requestedStage, requested_position: requestedPosition }
+          : {}),
       },
     },
   });

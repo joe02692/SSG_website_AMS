@@ -10,7 +10,7 @@ import { getLocale } from "@/lib/i18n/server";
 import { localizeState } from "@/lib/i18n/onboarding";
 import { notifyRegistrationComplete } from "@/lib/email";
 import { deleteObject } from "@/lib/b2";
-import { fileDocument, leaderFolder, scoutFolder } from "@/lib/storage-paths";
+import { DOCUMENT_LABELS, fileDocument, leaderFolder, scoutFolder } from "@/lib/storage-paths";
 import {
   APPLICANT_STATUSES,
   LEADER_COMMITTEES,
@@ -23,6 +23,8 @@ export type DetailsState = {
   error?: string;
   fieldErrors?: Partial<Record<string, string>>;
   notice?: string;
+  /** checkDetailsAction only: every answer is fine, the document may upload. */
+  ok?: boolean;
 };
 
 const EGYPT_MOBILE = /^01[0-9]{9}$/;
@@ -32,6 +34,42 @@ function field(formData: FormData, key: string): string {
   const raw = formData.get(key);
   return typeof raw === "string" ? raw.trim() : "";
 }
+
+/** Arabic-Indic and Persian digits → 0-9, so "٠١٠…" from an Arabic keyboard is accepted. */
+function latinDigits(value: string): string {
+  return value
+    .replace(/[\u0660-\u0669]/g, (d) => String(d.charCodeAt(0) - 0x0660))
+    .replace(/[\u06F0-\u06F9]/g, (d) => String(d.charCodeAt(0) - 0x06f0));
+}
+
+/** Phone numbers and national IDs: digits only, Latin, no spaces or dashes. */
+function digitsField(formData: FormData, key: string): string {
+  return latinDigits(field(formData, key)).replace(/[\s-]/g, "");
+}
+
+/**
+ * The browser says a new document is chosen but not uploaded yet: it waits
+ * for checkDetailsAction to approve every other answer first (DetailsForm).
+ */
+function documentPending(formData: FormData, name: string): boolean {
+  return formData.get(`${name}__pending`) === "1";
+}
+
+/**
+ * Is this national ID already someone else's — as a scout OR a leader?
+ * (public.national_id_taken, migration 0024.) Asked before anything is
+ * uploaded or saved. If 0024 isn't there yet this says "no" and the unique
+ * index on each table still refuses a duplicate on save.
+ */
+async function nationalIdTaken(nationalId: string): Promise<boolean> {
+  if (!nationalId) return false;
+  const supabase = await createClient();
+  const { data, error } = await supabase.rpc("national_id_taken", { p_national_id: nationalId });
+  if (error) return false;
+  return data === true;
+}
+
+const DUPLICATE_ID = "This national ID is already registered to another member.";
 
 /**
  * Turns a Postgres/PostgREST error into something a person can act on.
@@ -93,16 +131,18 @@ async function saveScoutDetails(
   fullName: string | null,
   formData: FormData,
   markComplete: boolean,
+  checkOnly = false,
 ): Promise<DetailsState> {
   const fieldErrors: Record<string, string> = {};
 
   const dateOfBirth = field(formData, "date_of_birth");
   const address = field(formData, "address");
-  const personalPhone = field(formData, "personal_phone").replace(/\s/g, "");
-  const parentPhone = field(formData, "parent_phone").replace(/\s/g, "");
+  const personalPhone = digitsField(formData, "personal_phone");
+  const parentPhone = digitsField(formData, "parent_phone");
   const stageCode = field(formData, "stage_code");
-  const nationalId = field(formData, "national_id").replace(/\s/g, "");
+  const nationalId = digitsField(formData, "national_id");
   const documentPath = field(formData, "document_path");
+  const documentWaiting = documentPending(formData, "document_path");
 
   // Date of birth — the database also refuses future dates, but a clear
   // message here beats a constraint violation.
@@ -136,7 +176,7 @@ async function saveScoutDetails(
   // The browser already uploaded the file to Backblaze and put the resulting
   // key in a hidden input; this is the key, not the file. Whether it really
   // belongs to this member is checked when it is filed, below.
-  if (!documentPath) {
+  if (!documentPath && !(checkOnly && documentWaiting)) {
     fieldErrors.document_path = "Please upload the birth certificate.";
   }
 
@@ -158,11 +198,19 @@ async function saveScoutDetails(
     else stageId = stage.id;
   }
 
+  // One national ID per person across the whole site (0024).
+  if (!fieldErrors.national_id && nationalId && (await nationalIdTaken(nationalId))) {
+    fieldErrors.national_id = DUPLICATE_ID;
+  }
+
   if (Object.keys(fieldErrors).length > 0) {
     return { fieldErrors, error: "Please fix the highlighted answers." };
   }
+  // Everything checks out: the browser may now upload the document.
+  if (checkOnly) return { ok: true };
 
-  // File the certificate as Scouts/<Stage>/<Full name>.<ext>. Also runs when
+  // File the certificate as Members/Scouts/<Stage>/<Full name> - Birth
+  // certificate.<ext>. Also runs when
   // the member only changed their stage, so the file follows them.
   const { data: current } = await supabase
     .from("scout_details")
@@ -175,6 +223,7 @@ async function saveScoutDetails(
     profileId,
     folder: scoutFolder(stageCode),
     fullName,
+    label: DOCUMENT_LABELS.scout,
   }).catch((error: unknown) => {
     console.error("[onboarding] could not file the certificate in Backblaze", error);
     return { error: "Could not store the certificate. Please try again." };
@@ -225,9 +274,7 @@ async function saveScoutDetails(
     // a member controls.
     if (error.code === "23505") {
       return {
-        fieldErrors: {
-          national_id: "That national ID is already registered.",
-        },
+        fieldErrors: { national_id: DUPLICATE_ID },
         error: "Please fix the highlighted answers.",
       };
     }
@@ -263,13 +310,15 @@ async function saveLeaderDetails(
   fullName: string | null,
   formData: FormData,
   markComplete: boolean,
+  checkOnly = false,
 ): Promise<DetailsState> {
   const fieldErrors: Record<string, string> = {};
 
   const dateOfBirth = field(formData, "date_of_birth");
-  const personalPhone = field(formData, "personal_phone").replace(/\s/g, "");
-  const nationalId = field(formData, "national_id").replace(/\s/g, "");
+  const personalPhone = digitsField(formData, "personal_phone");
+  const nationalId = digitsField(formData, "national_id");
   const idCardPath = field(formData, "id_card_path");
+  const idCardWaiting = documentPending(formData, "id_card_path");
   const gender = field(formData, "gender");
   const applicantStatus = field(formData, "applicant_status");
   const university = field(formData, "university");
@@ -329,7 +378,7 @@ async function saveLeaderDetails(
     fieldErrors.national_id = "A national ID is exactly 14 digits.";
   }
 
-  if (!idCardPath) {
+  if (!idCardPath && !(checkOnly && idCardWaiting)) {
     fieldErrors.id_card_path = "Please upload a photo of your ID card.";
   }
 
@@ -350,7 +399,10 @@ async function saveLeaderDetails(
   // message pointing at the field that caused it.
   const isStudent = applicantStatus === "university_student";
   if (isStudent && !academicYear) {
-    fieldErrors.academic_year = "Students need to give an academic year.";
+    fieldErrors.academic_year = "Choose your academic year, or write it under Other.";
+  } else if (academicYear.length > 50) {
+    // The column is varchar(50) (0014).
+    fieldErrors.academic_year = "Keep it under 50 characters.";
   }
 
   const leadershipYears = Number(leadershipYearsRaw);
@@ -378,11 +430,15 @@ async function saveLeaderDetails(
   for (const [key, value] of [
     ["university", university],
     ["faculty", faculty],
-    ["academic_year", academicYear],
   ] as const) {
     if (value.length > MAX_ANSWER_LENGTH) {
       fieldErrors[key] = `Keep it under ${MAX_ANSWER_LENGTH} characters.`;
     }
+  }
+
+  // One national ID per person across the whole site (0024).
+  if (!fieldErrors.national_id && (await nationalIdTaken(nationalId))) {
+    fieldErrors.national_id = DUPLICATE_ID;
   }
 
   if (Object.keys(fieldErrors).length > 0) {
@@ -405,8 +461,11 @@ async function saveLeaderDetails(
       error: "Please fix the highlighted answers.",
     };
   }
+  // Everything checks out: the browser may now upload the ID card.
+  if (checkOnly) return { ok: true };
 
-  // File the ID card as Leaders/<Males|Females>/<Full name>.<ext>. Runs on
+  // File the ID card as Members/Leaders/<Males|Females>/<Full name> - ID
+  // card.<ext>. Runs on
   // every save, so a corrected gender or name moves the file too.
   const { data: current } = await supabase
     .from("leader_details")
@@ -419,6 +478,7 @@ async function saveLeaderDetails(
     profileId,
     folder: leaderFolder(gender),
     fullName,
+    label: DOCUMENT_LABELS.leader,
   }).catch((error: unknown) => {
     console.error("[onboarding] could not file the ID card in Backblaze", error);
     return { error: "Could not store the ID card photo. Please try again." };
@@ -455,7 +515,7 @@ async function saveLeaderDetails(
   if (error) {
     if (error.code === "23505") {
       return {
-        fieldErrors: { national_id: "That national ID is already registered." },
+        fieldErrors: { national_id: DUPLICATE_ID },
         error: "Please fix the highlighted answers.",
       };
     }
@@ -497,6 +557,7 @@ async function saveLeaderDetails(
 async function saveDetails(
   formData: FormData,
   markComplete: boolean,
+  checkOnly = false,
 ): Promise<DetailsState> {
   const profile = await getCurrentProfile();
   if (!profile) return { error: "You need to be signed in." };
@@ -504,8 +565,20 @@ async function saveDetails(
   // Which set of answers this is comes from the member's stored role, never
   // from the submitted form.
   return usesScoutDetails(profile.role)
-    ? saveScoutDetails(profile.id, profile.full_name, formData, markComplete)
-    : saveLeaderDetails(profile.id, profile.full_name, formData, markComplete);
+    ? saveScoutDetails(profile.id, profile.full_name, formData, markComplete, checkOnly)
+    : saveLeaderDetails(profile.id, profile.full_name, formData, markComplete, checkOnly);
+}
+
+/**
+ * Checks every answer WITHOUT saving or filing anything. The form calls this
+ * before uploading a newly chosen document, so nothing reaches Backblaze
+ * while any detail is still wrong. The real save checks everything again.
+ */
+export async function checkDetailsAction(
+  _prevState: DetailsState,
+  formData: FormData,
+): Promise<DetailsState> {
+  return localizeState(await saveDetails(formData, false, true), await getLocale());
 }
 
 /** Onboarding: save and let the member through to the dashboard. */

@@ -12,6 +12,8 @@ import {
   isPendingRole,
   type AssignableRole,
 } from "@/lib/roles";
+import { missingStorageEnv } from "@/lib/b2";
+import { moveToFormerMembers } from "@/lib/storage-paths";
 
 /* The invite-code actions lived here — createInviteAction, deleteInviteAction
  * and the code generator. Leader access is now requested and approved, so
@@ -144,6 +146,34 @@ async function deleteMember(
       error:
         "Deleting accounts isn't configured on this deployment — SUPABASE_SERVICE_ROLE_KEY is missing.",
     };
+  }
+
+  // Their documents go to Members/Former members/ in Backblaze first —
+  // deleting an account must never destroy a child's birth certificate or a
+  // leader's ID card. If that move fails, nothing is deleted.
+  if (missingStorageEnv().length === 0) {
+    const [{ data: scout }, { data: leader }] = await Promise.all([
+      supabase.from("scout_details").select("document_path").eq("profile_id", memberId).maybeSingle(),
+      supabase.from("leader_details").select("id_card_path").eq("profile_id", memberId).maybeSingle(),
+    ]);
+    try {
+      await moveToFormerMembers({
+        key: (scout as { document_path?: string | null } | null)?.document_path,
+        kind: "scout",
+        fullName: target.full_name,
+      });
+      await moveToFormerMembers({
+        key: (leader as { id_card_path?: string | null } | null)?.id_card_path,
+        kind: "leader",
+        fullName: target.full_name,
+      });
+    } catch (cause) {
+      console.error("[admin] could not move a deleted member's documents", cause);
+      return {
+        error:
+          "Could not move their documents to Former members, so the account was not deleted. Please try again.",
+      };
+    }
   }
 
   const { error } = await adminClient.auth.admin.deleteUser(memberId);

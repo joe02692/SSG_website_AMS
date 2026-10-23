@@ -92,6 +92,9 @@ const en = {
     refused: (status: number) => `Storage refused the upload (HTTP ${status}).`,
     somethingWrong: "Something went wrong preparing the file. Please try again.",
     uploaded: (name: string) => `Uploaded ${name}.`,
+    ready: (name: string) =>
+      `${name} is ready. It's uploaded only when you save and every answer is correct.`,
+    checking: "Checking your answers…",
     onFile: "A document is on file.",
     replace: "Choose a different file to replace it.",
     view: "View",
@@ -199,6 +202,8 @@ const ar: typeof en = {
     refused: (status) => `رفضت خدمة التخزين الرفع (HTTP ${status}).`,
     somethingWrong: "حدث خطأ أثناء تجهيز الملف. يُرجى المحاولة مرة أخرى.",
     uploaded: (name) => `تم رفع ${name}.`,
+    ready: (name) => `${name} جاهز. لن يُرفع إلا عند الحفظ وبعد التأكد من صحة كل البيانات.`,
+    checking: "جارٍ التحقق من بياناتك…",
     onFile: "يوجد مستند محفوظ.",
     replace: "اختر ملفًا آخر لاستبداله.",
     view: "عرض",

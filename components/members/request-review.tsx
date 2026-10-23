@@ -19,21 +19,24 @@ const APPROVAL_ROLES = ASSIGNABLE_ROLES.filter((role) => role !== "scout");
 /**
  * Approve or reject one pending leader request.
  *
- * The role is chosen here rather than requested at signup, deliberately: the
- * applicant has no idea what "Site Admin" means in this system, and letting
- * someone nominate their own privileges is the mistake invite codes made in a
- * different shape.
+ * Since 0024 the applicant says which role they would like, and the picker
+ * starts on it — but the role is still chosen HERE, by the head site admin.
+ * Asking grants nothing; nominating your own privileges was the mistake
+ * invite codes made in a different shape.
  */
 export function RequestReview({
   memberId,
   name,
   requestedStage = "",
+  requestedPosition,
   stageAdmins = {},
 }: {
   memberId: string;
   name: string;
   /** The stage they asked for at signup — the stage picker's starting value. */
   requestedStage?: string;
+  /** The role they asked for — the role picker's starting value. You decide. */
+  requestedPosition?: string;
   stageAdmins?: StageAdminsByStage;
 }) {
   const [approveState, approve, approving] = useActionState(
@@ -45,7 +48,7 @@ export function RequestReview({
     initialState,
   );
   const [armed, setArmed] = useState(false);
-  const [role, setRole] = useState<string>("stage_leader");
+  const [role, setRole] = useState<string>(requestedPosition ?? "stage_leader");
   const [stage, setStage] = useState(requestedStage);
   const all = useT();
   const t = all.members.controls;

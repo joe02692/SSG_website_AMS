@@ -34,7 +34,7 @@ import { getT } from "@/lib/i18n/server";
  * nothing about our users — these checks are the whole of the security.
  *
  * Upload is two steps, like the members' documents: the browser PUTs the file
- * to a short-lived URL under `_incoming/<their id>/`, then savePlanAction reads
+ * to a short-lived URL under `_System/Incoming/<their id>/`, then savePlanAction reads
  * it back, proves it is a real Excel workbook, and files it in the stage's
  * folder. A file only reaches leaders after that check.
  */

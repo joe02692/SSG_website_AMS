@@ -158,7 +158,7 @@ export async function LeadersTable({ rows }: { rows: LeaderRow[] }) {
                         <span className="block text-xs">
                           {STATUS_LABELS[leader.applicant_status] ??
                             leader.applicant_status}
-                          {leader.academic_year ? ` · ${leader.academic_year}` : ""}
+                          {leader.academic_year ? ` · ${optionLabel(locale, leader.academic_year)}` : ""}
                         </span>
                         <span className="block max-w-48 truncate text-xs text-ink-subtle">
                           <bdi>{leader.university}</bdi>

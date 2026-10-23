@@ -68,8 +68,8 @@ async function createUploadUrl(
   }
 
   // Built from the session, not the request body: a random name inside this
-  // member's own `_incoming/` folder. The save action later files it under
-  // Scouts/<Stage>/ or Leaders/<Males|Females>/ with the member's name —
+  // member's own `_System/Incoming/` folder. The save action later files it under
+  // Members/Scouts/<Stage>/ or Members/Leaders/<Males|Females>/ with the member's name —
   // it's the only step that knows the stage or gender for certain.
   const key = `${incomingPrefix(profile.id)}${randomUUID()}.${EXTENSIONS[contentType]}`;
 

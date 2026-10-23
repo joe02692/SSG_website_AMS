@@ -23,8 +23,13 @@ export type QuestionType =
   | "number"
   /** One or more choices. Submitted as repeated form values under one name. */
   | "checkbox"
-  /** Uploads to Backblaze on selection and submits the resulting object key. */
-  | "file";
+  /**
+   * Uploads to Backblaze only once the rest of the form has been checked (see
+   * DetailsForm), and submits the resulting object key.
+   */
+  | "file"
+  /** A list of options plus "Other", which opens a box to write anything. */
+  | "choice-other";
 
 export type Question = {
   /** Storage key. For scouts this is the scout_details column name. */
@@ -46,6 +51,9 @@ export type Question = {
   visibleWhen?: { question: string; equals: string[] };
   required?: boolean;
   placeholder?: string;
+  /** choice-other only: the "Other" option's label and its text box hint. */
+  otherLabel?: string;
+  otherPlaceholder?: string;
 };
 
 /**
@@ -153,6 +161,21 @@ export const GENDERS = [
   { value: "female", label: "Female" },
 ];
 
+/**
+ * Academic year choices. Stored as this English text (readable in the
+ * database and in exports); "Other" stores whatever the leader writes, so
+ * the column stays free text (varchar 50, migration 0014).
+ */
+export const ACADEMIC_YEARS = [
+  "First year",
+  "Second year",
+  "Third year",
+  "Fourth year",
+  "Fifth year",
+  "Sixth year",
+  "Seventh year",
+].map((value) => ({ value, label: value }));
+
 /** Years offered for "Year you joined scouting", newest first. */
 const THIS_YEAR = new Date().getFullYear();
 export const JOIN_YEARS = Array.from({ length: THIS_YEAR - 1950 + 1 }, (_, i) => {
@@ -232,9 +255,12 @@ export const LEADER_QUESTIONS: Question[] = [
   {
     id: "academic_year",
     label: "Academic year",
-    type: "text",
+    type: "choice-other",
     required: true,
-    placeholder: "e.g. Third year",
+    options: ACADEMIC_YEARS,
+    placeholder: "Choose your year…",
+    otherLabel: "Other (write it)",
+    otherPlaceholder: "Write your year",
     hint: "Students only — graduates skip this.",
     // Mirrors the CHECK constraint in 0014: a graduate must leave this empty,
     // a student must fill it in. Hiding it is kinder than rejecting it.

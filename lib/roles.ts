@@ -146,3 +146,18 @@ export function isPendingRole(role: Role | null | undefined): boolean {
  * page reminds the head admin when a stage is full; it does not block.
  */
 export const STAGE_ADMIN_LIMIT = 2;
+
+/**
+ * The roles a leader may ASK for at signup (migration 0024,
+ * profiles.requested_position). A wish only: the account stays pending_leader
+ * and the head site admin picks the real role on approval.
+ */
+export const REQUESTABLE_POSITIONS = ["stage_leader", "stage_admin", "site_admin"] as const;
+export type RequestablePosition = (typeof REQUESTABLE_POSITIONS)[number];
+
+export function isRequestablePosition(value: unknown): value is RequestablePosition {
+  return (
+    typeof value === "string" &&
+    (REQUESTABLE_POSITIONS as readonly string[]).includes(value)
+  );
+}

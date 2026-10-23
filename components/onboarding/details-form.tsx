@@ -1,14 +1,75 @@
 "use client";
 
-import { useActionState, useId, useState } from "react";
-import type { DetailsState } from "@/app/onboarding/actions";
+import { useId, useRef, useState, useTransition } from "react";
+import { checkDetailsAction, type DetailsState } from "@/app/onboarding/actions";
 import { MAX_ANSWER_LENGTH, type Question } from "@/lib/onboarding";
 import { Field, inputClass } from "@/components/ui/field";
 import { SubmitButton } from "@/components/ui/submit-button";
-import { DocumentField } from "@/components/onboarding/document-field";
+import { DocumentField, type DocumentController } from "@/components/onboarding/document-field";
 import { useT } from "@/lib/i18n/client";
 
-const initialState: DetailsState = {};
+const OTHER = "__other";
+
+/**
+ * A list of choices plus "Other", which opens a box to write anything
+ * (academic year). The answer travels in one hidden input under the
+ * question's id, so the server sees a plain string either way.
+ */
+function ChoiceOther({
+  fieldId,
+  question,
+  defaultValue,
+  chooseOne,
+  ...aria
+}: {
+  fieldId: string;
+  question: Question;
+  defaultValue: string;
+  chooseOne: string;
+  "aria-describedby"?: string;
+  "aria-invalid"?: boolean;
+  "aria-errormessage"?: string;
+}) {
+  const options = question.options ?? [];
+  const known = options.some((option) => option.value === defaultValue);
+  const [choice, setChoice] = useState(known ? defaultValue : defaultValue ? OTHER : "");
+  const [other, setOther] = useState(known ? "" : defaultValue);
+  const value = choice === OTHER ? other.trim() : choice;
+
+  return (
+    <div className="space-y-2">
+      <input type="hidden" name={question.id} value={value} />
+      <select
+        id={fieldId}
+        value={choice}
+        onChange={(event) => setChoice(event.target.value)}
+        className={inputClass}
+        {...aria}
+      >
+        <option value="">{question.placeholder ?? chooseOne}</option>
+        {options.map((option) => (
+          <option key={option.value} value={option.value}>
+            {option.label}
+          </option>
+        ))}
+        <option value={OTHER}>{question.otherLabel ?? "Other"}</option>
+      </select>
+      {choice === OTHER ? (
+        <input
+          type="text"
+          value={other}
+          onChange={(event) => setOther(event.target.value)}
+          maxLength={50}
+          dir="auto"
+          aria-label={question.otherLabel ?? question.label}
+          placeholder={question.otherPlaceholder}
+          className={inputClass}
+          {...aria}
+        />
+      ) : null}
+    </div>
+  );
+}
 
 type Action = (
   state: DetailsState,
@@ -29,9 +90,51 @@ export function DetailsForm({
   submitLabel: string;
   pendingLabel: string;
 }) {
-  const [state, formAction, pending] = useActionState(action, initialState);
+  const [state, setState] = useState<DetailsState>({});
+  const [pending, startTransition] = useTransition();
+  const [checking, setChecking] = useState(false);
   const id = useId();
-  const chooseOne = useT().account.onboarding.chooseOne;
+  const all = useT();
+  const chooseOne = all.account.onboarding.chooseOne;
+  const documents = useRef<DocumentController | null>(null);
+  const documentName = questions.find((q) => q.type === "file")?.id;
+
+  /**
+   * Sent by hand rather than with <form action>, for two reasons:
+   *  • React empties a form after its action runs, which wiped every answer
+   *    whenever the server found one mistake. Now everything stays as typed
+   *    and only the wrong answer is marked.
+   *  • A newly chosen document must not reach Backblaze until every other
+   *    answer is right. So: check everything first (checkDetailsAction),
+   *    upload only if that passes, then save.
+   */
+  function onSubmit(event: React.FormEvent<HTMLFormElement>) {
+    event.preventDefault();
+    const data = new FormData(event.currentTarget);
+    startTransition(async () => {
+      const doc = documents.current;
+      if (documentName && doc?.hasPending()) {
+        setChecking(true);
+        data.set(`${documentName}__pending`, "1");
+        const check = await checkDetailsAction({}, data);
+        setChecking(false);
+        if (!check.ok) {
+          setState(check);
+          return;
+        }
+        const uploaded = await doc.upload();
+        if (uploaded.error || !uploaded.key) {
+          setState({
+            fieldErrors: { [documentName]: uploaded.error ?? all.account.documents.couldNotStart },
+          });
+          return;
+        }
+        data.set(documentName, uploaded.key);
+        data.delete(`${documentName}__pending`);
+      }
+      setState(await action({}, data));
+    });
+  }
 
   // Only the answers that other questions branch on are tracked. Everything
   // else stays uncontrolled, so typing in a text box does not re-render the
@@ -46,7 +149,7 @@ export function DetailsForm({
   const isWatched = (questionId: string) => questionId in watched;
 
   return (
-    <form action={formAction} className="space-y-5" noValidate>
+    <form onSubmit={onSubmit} className="space-y-5" noValidate>
       {state.notice ? (
         <p
           role="status"
@@ -99,6 +202,14 @@ export function DetailsForm({
                 name={question.id}
                 required={question.required}
                 existingPath={defaultValue || undefined}
+                controller={documents}
+              />
+            ) : question.type === "choice-other" ? (
+              <ChoiceOther
+                fieldId={fieldId}
+                question={question}
+                defaultValue={defaultValue}
+                chooseOne={chooseOne}
               />
             ) : question.type === "checkbox" ? (
               // Repeated inputs under one name: FormData.getAll() on the
@@ -206,7 +317,10 @@ export function DetailsForm({
         );
       })}
 
-      <SubmitButton pending={pending} pendingLabel={pendingLabel}>
+      <SubmitButton
+        pending={pending}
+        pendingLabel={checking ? all.account.documents.checking : pendingLabel}
+      >
         {submitLabel}
       </SubmitButton>
     </form>

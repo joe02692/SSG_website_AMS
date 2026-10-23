@@ -1,36 +1,58 @@
 import "server-only";
 
-import { copyObject, objectExists } from "@/lib/b2";
+import { copyObject, deleteObject, objectExists } from "@/lib/b2";
 import { SCOUT_STAGES } from "@/lib/onboarding";
 
 /**
- * Where each member's document is filed in Backblaze, so the bucket reads like
- * a filing cabinet instead of a heap of random ids:
+ * How the Backblaze bucket is laid out (reorganised Oct 2026). Three folders
+ * at the top, so the console reads like a filing cabinet:
  *
- *   Scouts/Cubs/Ahmed Mohamed.jpg
- *   Scouts/Senior Guides/Mariam Ali.pdf
- *   Leaders/Males/Omar Hassan.jpg
- *   Leaders/Females/Nour Adel (2).jpg      ← a second Nour Adel
+ *   Members/
+ *     Scouts/<Stage>/<Full name> - Birth certificate.jpg
+ *     Leaders/Males/<Full name> - ID card.jpg
+ *     Leaders/Females/<Full name> - ID card.jpg
+ *     Former members/Scouts/<date> <Full name> - Birth certificate.jpg
+ *     Former members/Leaders/<date> <Full name> - ID card.jpg
+ *   Seasonal Plans/<Stage>/…  and  Seasonal Plans/<Stage>/Archive/…
+ *   _System/
+ *     Incoming/<profile id>/…   temporary uploads, filed on save
+ *     Unfiled/…                 anything the tidy-up script couldn't place
  *
- * Uploads first land in `_incoming/<profile_id>/`, because the file is chosen
- * before the form (with the stage or gender) is saved. The save action then
- * files it with fileDocument() below.
+ * A second member with the same name becomes "<Full name> (2) - …".
+ * Documents of a deleted account are moved to Former members, never lost.
  */
 
-/** Where the browser's fresh uploads go, one folder per member. */
+export const MEMBERS_ROOT = "Members";
+export const SYSTEM_ROOT = "_System";
+
+/** The two kinds of member document, as they appear in file names. */
+export const DOCUMENT_LABELS = {
+  scout: "Birth certificate",
+  leader: "ID card",
+} as const;
+
+/**
+ * Where the browser's fresh uploads go, one folder per member. Temporary:
+ * the save files them under Members/, and a lifecycle rule on this prefix
+ * clears anything left behind (see claude/backblaze-folders.md).
+ */
 export function incomingPrefix(profileId: string): string {
-  return `_incoming/${profileId}/`;
+  return `${SYSTEM_ROOT}/Incoming/${profileId}/`;
 }
 
 export function scoutFolder(stageCode: string): string {
   const stage = SCOUT_STAGES.find((s) => s.value === stageCode);
-  return `Scouts/${stage?.label ?? "Stage not set"}`;
+  return `${MEMBERS_ROOT}/Scouts/${stage?.label ?? "Stage not set"}`;
 }
 
 export function leaderFolder(gender: string | null | undefined): string {
-  if (gender === "male") return "Leaders/Males";
-  if (gender === "female") return "Leaders/Females";
-  return "Leaders/Gender not set";
+  if (gender === "male") return `${MEMBERS_ROOT}/Leaders/Males`;
+  if (gender === "female") return `${MEMBERS_ROOT}/Leaders/Females`;
+  return `${MEMBERS_ROOT}/Leaders/Gender not set`;
+}
+
+export function formerMembersFolder(kind: "scout" | "leader"): string {
+  return `${MEMBERS_ROOT}/Former members/${kind === "scout" ? "Scouts" : "Leaders"}`;
 }
 
 /**
@@ -54,10 +76,10 @@ type Filed =
   | { error: string };
 
 /**
- * Files a member's document at `<folder>/<Full name>.<ext>`.
+ * Files a member's document at `<folder>/<Full name> - <label>.<ext>`.
  *
  * `submitted` is the key from the form: either a fresh upload in this
- * member's own `_incoming/` folder, or the key already on their row (they
+ * member's own `_System/Incoming/` folder, or the key already on their row (they
  * saved without choosing a new file). Anything else is refused — that is the
  * ownership check.
  *
@@ -72,12 +94,15 @@ export async function fileDocument({
   profileId,
   folder,
   fullName,
+  label,
 }: {
   submitted: string;
   stored: string | null;
   profileId: string;
   folder: string;
   fullName: string | null;
+  /** "Birth certificate" or "ID card" — DOCUMENT_LABELS. */
+  label: string;
 }): Promise<Filed> {
   let submitted = submittedKey;
   let isFresh = submitted.startsWith(incomingPrefix(profileId));
@@ -98,14 +123,15 @@ export async function fileDocument({
   const base = fileBaseName(fullName);
 
   // Already exactly where it belongs.
-  if (isStored && submitted.startsWith(`${folder}/${base}`) && submitted.endsWith(`.${extension}`)) {
-    const rest = submitted.slice(`${folder}/${base}`.length, -(extension.length + 1));
+  const tail = ` - ${label}.${extension}`;
+  if (isStored && submitted.startsWith(`${folder}/${base}`) && submitted.endsWith(tail)) {
+    const rest = submitted.slice(`${folder}/${base}`.length, -tail.length);
     if (rest === "" || /^ \(\d+\)$/.test(rest)) return { key: submitted, cleanup: [] };
   }
 
   let target = "";
   for (let n = 1; n <= 50; n++) {
-    const candidate = `${folder}/${base}${n === 1 ? "" : ` (${n})`}.${extension}`;
+    const candidate = `${folder}/${base}${n === 1 ? "" : ` (${n})`}${tail}`;
     // Overwriting your own previous file is fine (a replacement); taking a
     // name another member already has is not.
     if (candidate === stored || !(await objectExists(candidate))) {
@@ -121,4 +147,31 @@ export async function fileDocument({
     (key): key is string => Boolean(key) && key !== target,
   );
   return { key: target, cleanup: [...new Set(cleanup)] };
+}
+
+/**
+ * Moves a deleted member's document to Members/Former members/, dated, so
+ * deleting an account never destroys a child's birth certificate or a
+ * leader's ID card. Returns the new key, or null if there was nothing to move.
+ */
+export async function moveToFormerMembers({
+  key,
+  kind,
+  fullName,
+}: {
+  key: string | null | undefined;
+  kind: "scout" | "leader";
+  fullName: string | null;
+}): Promise<string | null> {
+  if (!key || !(await objectExists(key))) return null;
+  const extension = (key.split(".").pop() ?? "jpg").toLowerCase();
+  const date = new Date().toISOString().slice(0, 10);
+  const base = `${formerMembersFolder(kind)}/${date} ${fileBaseName(fullName)} - ${DOCUMENT_LABELS[kind]}`;
+  let target = `${base}.${extension}`;
+  for (let n = 2; n <= 50 && (await objectExists(target)); n++) {
+    target = `${base} (${n}).${extension}`;
+  }
+  await copyObject(key, target);
+  await deleteObject(key);
+  return target;
 }
