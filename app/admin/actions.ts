@@ -152,7 +152,7 @@ async function deleteMember(
     return { error: "Could not delete that account. Please try again." };
   }
 
-  revalidatePath("/members");
+  revalidatePath("/admin");
   return {};
 }
 
@@ -361,7 +361,7 @@ async function approveRequest(
     return { error: describeAdminWriteError(error, "approve that request") };
   }
 
-  revalidatePath("/members");
+  revalidatePath("/admin");
   return {
     notice: (await getT()).members.results.nowRole(target.full_name, (await getT()).roles.labels[role]),
   };
@@ -418,7 +418,7 @@ async function rejectRequest(
     return { error: "Could not remove that account. Please try again." };
   }
 
-  revalidatePath("/members");
+  revalidatePath("/admin");
   return { notice: (await getT()).members.results.rejected(target.full_name) };
 }
 
@@ -492,7 +492,7 @@ async function changeRole(
     return { error: describeAdminWriteError(error, "change that role") };
   }
 
-  revalidatePath("/members");
+  revalidatePath("/admin");
   return {
     notice: (await getT()).members.results.nowRole(target.full_name, (await getT()).roles.labels[role]),
   };

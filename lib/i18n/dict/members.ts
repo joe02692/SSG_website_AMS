@@ -1,8 +1,8 @@
 /** The admin area: members list, leader requests, registrations. */
 const en = {
   page: {
-    metaTitle: "Members",
-    title: "Members",
+    metaTitle: "Admin",
+    title: "Admin",
     intro: "Everyone registered in the system, and the leader requests waiting for your decision.",
     registrations: "Registrations",
     allMembers: "All members",
@@ -22,7 +22,7 @@ const en = {
   },
   scouts: {
     metaTitle: "Registrations",
-    back: "Members",
+    back: "Admin",
     title: "Registrations",
     intro: "Registration details for everyone who has completed onboarding — scouts first, then leaders and site staff.",
     privacy:
@@ -111,6 +111,34 @@ const en = {
     chooseStageError: "Choose the stage this stage admin will run.",
     migrationMissing: "Run migration 0022 in Supabase to assign stages to stage admins.",
   },
+  /** The event countdown section of the Admin page. */
+  event: {
+    heading: "Event countdown",
+    intro: "The small countdown card shown at the top of every public page. Only you can change it.",
+    show: "Show the countdown to everyone",
+    showHint: "It also disappears by itself when the event starts.",
+    titleAr: "Title (Arabic)",
+    titleEn: "Title (English)",
+    descriptionAr: "Description (Arabic)",
+    descriptionEn: "Description (English)",
+    englishHint: "Optional. If left empty, English visitors see the Arabic text.",
+    startsAt: "Event starts",
+    startsAtHint: "Cairo time. The card counts down the days, hours and minutes to this moment.",
+    save: "Save",
+    saving: "Saving…",
+    saved: "Saved. Visitors see the change within a minute.",
+    statusOn: (when: string) => `Showing now — counting down to ${when}.`,
+    statusOff: "Hidden — visitors don't see a countdown.",
+    statusEnded: "The event has started, so the countdown is hidden.",
+    needTitle: "Write an Arabic title before showing the countdown.",
+    needDate: "Choose when the event starts.",
+    badDate: "That date doesn't look right.",
+    pastDate: "The event start must be in the future.",
+    tooLong: "One of the texts is too long.",
+    notAllowed: "Only the head site admin can change the countdown.",
+    migrationMissing: "Run migration 0023 in Supabase first — the countdown has nowhere to be saved yet.",
+    couldNotSave: "Couldn't save. Please try again.",
+  },
   results: {
     nowRole: (name: string | null, role: string) => `${name ?? "That member"} is now a ${role}.`,
     alreadyRole: (name: string | null, role: string) => `${name ?? "They"} is already a ${role}.`,
@@ -120,8 +148,8 @@ const en = {
 
 const ar: typeof en = {
   page: {
-    metaTitle: "الأعضاء",
-    title: "الأعضاء",
+    metaTitle: "الإدارة",
+    title: "الإدارة",
     intro: "كل المسجلين في النظام، وطلبات القادة التي تنتظر قرارك.",
     registrations: "التسجيلات",
     allMembers: "كل الأعضاء",
@@ -141,7 +169,7 @@ const ar: typeof en = {
   },
   scouts: {
     metaTitle: "التسجيلات",
-    back: "الأعضاء",
+    back: "الإدارة",
     title: "التسجيلات",
     intro: "بيانات التسجيل لكل من أكمل خطوات الانضمام — الكشافة أولًا، ثم القادة وفريق الموقع.",
     privacy:
@@ -228,6 +256,33 @@ const ar: typeof en = {
     noStage: "بلا مرحلة",
     chooseStageError: "اختر المرحلة التي سيديرها مسؤول المرحلة.",
     migrationMissing: "شغّل ملف الترحيل 0022 في Supabase لتحديد مراحل مسؤولي المراحل.",
+  },
+  event: {
+    heading: "العد التنازلي للفعالية",
+    intro: "بطاقة العد التنازلي الصغيرة التي تظهر أعلى كل صفحات الموقع العامة. أنت وحدك من يستطيع تعديلها.",
+    show: "إظهار العد التنازلي للجميع",
+    showHint: "وتختفي تلقائيًا عند بدء الفعالية.",
+    titleAr: "العنوان (عربي)",
+    titleEn: "العنوان (إنجليزي)",
+    descriptionAr: "الوصف (عربي)",
+    descriptionEn: "الوصف (إنجليزي)",
+    englishHint: "اختياري. إذا تُرك فارغًا يرى زوار النسخة الإنجليزية النص العربي.",
+    startsAt: "موعد بدء الفعالية",
+    startsAtHint: "بتوقيت القاهرة. تعدّ البطاقة الأيام والساعات والدقائق حتى هذا الموعد.",
+    save: "حفظ",
+    saving: "جارٍ الحفظ…",
+    saved: "تم الحفظ. سيرى الزوار التغيير خلال دقيقة.",
+    statusOn: (when) => `ظاهر الآن — العد التنازلي حتى ${when}.`,
+    statusOff: "مخفي — لا يرى الزوار أي عد تنازلي.",
+    statusEnded: "بدأت الفعالية، لذلك أُخفي العد التنازلي.",
+    needTitle: "اكتب عنوانًا بالعربية قبل إظهار العد التنازلي.",
+    needDate: "اختر موعد بدء الفعالية.",
+    badDate: "هذا التاريخ غير صحيح.",
+    pastDate: "يجب أن يكون موعد بدء الفعالية في المستقبل.",
+    tooLong: "أحد النصوص أطول من المسموح.",
+    notAllowed: "لا يستطيع تعديل العد التنازلي إلا مسؤول الموقع الرئيسي.",
+    migrationMissing: "شغّل ملف الترحيل 0023 في Supabase أولًا — لا يوجد مكان لحفظ العد التنازلي بعد.",
+    couldNotSave: "تعذّر الحفظ. حاول مرة أخرى.",
   },
   results: {
     nowRole: (name, role) => `أصبح دور ${name ?? "هذا العضو"} الآن: ${role}.`,

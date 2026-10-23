@@ -6,6 +6,7 @@
  */
 export const PRIVATE_PATHS = [
   "/dashboard",
+  "/admin",
   "/members",
   "/onboarding",
   "/pending",

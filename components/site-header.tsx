@@ -3,7 +3,7 @@ import Link from "next/link";
 import { getCurrentProfile } from "@/lib/dal";
 import {
   isPendingRole,
-  isSiteAdminRole,
+  isHeadSiteAdminRole,
   isStageRole,
   isStaffRole,
 } from "@/lib/roles";
@@ -117,8 +117,8 @@ async function StaffLinks() {
           {t.chrome.nav.stage}
         </NavLink>
       ) : null}
-      {isSiteAdminRole(profile.role) ? (
-        <NavLink href="/members" className={navLink}>
+      {isHeadSiteAdminRole(profile.role) ? (
+        <NavLink href="/admin" className={navLink}>
           {t.chrome.nav.members}
         </NavLink>
       ) : null}
@@ -160,8 +160,8 @@ async function MenuAuth() {
           {t.chrome.nav.stage}
         </Link>
       ) : null}
-      {isSiteAdminRole(profile.role) ? (
-        <Link href="/members" className={menuLink}>
+      {isHeadSiteAdminRole(profile.role) ? (
+        <Link href="/admin" className={menuLink}>
           {t.chrome.nav.members}
         </Link>
       ) : null}

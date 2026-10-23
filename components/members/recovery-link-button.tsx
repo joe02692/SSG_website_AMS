@@ -4,7 +4,7 @@ import { useActionState, useState } from "react";
 import {
   createRecoveryLinkAction,
   type RecoveryLinkState,
-} from "@/app/members/actions";
+} from "@/app/admin/actions";
 import { useT } from "@/lib/i18n/client";
 import { fill } from "@/lib/i18n/fill";
 

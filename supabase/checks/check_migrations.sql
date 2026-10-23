@@ -1,4 +1,4 @@
--- Read-only check: have migrations 0019, 0020, 0021 and 0022 been run?
+-- Read-only check: have migrations 0019, 0020, 0021, 0022 and 0023 been run?
 -- Paste into Supabase → SQL Editor → Run. Changes nothing.
 -- Every row should say "applied". Anything "MISSING" → run that migration.
 
@@ -36,5 +36,13 @@ from (
          exists (select 1 from col where table_name = 'profiles' and column_name = 'admin_stage_id')
            and exists (select 1 from pg_trigger where tgname = 'profiles_prevent_admin_stage_change'),
          'profiles.admin_stage_id + lock against self-edits'
+  union all
+  select 5,
+         '0023_site_event',
+         to_regclass('public.site_event') is not null
+           and exists (select 1 from pg_policies
+                        where tablename = 'site_event'
+                          and policyname = 'site_event: head site admin can update'),
+         'table site_event (the event countdown) + its policies'
 ) checks
 order by n;

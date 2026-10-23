@@ -4,7 +4,7 @@ import { useActionState, useCallback, useEffect, useRef, useState } from "react"
 import {
   getDocumentUrlAction,
   type DocumentLinkState,
-} from "@/app/members/scouts/actions";
+} from "@/app/admin/scouts/actions";
 import {
   DocumentPreview,
   previewKind,

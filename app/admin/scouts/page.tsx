@@ -1,7 +1,7 @@
 import type { Metadata } from "next";
 import Link from "next/link";
 import { SiteShell } from "@/components/site-shell";
-import { requireSiteAdmin } from "@/lib/dal";
+import { requireHeadSiteAdmin } from "@/lib/dal";
 import { createClient } from "@/lib/supabase/server";
 import { ageFromDateOfBirth } from "@/lib/onboarding";
 import { ViewDocumentButton } from "@/components/members/view-document-button";
@@ -38,10 +38,11 @@ function formatDate(value: string, locale: string): string {
 const MAX_ROWS = 1000;
 
 export default async function ScoutsPage() {
-  // Site-level staff only. The RLS policy "scout_details: site admins read all"
-  // enforces the same rule at the database, so a stage leader who guessed this
-  // URL would get an empty list even if this check were removed.
-  await requireSiteAdmin();
+  // The head site admin only (the Admin area is theirs alone). The RLS policy
+  // "scout_details: site admins read all" still refuses everyone below site
+  // admin at the database, so a stage leader who guessed this URL would get
+  // an empty list even if this check were removed.
+  await requireHeadSiteAdmin();
   const t = (await getT()).members.scouts;
   const locale = await getLocale();
   const dateLocale = intlLocale(locale);
@@ -84,7 +85,7 @@ export default async function ScoutsPage() {
     <SiteShell>
       <div className="mx-auto max-w-7xl px-4 py-12 sm:px-6 sm:py-16">
         <Link
-          href="/members"
+          href="/admin"
           className="text-sm text-brand-ink underline-offset-4 hover:underline"
         >
           <span aria-hidden className="inline-block rtl:-scale-x-100">←</span> {t.back}
@@ -129,7 +130,7 @@ export default async function ScoutsPage() {
         {withDocument > 0 ? (
           <p className="mt-6">
             <a
-              href="/members/scouts/download-all"
+              href="/admin/scouts/download-all"
               className="inline-flex rounded-lg border border-line bg-surface-raised px-4 py-2.5 text-sm font-semibold text-ink transition hover:border-brand-300"
             >
               {t.downloadAll}

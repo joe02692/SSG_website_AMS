@@ -23,6 +23,14 @@ const SECURITY_HEADERS = [
 
 
 const nextConfig: NextConfig = {
+  // The members area was renamed "Admin" (Oct 2026). Old bookmarks and links
+  // in earlier emails still land in the right place.
+  async redirects() {
+    return [
+      { source: "/members", destination: "/admin", permanent: true },
+      { source: "/members/:path*", destination: "/admin/:path*", permanent: true },
+    ];
+  },
   async headers() {
     return [
       { source: "/:path*", headers: SECURITY_HEADERS },

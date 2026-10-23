@@ -1,7 +1,7 @@
 "use client";
 
 import { useActionState, useState } from "react";
-import { changeRoleAction, type ReviewState } from "@/app/members/actions";
+import { changeRoleAction, type ReviewState } from "@/app/admin/actions";
 import { ASSIGNABLE_ROLES, type Role } from "@/lib/roles";
 import { useT } from "@/lib/i18n/client";
 import { StageAdminStage, type StageAdminsByStage } from "@/components/members/stage-admin-stage";

@@ -1,7 +1,7 @@
 import type { Metadata } from "next";
 import Link from "next/link";
 import { SiteShell } from "@/components/site-shell";
-import { requireSiteAdmin } from "@/lib/dal";
+import { requireHeadSiteAdmin } from "@/lib/dal";
 import { STAGE_ADMIN_LIMIT, isHeadSiteAdminRole, type Role } from "@/lib/roles";
 import { createClient } from "@/lib/supabase/server";
 import { DeleteMemberButton } from "@/components/members/delete-member-button";
@@ -12,6 +12,8 @@ import { getLocale, getT } from "@/lib/i18n/server";
 import { intlLocale } from "@/lib/i18n/config";
 import { optionLabel } from "@/lib/i18n/onboarding";
 import { stageAdminsByStage } from "@/lib/stage-admins";
+import { EVENT_TIMEZONE, getEventForEdit, isoToCairoLocal } from "@/lib/site-event";
+import { EventSettings } from "@/components/admin/event-settings";
 
 export async function generateMetadata(): Promise<Metadata> {
   return { title: (await getT()).members.page.metaTitle };
@@ -69,11 +71,33 @@ type MemberRow = {
 /** Ceiling on both list queries — see the note where they are issued. */
 const MAX_ROWS = 500;
 
+/** One line for the Admin page: what visitors see right now. */
+function describeEvent(
+  event: Awaited<ReturnType<typeof getEventForEdit>>,
+  te: Awaited<ReturnType<typeof getT>>["members"]["event"],
+  dateLocale: string,
+): string {
+  if (event.missing) return te.migrationMissing;
+  if (!event.row?.enabled) return te.statusOff;
+  const starts = event.row.starts_at ? new Date(event.row.starts_at) : null;
+  if (!starts || starts.getTime() <= Date.now()) return te.statusEnded;
+  return te.statusOn(
+    starts.toLocaleString(dateLocale, {
+      timeZone: EVENT_TIMEZONE,
+      weekday: "long",
+      day: "numeric",
+      month: "long",
+      hour: "numeric",
+      minute: "2-digit",
+    }),
+  );
+}
+
 export default async function MembersPage() {
   // The real gate. proxy.ts only checked that *a* session exists.
-  // Site-level staff only — stage admins and stage leaders are redirected;
-  // /dashboard/stage is their page.
-  const viewer = await requireSiteAdmin();
+  // The Admin area belongs to the head site admin alone — everyone else,
+  // site admins included, is redirected to their dashboard.
+  const viewer = await requireHeadSiteAdmin();
   // Deciding who becomes a leader — and changing anyone's role afterwards —
   // is narrower still: the head site admin alone.
   const canDecideRoles = isHeadSiteAdminRole(viewer.role);
@@ -113,6 +137,11 @@ export default async function MembersPage() {
       .limit(MAX_ROWS),
   ]);
 
+  // The event countdown (migration 0023). Read fresh, not from the cache.
+  const event = await getEventForEdit();
+  const te = all.members.event;
+  const eventStatus = describeEvent(event, te, dateLocale);
+
   const members = (memberRows ?? []) as MemberRow[];
   const requests = (requestRows ?? []) as unknown as RequestRow[];
   // Who runs which stage — for the stage pickers and the "stage is full"
@@ -140,7 +169,7 @@ export default async function MembersPage() {
 
         <p className="mt-4">
           <Link
-            href="/members/scouts"
+            href="/admin/scouts"
             className="inline-flex rounded-lg border border-line bg-surface-raised px-4 py-2.5 text-sm font-semibold text-ink transition hover:border-brand-300"
           >
             {t.registrations}{" "}
@@ -163,6 +192,25 @@ export default async function MembersPage() {
             </div>
           ))}
         </dl>
+
+        {/* ----------------------------------------------- Event countdown */}
+        <section aria-labelledby="event-heading" className="mt-10">
+          <h2 id="event-heading" className="text-xl font-semibold tracking-tight text-ink">
+            {te.heading}
+          </h2>
+          <p className="mt-1 text-sm text-ink-muted">{te.intro}</p>
+          <EventSettings
+            status={eventStatus}
+            defaults={{
+              enabled: event.row?.enabled ?? false,
+              titleAr: event.row?.title_ar ?? "",
+              titleEn: event.row?.title_en ?? "",
+              descriptionAr: event.row?.description_ar ?? "",
+              descriptionEn: event.row?.description_en ?? "",
+              startsAt: isoToCairoLocal(event.row?.starts_at ?? null),
+            }}
+          />
+        </section>
 
         {/* ------------------------------------------------------ Members */}
         <section aria-labelledby="members-heading" className="mt-10">

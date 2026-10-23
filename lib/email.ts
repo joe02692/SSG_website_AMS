@@ -127,7 +127,7 @@ export async function notifyRegistrationComplete(input: {
     [
       `${who} has completed registration as a ${input.roleLabel}.`,
       "",
-      `See the roster: ${site}/members/scouts`,
+      `See the roster: ${site}/admin/scouts`,
       "",
       "This message deliberately contains no personal details — open the roster to see them.",
     ],

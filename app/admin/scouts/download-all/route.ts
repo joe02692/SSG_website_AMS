@@ -1,6 +1,6 @@
 import JSZip from "jszip";
 import { getCurrentProfile } from "@/lib/dal";
-import { isSiteAdminRole } from "@/lib/roles";
+import { isHeadSiteAdminRole } from "@/lib/roles";
 import { createClient } from "@/lib/supabase/server";
 import { getObjectBytes } from "@/lib/b2";
 import { nameSlug } from "@/lib/documents";
@@ -28,11 +28,11 @@ type Row = {
 };
 
 export async function GET() {
-  // Route Handlers get no protection from the page's requireSiteAdmin(), so
+  // Route Handlers get no protection from the page's requireHeadSiteAdmin(), so
   // the check is repeated here. Storage RLS would also refuse the downloads,
   // but a clean 403 beats an empty archive.
   const viewer = await getCurrentProfile();
-  if (!isSiteAdminRole(viewer?.role)) {
+  if (!isHeadSiteAdminRole(viewer?.role)) {
     return new Response("Not allowed", { status: 403 });
   }
 

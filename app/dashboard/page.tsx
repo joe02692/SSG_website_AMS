@@ -3,7 +3,7 @@ import Link from "next/link";
 import { SiteShell } from "@/components/site-shell";
 import { BannerScenery } from "@/components/green-scenery";
 import { requireUser, getCurrentProfile } from "@/lib/dal";
-import { isSiteAdminRole, isStageRole } from "@/lib/roles";
+import { isHeadSiteAdminRole, isStageRole } from "@/lib/roles";
 import { getLocale, getT } from "@/lib/i18n/server";
 import { intlLocale } from "@/lib/i18n/config";
 
@@ -42,10 +42,10 @@ export default async function DashboardPage({
       show: isStageRole(profile?.role),
     },
     {
-      href: "/members",
+      href: "/admin",
       title: t.membersTitle,
       body: t.membersBody,
-      show: isSiteAdminRole(profile?.role),
+      show: isHeadSiteAdminRole(profile?.role),
     },
   ].filter((a) => a.show);
 

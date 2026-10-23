@@ -5,7 +5,7 @@ import {
   approveRequestAction,
   rejectRequestAction,
   type ReviewState,
-} from "@/app/members/actions";
+} from "@/app/admin/actions";
 import { ASSIGNABLE_ROLES } from "@/lib/roles";
 import { useT } from "@/lib/i18n/client";
 import { fill } from "@/lib/i18n/fill";

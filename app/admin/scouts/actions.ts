@@ -1,7 +1,7 @@
 "use server";
 
 import { getCurrentProfile } from "@/lib/dal";
-import { isSiteAdminRole } from "@/lib/roles";
+import { isHeadSiteAdminRole } from "@/lib/roles";
 import { missingStorageEnv, presignDownload } from "@/lib/b2";
 import { nameSlug } from "@/lib/documents";
 import { getLocale } from "@/lib/i18n/server";
@@ -30,7 +30,7 @@ async function getDocumentUrl(
   formData: FormData,
 ): Promise<DocumentLinkState> {
   const viewer = await getCurrentProfile();
-  if (!isSiteAdminRole(viewer?.role)) {
+  if (!isHeadSiteAdminRole(viewer?.role)) {
     return { error: "Not allowed." };
   }
 

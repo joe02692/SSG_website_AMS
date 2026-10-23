@@ -1,7 +1,7 @@
 "use client";
 
 import { useActionState, useState } from "react";
-import { deleteMemberAction, type DeleteState } from "@/app/members/actions";
+import { deleteMemberAction, type DeleteState } from "@/app/admin/actions";
 import { useT } from "@/lib/i18n/client";
 import { fill } from "@/lib/i18n/fill";
 

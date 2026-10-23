@@ -117,7 +117,7 @@ const AR: Record<string, string> = {
   "No document.": "لا يوجد مستند.",
   "Storage refused the request. Check the server logs.": "رفضت خدمة التخزين الطلب. راجع سجلات الخادم.",
 
-  // ---- Members admin (app/members/actions.ts)
+  // ---- Members admin (app/admin/actions.ts)
   "Only the head site admin can delete accounts.": "المسؤول الرئيسي للموقع وحده يمكنه حذف الحسابات.",
   "Nothing to delete.": "لا يوجد ما يمكن حذفه.",
   "You can't delete your own account.": "لا يمكنك حذف حسابك.",
