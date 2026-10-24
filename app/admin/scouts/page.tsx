@@ -15,7 +15,11 @@ export async function generateMetadata(): Promise<Metadata> {
 }
 
 type ScoutRow = {
-  profile_id: string;
+  id?: string;
+  profile_id: string | null;
+  /** A child a parent registered has no login; their name is here (0025). */
+  full_name?: string | null;
+  guardianships?: { profiles: { full_name: string | null } | null }[] | null;
   date_of_birth: string;
   address: string;
   national_id: string | null;
@@ -55,16 +59,45 @@ export default async function ScoutsPage() {
   // in the query keeps that door open. The limit is a backstop — the group
   // expects ~400 scouts, and an un-paginated table of several thousand would be
   // unusable long before it was slow.
-  const { data } = await supabase
-    .from("scout_details")
-    .select(
-      "profile_id, date_of_birth, address, national_id, personal_phone, parent_phone, document_path, profiles(full_name), stages(name_en, sort)",
-    )
-    .order("sort", { referencedTable: "stages", ascending: true })
-    .order("profile_id", { ascending: true })
-    .limit(MAX_ROWS);
+  // `profiles:profile_id` names the link: since 0025 scout_details has two
+  // links to profiles (the scout, and the parent who added them). Before 0025
+  // the new columns don't exist, so the older query is the fallback.
+  const scoutQuery = (columns: string) =>
+    supabase
+      .from("scout_details")
+      .select(columns)
+      .order("sort", { referencedTable: "stages", ascending: true })
+      .order("date_of_birth", { ascending: false })
+      .limit(MAX_ROWS);
+  let { data, error: scoutError } = await scoutQuery(
+    "id, profile_id, full_name, date_of_birth, address, national_id, personal_phone, parent_phone, document_path, profiles:profile_id(full_name), stages(name_en, sort), guardianships(profiles:guardian_id(full_name))",
+  );
+  if (scoutError) {
+    ({ data, error: scoutError } = await scoutQuery(
+      "profile_id, date_of_birth, address, national_id, personal_phone, parent_phone, document_path, profiles:profile_id(full_name), stages(name_en, sort)",
+    ));
+  }
 
   const rows = (data ?? []) as unknown as ScoutRow[];
+  const nameOf = (row: ScoutRow) => row.profiles?.full_name ?? row.full_name ?? "—";
+
+  // Parent accounts (0025): contact details and the children on each.
+  const { data: parentData } = await supabase
+    .from("parent_details")
+    .select("profile_id, phone, relationship, consent_at, profiles:profile_id(full_name, guardianships(scout:scout_id(full_name, profiles:profile_id(full_name))))")
+    .order("created_at", { ascending: true })
+    .limit(MAX_ROWS);
+  type ParentRow = {
+    profile_id: string;
+    phone: string;
+    relationship: string;
+    consent_at: string;
+    profiles: {
+      full_name: string | null;
+      guardianships: { scout: { full_name: string | null; profiles: { full_name: string | null } | null } | null }[] | null;
+    } | null;
+  };
+  const parents = (parentData ?? []) as unknown as ParentRow[];
 
   // Leaders. Ordered by the year they joined so the longest-serving are at the top, which
   // is the order a secretary reads this list in.
@@ -178,11 +211,20 @@ export default async function ScoutsPage() {
               </thead>
               <tbody className="divide-y divide-line bg-surface-raised">
                 {rows.map((row) => (
-                  <tr key={row.profile_id}>
+                  <tr key={row.id ?? row.profile_id ?? row.document_path ?? row.date_of_birth}>
                     <td className="px-4 py-3">
                       <bdi className="font-medium text-ink">
-                        {row.profiles?.full_name ?? "—"}
+                        {nameOf(row)}
                       </bdi>
+                      {row.guardianships && row.guardianships.length > 0 ? (
+                        <span className="block text-xs text-brand-ink">
+                          {t.parentAccounts(
+                            row.guardianships
+                              .map((g) => g.profiles?.full_name ?? "—")
+                              .join(locale === "ar" ? "، " : ", "),
+                          )}
+                        </span>
+                      ) : null}
                       <span className="block max-w-60 truncate text-xs text-ink-subtle">
                         <bdi>{row.address}</bdi>
                       </span>
@@ -211,11 +253,61 @@ export default async function ScoutsPage() {
                       {row.document_path ? (
                         <ViewDocumentButton
                           path={row.document_path}
-                          filename={row.profiles?.full_name ?? "certificate"}
+                          filename={row.profiles?.full_name ?? row.full_name ?? "certificate"}
                         />
                       ) : (
                         <span className="text-xs text-ink-subtle">{t.missing}</span>
                       )}
+                    </td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          </div>
+        )}
+
+        {/* ------------------------------------------------------------ Parents */}
+        <h2 className="mt-14 text-xl font-semibold tracking-tight text-ink">
+          {t.parentsTitle}
+        </h2>
+        <p className="mt-1 text-sm text-ink-muted">{t.parentsIntro}</p>
+        {parents.length === 0 ? (
+          <div className="mt-6 rounded-2xl border border-dashed border-line bg-surface p-8 text-center">
+            <p className="text-sm text-ink-muted">{t.noParents}</p>
+          </div>
+        ) : (
+          <div className="mt-6 relative overflow-x-auto rounded-xl border border-line">
+            <table className="w-full min-w-160 text-start text-sm">
+              <thead className="border-b border-line bg-surface text-xs uppercase tracking-wider text-ink-subtle">
+                <tr>
+                  <th scope="col" className="px-4 py-3 font-medium">{t.name}</th>
+                  <th scope="col" className="px-4 py-3 font-medium">{t.relationship}</th>
+                  <th scope="col" className="px-4 py-3 font-medium">{t.phone}</th>
+                  <th scope="col" className="px-4 py-3 font-medium">{t.children}</th>
+                  <th scope="col" className="px-4 py-3 font-medium">{t.consented}</th>
+                </tr>
+              </thead>
+              <tbody className="divide-y divide-line bg-surface-raised">
+                {parents.map((parent) => (
+                  <tr key={parent.profile_id}>
+                    <td className="px-4 py-3 font-medium text-ink">
+                      <bdi>{parent.profiles?.full_name ?? "—"}</bdi>
+                    </td>
+                    <td className="px-4 py-3 text-ink-muted">
+                      {t.relationships[parent.relationship] ?? parent.relationship}
+                    </td>
+                    <td className="whitespace-nowrap px-4 py-3 font-mono text-xs text-ink-muted" dir="ltr">
+                      <span className="block rtl:text-right">{parent.phone}</span>
+                    </td>
+                    <td className="px-4 py-3 text-ink-muted">
+                      {(parent.profiles?.guardianships ?? [])
+                        .map((g) => g.scout?.profiles?.full_name ?? g.scout?.full_name ?? "—")
+                        .map((name, i) => (
+                          <bdi key={i} className="block">{name}</bdi>
+                        ))}
+                    </td>
+                    <td className="whitespace-nowrap px-4 py-3 text-ink-muted">
+                      {formatDate(parent.consent_at, dateLocale)}
                     </td>
                   </tr>
                 ))}

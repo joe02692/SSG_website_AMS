@@ -30,6 +30,12 @@ const AR: Record<string, string> = {
   "Years of leadership experience": "سنوات الخبرة القيادية",
   "Year you joined scouting": "سنة انضمامك إلى الكشافة",
 
+  "Your phone": "رقم هاتفك",
+  "You are the children's": "صلتك بالأبناء",
+  Consent: "الموافقة",
+  "Child's full name": "اسم الطفل بالكامل",
+  "Child's phone": "رقم هاتف الطفل",
+
   // ---- Hints and placeholders
   "We work out your age from this, so it stays correct every year.":
     "نحسب عمرك من هذا التاريخ، ليبقى صحيحًا كل عام.",
@@ -54,6 +60,11 @@ const AR: Record<string, string> = {
     "اختر كل مرحلة تقودها. معظم القادة يخدمون في أكثر من مرحلة.",
   "Tick every committee you're part of, if any.": "اختر كل لجنة تنتمي إليها، إن وُجدت.",
   "Choose a year…": "اختر السنة…",
+  "So the leaders can reach you about your children. 11 digits, starting 01.":
+    "حتى يتمكن القادة من التواصل معك بخصوص أبنائك. 11 رقمًا، تبدأ بـ 01.",
+  "If your child has no phone, write yours. 11 digits, starting 01.":
+    "إذا لم يكن لطفلك هاتف فاكتب رقمك. 11 رقمًا، تبدأ بـ 01.",
+  "Ex: Sara Mohamed Ali": "مثال: سارة محمد علي",
 
   // ---- Options
   "University student": "طالب جامعي",
@@ -70,6 +81,11 @@ const AR: Record<string, string> = {
   "Secretary committee": "لجنة السكرتارية",
   "Tools & logistics committee": "لجنة الأدوات والإمداد",
   "Training committee": "لجنة التدريب",
+  Father: "الأب",
+  Mother: "الأم",
+  "Other guardian": "ولي أمر آخر",
+  "I agree that El-Salam Scouting Group keeps my children's details and documents to run its activities. Only me and the group's admins can see them.":
+    "أوافق على أن تحتفظ مجموعة السلام الكشفية ببيانات ومستندات أبنائي لتنظيم أنشطتها. لا يراها غيري أنا ومسؤولو المجموعة.",
   Male: "ذكر",
   Female: "أنثى",
   Buds: "براعم",
@@ -95,6 +111,20 @@ const AR: Record<string, string> = {
   "That national ID is already registered.": "هذا الرقم القومي مسجّل بالفعل.",
   "This national ID is already registered to another member.": "هذا الرقم القومي مسجّل بالفعل لعضو آخر.",
   "Choose your academic year, or write it under Other.": "اختر سنتك الدراسية، أو اكتبها في خانة «أخرى».",
+  "Choose father, mother or other guardian.": "اختر الأب أو الأم أو ولي أمر آخر.",
+  "Please tick the box to give your consent.": "يُرجى وضع علامة في المربع للموافقة.",
+  "Please enter your child's full name.": "يُرجى إدخال اسم طفلك بالكامل.",
+  "That child isn't linked to your account.": "هذا الطفل غير مرتبط بحسابك.",
+  "That code isn't valid. Ask your child for a new one — codes work once and last 7 days.":
+    "هذا الرمز غير صالح. اطلب من ابنك رمزًا جديدًا — كل رمز يُستخدم مرة واحدة ويصلح لمدة 7 أيام.",
+  "Only parent accounts can link a child.": "لا يمكن ربط طفل إلا من حساب ولي أمر.",
+  "Too many tries. Please wait a while and try again.": "محاولات كثيرة جدًا. يُرجى الانتظار قليلًا ثم المحاولة مرة أخرى.",
+  "Child added.": "تمت إضافة الطفل.",
+  "Child removed.": "تمت إزالة الطفل.",
+  "Could not remove the child. Please try again.": "تعذّرت إزالة الطفل. يُرجى المحاولة مرة أخرى.",
+  "Child linked to your account.": "تم ربط الطفل بحسابك.",
+  "Fill in your details first, then you can make a code.": "أكمل بياناتك أولًا، ثم يمكنك إنشاء رمز.",
+  "Parent accounts need migration 0025 in Supabase first.": "حسابات أولياء الأمور تحتاج تشغيل ملف الترحيل 0025 في Supabase أولًا.",
   "Your details have been saved.": "تم حفظ بياناتك.",
   "Choose the year you joined.": "اختر سنة انضمامك.",
   "That year is in the future.": "هذه السنة في المستقبل.",

@@ -16,7 +16,7 @@ export const ROLES = [
 export type Role = (typeof ROLES)[number];
 
 /** Roles a visitor may choose for themselves at signup. */
-export const SELF_SERVE_ROLES = ["scout"] as const;
+export const SELF_SERVE_ROLES = ["scout", "parent"] as const;
 
 /**
  * Someone who has asked to lead and has not been approved.
@@ -32,9 +32,15 @@ export const PENDING_ROLE = "pending_leader" as const;
 /** Roles shown in the signup UI but not open yet. Listed separately (rather
  * than removed) so the option still appears with a "Coming soon" badge —
  * and so the server can reject it explicitly instead of falling through to
- * the generic "choose how you're joining" error.
+ * the generic "choose how you're joining" error. Parents opened Oct 2026
+ * (migration 0025), so nothing is waiting here right now.
  */
-export const COMING_SOON_ROLES = ["parent"] as const;
+export const COMING_SOON_ROLES: readonly Role[] = [];
+
+/** A parent / guardian account (0025). Looks after children, not a member itself. */
+export function isParentRole(role: Role | null | undefined): boolean {
+  return role === "parent";
+}
 
 /**
  * The staff hierarchy, least privileged first.

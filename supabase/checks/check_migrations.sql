@@ -1,4 +1,4 @@
--- Read-only check: have migrations 0019, 0020, 0021, 0022 and 0023 been run?
+-- Read-only check: have migrations 0019 to 0025 been run?
 -- Paste into Supabase → SQL Editor → Run. Changes nothing.
 -- Every row should say "applied". Anything "MISSING" → run that migration.
 
@@ -44,5 +44,20 @@ from (
                         where tablename = 'site_event'
                           and policyname = 'site_event: head site admin can update'),
          'table site_event (the event countdown) + its policies'
+  union all
+  select 6,
+         '0024_requested_position_and_unique_national_id',
+         exists (select 1 from col where table_name = 'profiles' and column_name = 'requested_position')
+           and to_regprocedure('public.stage_admin_seats()') is not null
+           and exists (select 1 from pg_trigger where tgname = 'leader_details_unique_national_id'),
+         'requested role at signup, stage admin seats, one national ID per person'
+  union all
+  select 7,
+         '0025_parents_and_children',
+         to_regclass('public.guardianships') is not null
+           and to_regclass('public.parent_details') is not null
+           and exists (select 1 from col where table_name = 'scout_details' and column_name = 'full_name')
+           and to_regprocedure('public.redeem_guardian_code(text)') is not null,
+         'parent accounts, children without logins, link codes'
 ) checks
 order by n;

@@ -12,9 +12,8 @@ import { SubmitButton } from "@/components/ui/submit-button";
 const initialState: AuthState = {};
 
 /**
- * scout is self-serve; leader creates a REQUEST that a head admin approves;
- * parent is shown but not open yet. The `disabled` flag is a UI convenience
- * only — signUpAction rejects a parent signup server-side.
+ * scout and parent are self-serve (a parent then adds their children);
+ * leader creates a REQUEST that a head admin approves.
  */
 const CHOICES: {
   value: Role;
@@ -22,7 +21,7 @@ const CHOICES: {
   disabled: boolean;
 }[] = [
   { value: "scout", badge: null, disabled: false },
-  { value: "parent", badge: "comingSoon", disabled: true },
+  { value: "parent", badge: null, disabled: false },
   { value: "leader", badge: "needsApproval", disabled: false },
 ];
 

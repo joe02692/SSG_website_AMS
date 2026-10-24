@@ -50,6 +50,7 @@ const COUNTED_ROLES: Role[] = [
   "stage_admin",
   "stage_leader",
   "scout",
+  "parent",
 ];
 
 function formatDate(value: string | null, locale: string): string {

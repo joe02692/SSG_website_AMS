@@ -82,8 +82,17 @@ export function DetailsForm({
   answers,
   submitLabel,
   pendingLabel,
+  checkAction = checkDetailsAction,
+  hidden,
+  childId,
 }: {
   action: Action;
+  /** Checks every answer before a new document uploads (default: own details). */
+  checkAction?: Action;
+  /** Extra fields sent with the form, e.g. which child is being edited. */
+  hidden?: Record<string, string>;
+  /** Set when a parent edits a child: View/Download fetch that child's document. */
+  childId?: string;
   questions: Question[];
   /** Existing answers, so the profile page can prefill. */
   answers?: Record<string, string>;
@@ -116,7 +125,7 @@ export function DetailsForm({
       if (documentName && doc?.hasPending()) {
         setChecking(true);
         data.set(`${documentName}__pending`, "1");
-        const check = await checkDetailsAction({}, data);
+        const check = await checkAction({}, data);
         setChecking(false);
         if (!check.ok) {
           setState(check);
@@ -150,6 +159,11 @@ export function DetailsForm({
 
   return (
     <form onSubmit={onSubmit} className="space-y-5" noValidate>
+      {hidden
+        ? Object.entries(hidden).map(([name, value]) => (
+            <input key={name} type="hidden" name={name} value={value} />
+          ))
+        : null}
       {state.notice ? (
         <p
           role="status"
@@ -203,6 +217,7 @@ export function DetailsForm({
                 required={question.required}
                 existingPath={defaultValue || undefined}
                 controller={documents}
+                childId={childId}
               />
             ) : question.type === "choice-other" ? (
               <ChoiceOther

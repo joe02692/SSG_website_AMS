@@ -2,8 +2,11 @@ import type { Metadata } from "next";
 import Link from "next/link";
 import { SiteShell } from "@/components/site-shell";
 import { BannerScenery } from "@/components/green-scenery";
-import { requireUser, getCurrentProfile } from "@/lib/dal";
-import { isHeadSiteAdminRole, isStageRole } from "@/lib/roles";
+import { requireUser, getCurrentProfile, getMyChildren } from "@/lib/dal";
+import { isHeadSiteAdminRole, isParentRole, isStageRole } from "@/lib/roles";
+import { ageFromDateOfBirth, usesScoutDetails } from "@/lib/onboarding";
+import { LinkChildForm } from "@/components/children/link-child-form";
+import { ParentCode } from "@/components/children/parent-code";
 import { getLocale, getT } from "@/lib/i18n/server";
 import { intlLocale } from "@/lib/i18n/config";
 
@@ -27,6 +30,11 @@ export default async function DashboardPage({
   const locale = await getLocale();
 
   const firstName = profile?.full_name?.trim().split(/\s+/)[0];
+  const isParent = isParentRole(profile?.role);
+  // A scout's own account can invite a parent with a code (0025).
+  const isScout = Boolean(profile) && usesScoutDetails(profile?.role) && profile?.role === "scout";
+  const children = isParent ? await getMyChildren() : [];
+  const tc = all.account.children;
 
   const actions = [
     {
@@ -115,6 +123,75 @@ export default async function DashboardPage({
             </li>
           ))}
         </ul>
+
+        {isParent ? (
+          <section aria-labelledby="children-heading" className="mt-10">
+            <div className="flex flex-wrap items-end justify-between gap-3">
+              <div>
+                <h2 id="children-heading" className="text-xl text-maroon">{tc.sectionTitle}</h2>
+                <p className="mt-1 text-sm text-ink-muted">{tc.sectionIntro}</p>
+              </div>
+              <Link
+                href="/dashboard/children/new"
+                className="rounded-xl bg-sun px-5 py-2.5 font-bold text-forest transition hover:opacity-85"
+              >
+                + {tc.add}
+              </Link>
+            </div>
+
+            {children.length === 0 ? (
+              <p className="mt-4 rounded-2xl border-2 border-dashed border-line bg-surface p-6 text-center text-sm text-ink-muted">
+                {tc.none}
+              </p>
+            ) : (
+              <ul className="mt-4 grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
+                {children.map((child) => {
+                  const age = ageFromDateOfBirth(child.date_of_birth);
+                  const stage = child.stage_code
+                    ? all.stages[child.stage_code as keyof typeof all.stages]
+                    : null;
+                  return (
+                    <li key={child.id}>
+                      <Link
+                        href={`/dashboard/children/${child.id}`}
+                        className="group flex h-full flex-col rounded-2xl border-2 border-line bg-surface-raised p-5 transition hover:-translate-y-0.5 hover:border-leaf hover:shadow-md"
+                      >
+                        <span className="font-display text-lg text-forest">
+                          <bdi>{child.name}</bdi>
+                        </span>
+                        <span className="mt-1 text-sm text-ink-muted">
+                          {[stage, age !== null ? tc.age(age) : null].filter(Boolean).join(" · ")}
+                        </span>
+                        {child.profile_id ? (
+                          <span className="mt-2 w-max rounded-full bg-brand-100 px-2 py-0.5 text-xs font-semibold text-brand-800">
+                            {tc.linkedBadge}
+                          </span>
+                        ) : null}
+                        <span className="mt-3 text-sm font-semibold text-brand-ink group-hover:underline">
+                          {tc.edit}
+                        </span>
+                      </Link>
+                    </li>
+                  );
+                })}
+              </ul>
+            )}
+
+            <div className="mt-6 rounded-2xl border-2 border-line bg-surface-raised p-5">
+              <h3 className="font-display text-lg text-forest">{tc.linkTitle}</h3>
+              <p className="mt-1 mb-3 text-sm text-ink-muted">{tc.linkIntro}</p>
+              <LinkChildForm />
+            </div>
+          </section>
+        ) : null}
+
+        {isScout ? (
+          <section aria-labelledby="parent-heading" className="mt-10 rounded-2xl border-2 border-line bg-surface-raised p-5">
+            <h2 id="parent-heading" className="text-xl text-maroon">{tc.parentTitle}</h2>
+            <p className="mt-1 mb-3 text-sm text-ink-muted">{tc.parentIntro}</p>
+            <ParentCode />
+          </section>
+        ) : null}
 
         <h2 className="mt-10 text-xl text-maroon">{t.yourAccount}</h2>
         <dl className="mt-4 grid gap-4 sm:grid-cols-2 lg:grid-cols-3">

@@ -24,7 +24,7 @@ const en: { labels: Record<Role, string>; plural: Record<Role, string>; descript
   },
   descriptions: {
     scout: "A member of the group taking part in meetings and camps.",
-    parent: "A parent or guardian following a scout in the group.",
+    parent: "Registers and follows their children in the group — one account for brothers and sisters.",
     pending_leader:
       "Has asked to join as a leader and is waiting for the head site admin to approve it. No access until then.",
     stage_leader: "Runs sessions and activities for a stage.",
@@ -58,7 +58,7 @@ const ar: typeof en = {
   },
   descriptions: {
     scout: "عضو في المجموعة يشارك في الاجتماعات والمخيمات.",
-    parent: "ولي أمر يتابع أحد الكشافة في المجموعة.",
+    parent: "يسجّل أبناءه في المجموعة ويتابعهم — حساب واحد لكل الإخوة.",
     pending_leader: "طلب الانضمام كقائد وينتظر موافقة المسؤول الرئيسي للموقع. لا صلاحيات حتى تتم الموافقة.",
     stage_leader: "يدير الجلسات والأنشطة الخاصة بإحدى المراحل.",
     stage_admin: "يشرف على مرحلة — أعضائها وسجلاتها وخطتها الموسمية.",

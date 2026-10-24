@@ -6,6 +6,8 @@ import {
   getCurrentProfile,
   getScoutDetails,
   getLeaderDetails,
+  getParentDetails,
+  parentAnswers,
   scoutAnswers,
   leaderAnswers,
 } from "@/lib/dal";
@@ -18,6 +20,7 @@ import {
   usesScoutDetails,
 } from "@/lib/onboarding";
 import { getLocale, getT } from "@/lib/i18n/server";
+import { isParentRole } from "@/lib/roles";
 import { localizeQuestions } from "@/lib/i18n/onboarding";
 
 export async function generateMetadata(): Promise<Metadata> {
@@ -36,13 +39,18 @@ export default async function ProfilePage() {
   // already returns null for staff, who have no row, so firing it speculatively
   // costs one wasted lookup for a handful of accounts and saves a full hop for
   // the rest. Both are cache()d, so nothing is fetched twice.
-  const [profile, scout, leader] = await Promise.all([
+  const [profile, scout, leader, parent] = await Promise.all([
     getCurrentProfile(),
     getScoutDetails(),
     getLeaderDetails(),
+    getParentDetails(),
   ]);
   const isScout = usesScoutDetails(profile?.role);
-  const answers = isScout ? scoutAnswers(scout) : leaderAnswers(leader);
+  const answers = isParentRole(profile?.role)
+    ? parentAnswers(parent)
+    : isScout
+      ? scoutAnswers(scout)
+      : leaderAnswers(leader);
 
   // Derived on read, never stored — the same rule for both roles.
   const birthDate = isScout ? scout?.date_of_birth : leader?.date_of_birth;

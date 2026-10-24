@@ -1,5 +1,6 @@
 "use server";
 
+import { randomUUID } from "node:crypto";
 import { redirect } from "next/navigation";
 import { after } from "next/server";
 import { revalidatePath } from "next/cache";
@@ -15,7 +16,9 @@ import {
   APPLICANT_STATUSES,
   LEADER_COMMITTEES,
   MAX_ANSWER_LENGTH,
+  RELATIONSHIPS,
   SCOUT_STAGES,
+  usesParentDetails,
   usesScoutDetails,
 } from "@/lib/onboarding";
 
@@ -25,7 +28,18 @@ export type DetailsState = {
   notice?: string;
   /** checkDetailsAction only: every answer is fine, the document may upload. */
   ok?: boolean;
+  /** Children only: the saved child's id (new on the first save). */
+  childId?: string;
 };
+
+/**
+ * Who a scout_details row is for. "self" = the signed-in scout's own row.
+ * "child" = a child on a parent's account (0025): a new one when childId is
+ * null, otherwise one the parent already looks after (RLS checks that).
+ */
+type ScoutTarget =
+  | { kind: "self" }
+  | { kind: "child"; guardianId: string; childId: string | null };
 
 const EGYPT_MOBILE = /^01[0-9]{9}$/;
 const NATIONAL_ID = /^[0-9]{14}$/;
@@ -61,10 +75,13 @@ function documentPending(formData: FormData, name: string): boolean {
  * uploaded or saved. If 0024 isn't there yet this says "no" and the unique
  * index on each table still refuses a duplicate on save.
  */
-async function nationalIdTaken(nationalId: string): Promise<boolean> {
+async function nationalIdTaken(nationalId: string, exclude?: string | null): Promise<boolean> {
   if (!nationalId) return false;
   const supabase = await createClient();
-  const { data, error } = await supabase.rpc("national_id_taken", { p_national_id: nationalId });
+  // The two-argument form (0025) skips the child being edited.
+  const { data, error } = exclude
+    ? await supabase.rpc("national_id_taken", { p_national_id: nationalId, p_exclude: exclude })
+    : await supabase.rpc("national_id_taken", { p_national_id: nationalId });
   if (error) return false;
   return data === true;
 }
@@ -132,8 +149,45 @@ async function saveScoutDetails(
   formData: FormData,
   markComplete: boolean,
   checkOnly = false,
+  target: ScoutTarget = { kind: "self" },
 ): Promise<DetailsState> {
   const fieldErrors: Record<string, string> = {};
+  const isChild = target.kind === "child";
+  const childId = target.kind === "child" ? target.childId : null;
+
+  // A child has no login, so their name is a question on the form. A linked
+  // scout (who has their own login) keeps the name on their own profile.
+  let existingChild: { id: string; profile_id: string | null; document_path: string | null; full_name: string | null } | null = null;
+  if (childId) {
+    const lookup = await createClient();
+    const { data } = await lookup
+      .from("scout_details")
+      .select("id, profile_id, document_path, full_name, profiles:profile_id(full_name)")
+      .eq("id", childId)
+      .maybeSingle();
+    if (!data) return { error: "That child isn't linked to your account." };
+    const row = data as unknown as {
+      id: string;
+      profile_id: string | null;
+      document_path: string | null;
+      full_name: string | null;
+      profiles: { full_name: string | null } | null;
+    };
+    existingChild = {
+      id: row.id,
+      profile_id: row.profile_id,
+      document_path: row.document_path,
+      full_name: row.profiles?.full_name ?? row.full_name,
+    };
+  }
+  const childHasLogin = Boolean(existingChild?.profile_id);
+  const childName = isChild && !childHasLogin ? field(formData, "full_name") : null;
+  if (isChild && !childHasLogin) {
+    if (!childName) fieldErrors.full_name = "Please enter your child's full name.";
+    else if (childName.length > 120) fieldErrors.full_name = "Keep it under 120 characters.";
+  }
+  // The name the document is filed under.
+  const fileName = isChild ? (childHasLogin ? existingChild?.full_name ?? null : childName) : fullName;
 
   const dateOfBirth = field(formData, "date_of_birth");
   const address = field(formData, "address");
@@ -199,7 +253,11 @@ async function saveScoutDetails(
   }
 
   // One national ID per person across the whole site (0024).
-  if (!fieldErrors.national_id && nationalId && (await nationalIdTaken(nationalId))) {
+  if (
+    !fieldErrors.national_id &&
+    nationalId &&
+    (await nationalIdTaken(nationalId, childId))
+  ) {
     fieldErrors.national_id = DUPLICATE_ID;
   }
 
@@ -208,6 +266,25 @@ async function saveScoutDetails(
   }
   // Everything checks out: the browser may now upload the document.
   if (checkOnly) return { ok: true };
+
+  if (isChild) {
+    return writeChild({
+      guardianId: (target as { guardianId: string }).guardianId,
+      existing: existingChild,
+      childName,
+      fileName,
+      documentPath,
+      stageCode,
+      row: {
+        date_of_birth: dateOfBirth,
+        address,
+        personal_phone: personalPhone,
+        parent_phone: parentPhone,
+        national_id: nationalId || null,
+        stage_id: stageId as number,
+      },
+    });
+  }
 
   // File the certificate as Members/Scouts/<Stage>/<Full name> - Birth
   // certificate.<ext>. Also runs when
@@ -294,6 +371,165 @@ async function saveScoutDetails(
       .eq("id", profileId);
   }
 
+  revalidatePath("/", "layout");
+  return { notice: "Your details have been saved." };
+}
+
+// ---------------------------------------------------------------------------
+// Children on a parent's account (migration 0025)
+// ---------------------------------------------------------------------------
+async function writeChild({
+  guardianId,
+  existing,
+  childName,
+  fileName,
+  documentPath,
+  stageCode,
+  row,
+}: {
+  guardianId: string;
+  existing: { id: string; profile_id: string | null; document_path: string | null } | null;
+  childName: string | null;
+  fileName: string | null;
+  documentPath: string;
+  stageCode: string;
+  row: {
+    date_of_birth: string;
+    address: string;
+    personal_phone: string;
+    parent_phone: string;
+    national_id: string | null;
+    stage_id: number;
+  };
+}): Promise<DetailsState> {
+  const supabase = await createClient();
+
+  // Filed like any scout's certificate. The upload sits in the PARENT's
+  // temporary folder (they uploaded it), so that is the ownership check.
+  const filed = await fileDocument({
+    submitted: documentPath,
+    stored: existing?.document_path ?? null,
+    profileId: guardianId,
+    folder: scoutFolder(stageCode),
+    fullName: fileName,
+    label: DOCUMENT_LABELS.scout,
+  }).catch((error: unknown) => {
+    console.error("[children] could not file the certificate in Backblaze", error);
+    return { error: "Could not store the certificate. Please try again." };
+  });
+  if ("error" in filed) {
+    return {
+      fieldErrors: { document_path: filed.error },
+      error: "Please fix the highlighted answers.",
+    };
+  }
+
+  const values = {
+    ...row,
+    document_path: filed.key,
+    document_uploaded_at: new Date().toISOString(),
+  };
+
+  let childId = existing?.id ?? null;
+  let error;
+  if (existing) {
+    ({ error } = await supabase
+      .from("scout_details")
+      .update(existing.profile_id ? values : { ...values, full_name: childName })
+      .eq("id", existing.id));
+  } else {
+    // A new child. The id is made here because the row can't be read back in
+    // the same request: the parent's read access comes from the guardianship
+    // that the insert itself creates (trigger link_added_child, 0025).
+    childId = randomUUID();
+    ({ error } = await supabase.from("scout_details").insert({
+      ...values,
+      id: childId,
+      profile_id: null,
+      added_by: guardianId,
+      full_name: childName,
+    }));
+  }
+
+  if (error) {
+    if (error.code === "23505") {
+      return {
+        fieldErrors: { national_id: DUPLICATE_ID },
+        error: "Please fix the highlighted answers.",
+      };
+    }
+    if (error.code === "PGRST204" || error.code === "42703" || error.code === "PGRST205") {
+      return { error: "Parent accounts need migration 0025 in Supabase first." };
+    }
+    console.error("[children] could not save a child", error);
+    return { error: describeSaveError(error, "scout_details", "0025_parents_and_children.sql") };
+  }
+
+  await Promise.all(filed.cleanup.map(deleteObject));
+  revalidatePath("/dashboard", "layout");
+  return {
+    notice: existing ? "Your details have been saved." : "Child added.",
+    childId: childId ?? undefined,
+  };
+}
+
+// ---------------------------------------------------------------------------
+// A parent's own details (migration 0025)
+// ---------------------------------------------------------------------------
+async function saveParentDetails(
+  profileId: string,
+  formData: FormData,
+  markComplete: boolean,
+  checkOnly: boolean,
+): Promise<DetailsState> {
+  const fieldErrors: Record<string, string> = {};
+  const phone = digitsField(formData, "phone");
+  const relationship = field(formData, "relationship");
+  const consent = formData.getAll("consent").includes("yes");
+
+  if (!EGYPT_MOBILE.test(phone)) fieldErrors.phone = "11 digits, starting 01.";
+  if (!RELATIONSHIPS.some((option) => option.value === relationship)) {
+    fieldErrors.relationship = "Choose father, mother or other guardian.";
+  }
+  if (!consent) fieldErrors.consent = "Please tick the box to give your consent.";
+
+  if (Object.keys(fieldErrors).length > 0) {
+    return { fieldErrors, error: "Please fix the highlighted answers." };
+  }
+  if (checkOnly) return { ok: true };
+
+  const supabase = await createClient();
+  const { data: current } = await supabase
+    .from("parent_details")
+    .select("consent_at")
+    .eq("profile_id", profileId)
+    .maybeSingle();
+
+  const { error } = await supabase.from("parent_details").upsert(
+    {
+      profile_id: profileId,
+      phone,
+      relationship,
+      // Kept from the first time they agreed.
+      consent_at:
+        (current as { consent_at?: string } | null)?.consent_at ?? new Date().toISOString(),
+    },
+    { onConflict: "profile_id" },
+  );
+  if (error) {
+    if (error.code === "PGRST205" || error.code === "42P01") {
+      return { error: "Parent accounts need migration 0025 in Supabase first." };
+    }
+    console.error("[onboarding] could not save parent details", error);
+    return { error: describeSaveError(error, "parent_details", "0025_parents_and_children.sql") };
+  }
+
+  if (markComplete) {
+    await supabase
+      .from("profiles")
+      .update({ details_completed_at: new Date().toISOString() })
+      .eq("id", profileId);
+  }
   revalidatePath("/", "layout");
   return { notice: "Your details have been saved." };
 }
@@ -564,6 +800,9 @@ async function saveDetails(
 
   // Which set of answers this is comes from the member's stored role, never
   // from the submitted form.
+  if (usesParentDetails(profile.role)) {
+    return saveParentDetails(profile.id, formData, markComplete, checkOnly);
+  }
   return usesScoutDetails(profile.role)
     ? saveScoutDetails(profile.id, profile.full_name, formData, markComplete, checkOnly)
     : saveLeaderDetails(profile.id, profile.full_name, formData, markComplete, checkOnly);
@@ -617,4 +856,38 @@ export async function updateDetailsAction(
   formData: FormData,
 ): Promise<DetailsState> {
   return localizeState(await saveDetails(formData, false), await getLocale());
+}
+
+/** A parent saves one child (add or edit) — or, with `check`, only checks. */
+async function saveChild(formData: FormData, check: boolean): Promise<DetailsState> {
+  const profile = await getCurrentProfile();
+  if (!profile) return { error: "You need to be signed in." };
+  if (!usesParentDetails(profile.role)) return { error: "Only parent accounts can link a child." };
+  const rawId = field(formData, "child_id");
+  return saveScoutDetails(profile.id, null, formData, false, check, {
+    kind: "child",
+    guardianId: profile.id,
+    childId: /^[0-9a-f-]{36}$/i.test(rawId) ? rawId : null,
+  });
+}
+
+/** Parent: add or update a child. */
+export async function saveChildAction(
+  _prevState: DetailsState,
+  formData: FormData,
+): Promise<DetailsState> {
+  const result = await saveChild(formData, false);
+  // A new child: carry on to their page, where the parent can see it saved.
+  if (!result.error && !result.fieldErrors && !field(formData, "child_id") && result.childId) {
+    redirect(`/dashboard/children/${result.childId}?added=1`);
+  }
+  return localizeState(result, await getLocale());
+}
+
+/** Parent: check a child's answers before the certificate uploads. */
+export async function checkChildAction(
+  _prevState: DetailsState,
+  formData: FormData,
+): Promise<DetailsState> {
+  return localizeState(await saveChild(formData, true), await getLocale());
 }

@@ -5,6 +5,8 @@ import {
   getCurrentProfile,
   getScoutDetails,
   getLeaderDetails,
+  getParentDetails,
+  parentAnswers,
   requireUser,
   scoutAnswers,
   leaderAnswers,
@@ -13,6 +15,7 @@ import { DetailsForm } from "@/components/onboarding/details-form";
 import { completeOnboardingAction } from "@/app/onboarding/actions";
 import { questionsForRole, usesScoutDetails } from "@/lib/onboarding";
 import { getLocale, getT } from "@/lib/i18n/server";
+import { isParentRole } from "@/lib/roles";
 import { localizeQuestions } from "@/lib/i18n/onboarding";
 
 export async function generateMetadata(): Promise<Metadata> {
@@ -28,10 +31,11 @@ export default async function OnboardingPage() {
   // user id, so it does not depend on the profile; awaiting the profile first
   // just to decide whether to ask was an extra round trip on a page every new
   // member sees before they can do anything else.
-  const [profile, scout, leader] = await Promise.all([
+  const [profile, scout, leader, parent] = await Promise.all([
     getCurrentProfile(),
     getScoutDetails(),
     getLeaderDetails(),
+    getParentDetails(),
   ]);
 
   // Already answered — nothing to do here. Without this, the dashboard
@@ -40,7 +44,11 @@ export default async function OnboardingPage() {
 
   // Scouts answer into real columns; staff still use the JSONB blob.
   const isScout = usesScoutDetails(profile?.role);
-  const answers = isScout ? scoutAnswers(scout) : leaderAnswers(leader);
+  const answers = isParentRole(profile?.role)
+    ? parentAnswers(parent)
+    : isScout
+      ? scoutAnswers(scout)
+      : leaderAnswers(leader);
 
   return (
     <div className="flex min-h-dvh flex-col bg-canvas">

@@ -176,6 +176,42 @@ async function deleteMember(
     }
   }
 
+  // A parent's account (0025): children they registered and look after alone
+  // would be left with nobody — their records go too, certificates first to
+  // Former members. Children another parent also looks after stay.
+  if (target.role === "parent") {
+    const { data: links } = await supabase
+      .from("guardianships")
+      .select("scout:scout_id(id, profile_id, full_name, document_path, guardianships(guardian_id))")
+      .eq("guardian_id", memberId);
+    type Linked = {
+      scout: {
+        id: string;
+        profile_id: string | null;
+        full_name: string | null;
+        document_path: string | null;
+        guardianships: { guardian_id: string }[] | null;
+      } | null;
+    };
+    for (const { scout } of (links ?? []) as unknown as Linked[]) {
+      if (!scout || scout.profile_id) continue;
+      const others = (scout.guardianships ?? []).filter((g) => g.guardian_id !== memberId);
+      if (others.length > 0) continue;
+      try {
+        if (missingStorageEnv().length === 0) {
+          await moveToFormerMembers({ key: scout.document_path, kind: "scout", fullName: scout.full_name });
+        }
+      } catch (cause) {
+        console.error("[admin] could not move a child's certificate", cause);
+        return {
+          error:
+            "Could not move their documents to Former members, so the account was not deleted. Please try again.",
+        };
+      }
+      await supabase.from("scout_details").delete().eq("id", scout.id);
+    }
+  }
+
   const { error } = await adminClient.auth.admin.deleteUser(memberId);
 
   if (error) {

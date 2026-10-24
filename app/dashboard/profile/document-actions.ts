@@ -129,6 +129,30 @@ async function getOwnDocumentUrl(
   // leader's ID card in leader_details. Nothing about that comes from the
   // request, so there is no parameter to tamper with.
   const supabase = await createClient();
+
+  // A parent asking for one of their children's certificates (0025). Read
+  // through RLS, which only returns a row this parent looks after.
+  const childId = String(formData.get("childId") ?? "");
+  if (/^[0-9a-f-]{36}$/i.test(childId)) {
+    const { data: child } = await supabase
+      .from("scout_details")
+      .select("document_path, full_name, profiles:profile_id(full_name)")
+      .eq("id", childId)
+      .maybeSingle();
+    const row = child as unknown as {
+      document_path: string | null;
+      full_name: string | null;
+      profiles: { full_name: string | null } | null;
+    } | null;
+    if (!row?.document_path) return { error: "No document on file." };
+    return signDocument(
+      row.document_path,
+      formData.get("mode") === "download",
+      nameSlug(row.profiles?.full_name ?? row.full_name),
+      "birth-certificate",
+    );
+  }
+
   const staff = isStaffRole(profile.role);
 
   const { data } = staff
@@ -148,11 +172,21 @@ async function getOwnDocumentUrl(
     : (data as { document_path?: string } | null)?.document_path;
   if (!key) return { error: "No document on file." };
 
-  const wantsDownload = formData.get("mode") === "download";
-  const extension = key.split(".").pop() ?? "jpg";
-  const base = nameSlug(profile.full_name);
-  const label = staff ? "id-card" : "birth-certificate";
+  return signDocument(
+    key,
+    formData.get("mode") === "download",
+    nameSlug(profile.full_name),
+    staff ? "id-card" : "birth-certificate",
+  );
+}
 
+async function signDocument(
+  key: string,
+  wantsDownload: boolean,
+  base: string,
+  label: string,
+): Promise<OwnDocumentLink> {
+  const extension = key.split(".").pop() ?? "jpg";
   try {
     const url = await presignDownload(
       key,

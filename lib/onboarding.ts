@@ -1,4 +1,4 @@
-import { isStaffRole, type Role } from "@/lib/roles";
+import { isParentRole, isStaffRole, type Role } from "@/lib/roles";
 
 /**
  * The questions asked after signup.
@@ -300,14 +300,88 @@ export const LEADER_QUESTIONS: Question[] = [
   },
 ];
 
-/** Staff get the leader set; everyone else gets scout registration. */
+/** How the parent is related to the children they register. 0025's CHECK. */
+export const RELATIONSHIPS = [
+  { value: "father", label: "Father" },
+  { value: "mother", label: "Mother" },
+  { value: "guardian", label: "Other guardian" },
+];
+
+/**
+ * A parent's own registration (public.parent_details, migration 0025).
+ * Short on purpose: the children's details are asked per child.
+ */
+export const PARENT_QUESTIONS: Question[] = [
+  {
+    id: "phone",
+    label: "Your phone",
+    type: "tel",
+    required: true,
+    placeholder: "01XXXXXXXXX",
+    hint: "So the leaders can reach you about your children. 11 digits, starting 01.",
+  },
+  {
+    id: "relationship",
+    label: "You are the children's",
+    type: "select",
+    required: true,
+    options: RELATIONSHIPS,
+  },
+  {
+    id: "consent",
+    label: "Consent",
+    type: "checkbox",
+    required: true,
+    options: [
+      {
+        value: "yes",
+        label:
+          "I agree that El-Salam Scouting Group keeps my children's details and documents to run its activities. Only me and the group's admins can see them.",
+      },
+    ],
+  },
+];
+
+/**
+ * Registering a child from a parent's account: the child's name (they have
+ * no login of their own) and then the same questions a scout answers.
+ */
+export const CHILD_QUESTIONS: Question[] = [
+  {
+    id: "full_name",
+    label: "Child's full name",
+    type: "text",
+    required: true,
+    placeholder: "Ex: Sara Mohamed Ali",
+  },
+  ...SCOUT_QUESTIONS.map((q) =>
+    q.id === "personal_phone"
+      ? {
+          ...q,
+          label: "Child's phone",
+          hint: "If your child has no phone, write yours. 11 digits, starting 01.",
+        }
+      : q.id === "parent_phone"
+        ? { ...q, label: "Parent / guardian phone" }
+        : q,
+  ),
+];
+
+/** Staff get the leader set, parents their own short set; everyone else gets scout registration. */
 export function questionsForRole(role: Role | null | undefined): Question[] {
-  return isStaffRole(role) ? LEADER_QUESTIONS : SCOUT_QUESTIONS;
+  if (isStaffRole(role)) return LEADER_QUESTIONS;
+  if (isParentRole(role)) return PARENT_QUESTIONS;
+  return SCOUT_QUESTIONS;
 }
 
-/** True when this member's answers belong in scout_details. */
+/** True when this member's own answers belong in scout_details. */
 export function usesScoutDetails(role: Role | null | undefined): boolean {
-  return !isStaffRole(role);
+  return !isStaffRole(role) && !isParentRole(role);
+}
+
+/** True when this member's own answers belong in parent_details. */
+export function usesParentDetails(role: Role | null | undefined): boolean {
+  return isParentRole(role);
 }
 
 /** True when this member's answers belong in leader_details. */

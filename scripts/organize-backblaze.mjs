@@ -168,7 +168,7 @@ let moved = 0;
 let skipped = 0;
 let problems = 0;
 
-async function refile({ label, table, column, profileId, key, folder, fullName, docLabel }) {
+async function refile({ label, table, column, match, key, folder, fullName, docLabel }) {
   const ext = (key.split(".").pop() ?? "jpg").toLowerCase();
   const base = fileBaseName(fullName);
   const tail = ` - ${docLabel}.${ext}`;
@@ -189,7 +189,7 @@ async function refile({ label, table, column, profileId, key, folder, fullName, 
   if (!APPLY) return;
 
   await copy(key, target);
-  const { error } = await supabase.from(table).update({ [column]: target }).eq("profile_id", profileId);
+  const { error } = await supabase.from(table).update({ [column]: target }).eq(match.column, match.value);
   if (error) {
     console.log(`    ✗ could not update the record (${error.message}) — the old file was kept`);
     problems++;
@@ -200,10 +200,18 @@ async function refile({ label, table, column, profileId, key, folder, fullName, 
 
 console.log(APPLY ? "Organising Backblaze (APPLY)…\n" : "Dry run — nothing will change. Add --apply to do it.\n");
 
-const { data: scouts, error: scoutError } = await supabase
+// Since 0025 a child registered by a parent has no login (profile_id NULL):
+// rows are matched by their own id, and the name may be on the row itself.
+let { data: scouts, error: scoutError } = await supabase
   .from("scout_details")
-  .select("profile_id, document_path, stages(code), profiles(full_name)")
+  .select("id, profile_id, full_name, document_path, stages(code), profiles:profile_id(full_name)")
   .not("document_path", "is", null);
+if (scoutError) {
+  ({ data: scouts, error: scoutError } = await supabase
+    .from("scout_details")
+    .select("profile_id, document_path, stages(code), profiles:profile_id(full_name)")
+    .not("document_path", "is", null));
+}
 if (scoutError) {
   console.error("Could not read scout_details:", scoutError.message);
   process.exit(1);
@@ -220,13 +228,13 @@ if (leaderError) {
 console.log(`Scouts (${scouts.length}):`);
 for (const row of scouts) {
   await refile({
-    label: `${row.profiles?.full_name ?? "?"} — scout`,
+    label: `${row.profiles?.full_name ?? row.full_name ?? "?"} — scout`,
     table: "scout_details",
     column: "document_path",
-    profileId: row.profile_id,
+    match: row.id ? { column: "id", value: row.id } : { column: "profile_id", value: row.profile_id },
     key: row.document_path,
     folder: scoutFolder(row.stages?.code),
-    fullName: row.profiles?.full_name,
+    fullName: row.profiles?.full_name ?? row.full_name,
     docLabel: LABELS.scout,
   });
 }
@@ -238,7 +246,7 @@ for (const row of leaders) {
     label: `${row.profiles?.full_name ?? "?"} — leader`,
     table: "leader_details",
     column: "id_card_path",
-    profileId: row.profile_id,
+    match: { column: "profile_id", value: row.profile_id },
     key: row.id_card_path,
     folder: leaderFolder(row.gender),
     fullName: row.profiles?.full_name,

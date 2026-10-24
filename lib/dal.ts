@@ -197,6 +197,139 @@ export function scoutAnswers(
     parent_phone: details.parent_phone ?? "",
     stage_code: details.stage_code ?? "",
     national_id: details.national_id ?? "",
+    // Without this the profile form thought no certificate was on file and
+    // asked for it again on every save.
+    document_path: details.document_path ?? "",
+  };
+}
+
+// ---------------------------------------------------------------------------
+// Parents and their children (migration 0025)
+// ---------------------------------------------------------------------------
+
+export type ParentDetails = {
+  profile_id: string;
+  phone: string;
+  relationship: string;
+  consent_at: string;
+};
+
+/** The signed-in parent's own details, or null. */
+export const getParentDetails = cache(async (): Promise<ParentDetails | null> => {
+  const user = await getCurrentUser();
+  if (!user) return null;
+  const supabase = await createClient();
+  const { data, error } = await supabase
+    .from("parent_details")
+    .select("profile_id, phone, relationship, consent_at")
+    .eq("profile_id", user.id)
+    .maybeSingle();
+  if (error || !data) return null;
+  return data as ParentDetails;
+});
+
+export function parentAnswers(details: ParentDetails | null): Record<string, string> {
+  if (!details) return {};
+  return {
+    phone: details.phone ?? "",
+    relationship: details.relationship ?? "",
+    consent: details.consent_at ? "yes" : "",
+  };
+}
+
+/** One child as a parent sees it. */
+export type Child = {
+  id: string;
+  /** The child's own login, if they have one (a linked scout). */
+  profile_id: string | null;
+  name: string;
+  date_of_birth: string;
+  address: string;
+  national_id: string | null;
+  personal_phone: string;
+  parent_phone: string;
+  document_path: string | null;
+  stage_code: string | null;
+  /** added = this parent registered them; linked = joined with the scout's code. */
+  how: "added" | "linked";
+};
+
+type ChildRow = {
+  how: "added" | "linked";
+  scout: {
+    id: string;
+    profile_id: string | null;
+    full_name: string | null;
+    date_of_birth: string;
+    address: string;
+    national_id: string | null;
+    personal_phone: string;
+    parent_phone: string;
+    document_path: string | null;
+    stages: { code: string } | null;
+    profiles: { full_name: string | null } | null;
+  } | null;
+};
+
+const CHILD_SELECT =
+  "how, scout:scout_id(id, profile_id, full_name, date_of_birth, address, national_id, personal_phone, parent_phone, document_path, stages(code), profiles:profile_id(full_name))";
+
+function toChild(row: ChildRow): Child | null {
+  const s = row.scout;
+  if (!s) return null;
+  return {
+    id: s.id,
+    profile_id: s.profile_id,
+    name: s.profiles?.full_name ?? s.full_name ?? "—",
+    date_of_birth: s.date_of_birth,
+    address: s.address,
+    national_id: s.national_id,
+    personal_phone: s.personal_phone,
+    parent_phone: s.parent_phone,
+    document_path: s.document_path,
+    stage_code: s.stages?.code ?? null,
+    how: row.how,
+  };
+}
+
+/**
+ * The signed-in parent's children. RLS on guardianships and scout_details
+ * (0025) is what limits this to their own — the filter here is for clarity.
+ * Empty (not an error) when 0025 hasn't been run yet.
+ */
+export const getMyChildren = cache(async (): Promise<Child[]> => {
+  const user = await getCurrentUser();
+  if (!user) return [];
+  const supabase = await createClient();
+  const { data, error } = await supabase
+    .from("guardianships")
+    .select(CHILD_SELECT)
+    .eq("guardian_id", user.id)
+    .order("created_at", { ascending: true });
+  if (error || !data) return [];
+  return (data as unknown as ChildRow[])
+    .map(toChild)
+    .filter((child): child is Child => child !== null);
+});
+
+/** One of the signed-in parent's children, or null if it isn't theirs. */
+export async function getMyChild(childId: string): Promise<Child | null> {
+  const children = await getMyChildren();
+  return children.find((child) => child.id === childId) ?? null;
+}
+
+/** A child as form answers (the scout questions plus the name). */
+export function childAnswers(child: Child | null): Record<string, string> {
+  if (!child) return {};
+  return {
+    full_name: child.name,
+    date_of_birth: child.date_of_birth ?? "",
+    address: child.address ?? "",
+    personal_phone: child.personal_phone ?? "",
+    parent_phone: child.parent_phone ?? "",
+    stage_code: child.stage_code ?? "",
+    national_id: child.national_id ?? "",
+    document_path: child.document_path ?? "",
   };
 }
 

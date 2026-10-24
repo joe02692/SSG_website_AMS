@@ -45,6 +45,7 @@ export function DocumentField({
   required,
   existingPath,
   controller,
+  childId,
 }: {
   fieldId: string;
   /** Column this key is stored in — document_path or id_card_path. */
@@ -54,6 +55,8 @@ export function DocumentField({
   existingPath?: string;
   /** Filled in here so the surrounding form can upload at the right moment. */
   controller?: RefObject<DocumentController | null>;
+  /** A parent viewing their child's certificate (0025). */
+  childId?: string;
 }) {
   const [key, setKey] = useState<string>(existingPath ?? "");
   const [fileName, setFileName] = useState<string | null>(null);
@@ -87,6 +90,7 @@ export function DocumentField({
     startLinking(async () => {
       const data = new FormData();
       data.set("mode", mode);
+      if (childId) data.set("childId", childId);
       const result = await getOwnDocumentUrlAction({}, data);
       if (result.error || !result.url) {
         setError(result.error ?? t.couldNotOpen);

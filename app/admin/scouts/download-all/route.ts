@@ -37,14 +37,21 @@ export async function GET() {
   }
 
   const supabase = await createClient();
-  const { data } = await supabase
-    .from("scout_details")
-    .select("document_path, profiles(full_name), stages(name_en)")
-    .not("document_path", "is", null);
-
-  const rows = ((data ?? []) as unknown as Row[]).filter(
-    (r) => r.document_path,
+  // `profiles:profile_id` names the link explicitly: since 0025 scout_details
+  // has two links to profiles (the scout, and the parent who added them).
+  // A child a parent registered has no login, so their name is on the row.
+  const query = (columns: string) =>
+    supabase.from("scout_details").select(columns).not("document_path", "is", null);
+  let { data, error } = await query(
+    "document_path, full_name, profiles:profile_id(full_name), stages(name_en)",
   );
+  if (error) {
+    ({ data, error } = await query("document_path, profiles:profile_id(full_name), stages(name_en)"));
+  }
+
+  const rows = ((data ?? []) as unknown as (Row & { full_name?: string | null })[])
+    .filter((r) => r.document_path)
+    .map((r) => ({ ...r, profiles: { full_name: r.profiles?.full_name ?? r.full_name ?? null } }));
 
   if (rows.length === 0) {
     return new Response("No documents to download.", { status: 404 });
