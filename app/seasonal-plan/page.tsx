@@ -8,6 +8,7 @@ import { STAFF_ROLES } from "@/lib/roles";
 import { getObjectBytes } from "@/lib/b2";
 import { SCOUT_STAGES } from "@/lib/onboarding";
 import { ArchiveDownload } from "@/components/seasonal/archive-download";
+import { StageToolsSection } from "@/components/seasonal/stage-tools-section";
 import {
   archiveCounts,
   isStageCode,
@@ -189,6 +190,9 @@ export default async function SeasonalPlanPage({
             );
           })}
         </ul>
+
+        {/* --------------------------------------- Tools for every meeting (0026) */}
+        <StageToolsSection editable={managed.codes} />
 
         {/* ------------------------------------------------------ The open plan */}
         {open ? (

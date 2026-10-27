@@ -1,4 +1,4 @@
--- Read-only check: have migrations 0019 to 0025 been run?
+-- Read-only check: have migrations 0019 to 0026 been run?
 -- Paste into Supabase → SQL Editor → Run. Changes nothing.
 -- Every row should say "applied". Anything "MISSING" → run that migration.
 
@@ -59,5 +59,11 @@ from (
            and exists (select 1 from col where table_name = 'scout_details' and column_name = 'full_name')
            and to_regprocedure('public.redeem_guardian_code(text)') is not null,
          'parent accounts, children without logins, link codes'
+  union all
+  select 8,
+         '0026_stage_meeting_tools',
+         to_regclass('public.stage_tools') is not null
+           and to_regprocedure('public.copy_last_week_tools(smallint)') is not null,
+         'tools for every meeting (weekly lists per stage)'
 ) checks
 order by n;
