@@ -23,7 +23,7 @@
 
 ## Executive Overview
 
-The **El-Salam Scouting Group Platform** unifies the group's public identity and its internal operations into one bilingual (**Arabic & English**) digital system. It serves two core purposes:
+The **ElSalam Scouting Group Platform** unifies the group's public identity and its internal operations into one bilingual (**Arabic & English**) digital system. It serves two core purposes:
 
 1. **Public Portal** — Introduces visitors and families to El-Salam's heritage since 1977, its three branches (*Tanta, Al Rehab, and Madinaty*), the Scout Promise and Law, the eight age stages, upcoming group events, and a curated camp photo archive.
 2. **Association Management System (AMS)** — Provides a secure, role-based workspace where scouts register, parents manage their children's memberships, stage leaders access seasonal plans, and administrators oversee rosters, identity documents, and leadership approvals.
