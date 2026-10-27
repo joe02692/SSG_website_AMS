@@ -231,6 +231,24 @@ export async function objectExists(key: string): Promise<boolean> {
 }
 
 /**
+ * Like objectExists, but only "not found" counts as missing. A network or
+ * permission error THROWS instead of reading as "missing" — for callers that
+ * must not mistake an outage for "nothing to do" (the member-deleted webhook).
+ */
+export async function objectExistsStrict(key: string): Promise<boolean> {
+  try {
+    await client().send(new HeadObjectCommand({ Bucket: bucketName(), Key: key }));
+    return true;
+  } catch (error) {
+    const e = error as { name?: string; $metadata?: { httpStatusCode?: number } };
+    if (e?.name === "NotFound" || e?.name === "NoSuchKey" || e?.$metadata?.httpStatusCode === 404) {
+      return false;
+    }
+    throw error;
+  }
+}
+
+/**
  * Copies an object to a new key (the original stays until deleteObject).
  *
  * CopySource must be URL-encoded per path segment — names with spaces, or

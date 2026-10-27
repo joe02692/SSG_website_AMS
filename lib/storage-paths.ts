@@ -163,7 +163,10 @@ export async function moveToFormerMembers({
   kind: "scout" | "leader";
   fullName: string | null;
 }): Promise<string | null> {
-  if (!key || !(await objectExists(key))) return null;
+  if (!key) return null;
+  // Already in Former members (a second call for the same deletion): leave it.
+  if (key.startsWith(`${MEMBERS_ROOT}/Former members/`)) return key;
+  if (!(await objectExists(key))) return null;
   const extension = (key.split(".").pop() ?? "jpg").toLowerCase();
   const date = new Date().toISOString().slice(0, 10);
   const base = `${formerMembersFolder(kind)}/${date} ${fileBaseName(fullName)} - ${DOCUMENT_LABELS[kind]}`;
@@ -174,4 +177,21 @@ export async function moveToFormerMembers({
   await copyObject(key, target);
   await deleteObject(key);
   return target;
+}
+
+/**
+ * The member's name as it appears in a filed document's name, for when the
+ * database row (and their profile) is already gone:
+ *   "Members/Scouts/Cubs/Sara Ali (2) - Birth certificate.jpg" → "Sara Ali"
+ *   "Scouts/Cubs/Sara Ali.jpg" (the pre-October layout)        → "Sara Ali"
+ * Anything that doesn't look like a filed name gives null.
+ */
+export function nameFromDocumentKey(key: string): string | null {
+  const file = key.split("/").pop() ?? "";
+  const withoutExt = file.replace(/\.[A-Za-z0-9]{1,5}$/, "");
+  const withoutLabel = withoutExt.replace(/ - (Birth certificate|ID card)$/, "");
+  const withoutCopy = withoutLabel.replace(/ \(\d+\)$/, "").trim();
+  // Random upload names (a uuid) are not names.
+  if (!withoutCopy || /^[0-9a-f-]{20,}$/i.test(withoutCopy)) return null;
+  return withoutCopy;
 }

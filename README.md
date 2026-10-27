@@ -190,6 +190,11 @@ B2_BUCKET=your-private-bucket-name
 B2_ENDPOINT=https://s3.us-west-004.backblazeb2.com
 B2_REGION=us-west-004
 
+# Supabase Database Webhook → /api/webhooks/member-deleted (server-only).
+# A long random string; the same value goes in the webhook's
+# "x-webhook-secret" header in the Supabase dashboard.
+MEMBER_WEBHOOK_SECRET=generate-a-long-random-string
+
 # Site URL
 NEXT_PUBLIC_SITE_URL=http://localhost:3000
 
