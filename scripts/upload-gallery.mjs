@@ -374,8 +374,9 @@ async function main() {
             throw new Error(`${(bytes.length / 1e6).toFixed(1)} MB is over the 10 MB limit — export it smaller and re-run`);
           }
           // Cloudinary context is "key=value|key=value"; a literal = or |
-          // inside a value has to be backslash-escaped.
-          const esc = (v) => String(v).replace(/([=|])/g, "\\$1");
+          // inside a value has to be backslash-escaped — and so does a
+          // backslash itself, or "\=" in a name would turn into a separator.
+          const esc = (v) => String(v).replace(/([\\=|])/g, "\\$1");
           const context = [`alt=${esc(`Photo ${i + 1} from ${album.name}`)}`, `album=${esc(album.name)}`];
           if (album.arabic) context.push(`album_ar=${esc(album.arabic)}`);
           const publicId = `${ROOT}/${album.slug}/${id}`;
