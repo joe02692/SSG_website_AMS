@@ -1,6 +1,6 @@
 import "server-only";
 
-import { copyObject, deleteObject, objectExists } from "@/lib/b2";
+import { MAX_UPLOAD_BYTES, copyObject, deleteObject, objectExists, objectSize } from "@/lib/b2";
 import { SCOUT_STAGES } from "@/lib/onboarding";
 
 /**
@@ -117,6 +117,16 @@ export async function fileDocument({
     submitted = stored;
     isFresh = false;
     isStored = true;
+  }
+
+  // A presigned upload URL can't limit the size, so check the real file now.
+  if (isFresh) {
+    const size = await objectSize(submitted);
+    if (size === null) return { error: "Please upload the file again." };
+    if (size > MAX_UPLOAD_BYTES) {
+      await deleteObject(submitted);
+      return { error: "That file is over 10 MB. Try a smaller photo." };
+    }
   }
 
   const extension = (submitted.split(".").pop() ?? "jpg").toLowerCase();

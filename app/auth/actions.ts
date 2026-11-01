@@ -14,6 +14,7 @@ import {
 import { stageAdminSeats } from "@/lib/stage-admins";
 import { HOUR, MINUTE, clientIp, withinLimits } from "@/lib/rate-limit";
 import { getT } from "@/lib/i18n/server";
+import { safeRedirectPath } from "@/lib/safe-redirect";
 
 const STAGE_CODES: string[] = SCOUT_STAGES.map((stage) => stage.value);
 
@@ -36,9 +37,7 @@ function str(formData: FormData, key: string): string {
  * Blocks `//evil.com` and `https://evil.com` open-redirects.
  */
 function safeRedirect(raw: string | null): string {
-  if (!raw) return "/dashboard";
-  if (!raw.startsWith("/") || raw.startsWith("//")) return "/dashboard";
-  return raw;
+  return safeRedirectPath(raw);
 }
 
 // ---------------------------------------------------------------------------

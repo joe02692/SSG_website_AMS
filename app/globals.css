@@ -232,6 +232,22 @@ body {
   }
 }
 
+/* The event countdown card (components/event-coming-soon.tsx) settling in
+   when it appears or is opened again. */
+@media (prefers-reduced-motion: no-preference) {
+  @keyframes toast-in {
+    from {
+      opacity: 0;
+      translate: 0 -10px;
+      scale: 0.96;
+      filter: blur(4px);
+    }
+  }
+  .toast-in {
+    animation: toast-in 0.42s cubic-bezier(0.16, 1, 0.3, 1) both;
+  }
+}
+
 /* Slow zoom on the hero photo that is showing. Restarted each time a slide
    becomes active (the class is applied only to the current one). */
 @media (prefers-reduced-motion: no-preference) {

@@ -10,6 +10,7 @@ export type EventCountdownLabels = {
   collapse: string;
   expand: string;
   badge: string;
+  soon: string;
 };
 
 export interface EventComingSoonProps {
@@ -55,11 +56,14 @@ function FlameIcon({ className }: { className?: string }) {
 }
 
 /**
- * Floating "event coming soon" countdown, pinned under the header.
+ * Floating "event coming soon" countdown, pinned under the header
+ * ("Editorial split card" design, Nov 2026).
  *
- * - Expanded: title, description and a live DAYS / HOURS / MINS countdown.
- * - Collapsed: a 68px round badge after pressing ×; pressing the badge opens
- *   it again. The choice is remembered in this browser for this event.
+ * - Expanded: a header row (a "Soon" chip, the title, ×), the description if
+ *   there is one, and one segmented DAYS | HOURS | MINS strip.
+ * - Collapsed: a small pill (flame + "Event") after pressing ×; pressing it
+ *   opens the card again. The choice is remembered in this browser for this
+ *   event.
  *
  * What it says and when it counts down to are set by the head site admin on
  * /admin (table site_event, migration 0023). It hides itself once the event
@@ -111,77 +115,83 @@ export function EventComingSoon({ title, description, startsAt, labels }: EventC
   if (!mounted || timeLeft.done || Number.isNaN(targetMs)) return null;
 
   const units = [
-    { value: timeLeft.days, label: labels.days },
-    { value: timeLeft.hours, label: labels.hours },
-    { value: timeLeft.mins, label: labels.mins },
+    { value: timeLeft.days, label: labels.days, accent: false },
+    { value: timeLeft.hours, label: labels.hours, accent: false },
+    { value: timeLeft.mins, label: labels.mins, accent: true },
   ];
 
-  return (
-    <aside
-      aria-label={labels.region}
-      style={{ transition: "all 0.3s cubic-bezier(0.4, 0, 0.2, 1)" }}
-      // z-40: above the page, below the header (z-50) so the mobile menu
-      // always covers it.
-      className={`on-dark fixed end-3 top-[84px] z-40 overflow-hidden border-2 border-sun bg-forest text-cream shadow-[0_10px_25px_rgba(0,0,0,0.25)] select-none sm:end-6 ${
-        isCollapsed
-          ? "size-[68px] cursor-pointer rounded-full hover:scale-[1.06] active:scale-[0.98]"
-          : "w-[min(324px,calc(100vw-24px))] rounded-[28px] sm:rounded-[36px]"
-      }`}
-    >
-      {isCollapsed ? (
+  // z-40: above the page, below the header (z-50) so the mobile menu always
+  // covers it. `end-*` puts it on the left in Arabic and the right in English.
+  const shell =
+    "on-dark toast-in fixed end-3 top-[84px] z-40 border border-brand-400/25 bg-brand-950/95 text-white shadow-[0_16px_40px_-8px_rgba(0,0,0,0.6)] backdrop-blur-xl select-none sm:end-6";
+
+  if (isCollapsed) {
+    return (
+      <aside aria-label={labels.region} key="collapsed" className={`${shell} rounded-full`}>
         <button
           type="button"
           aria-label={labels.expand}
           onClick={() => setCollapsed(false)}
-          className="flex size-full flex-col items-center justify-center gap-0.5 rounded-full"
+          className="flex h-10 items-center gap-1.5 rounded-full ps-3 pe-3.5 text-xs font-bold transition hover:bg-white/5"
         >
-          <FlameIcon className="size-5 text-sun" />
-          <span className="text-[11px] leading-none font-extrabold">{labels.badge}</span>
+          <FlameIcon className="size-4 text-sun" />
+          <span>{labels.badge}</span>
+          <span dir="ltr" className="font-bold text-sun tabular-nums">
+            {timeLeft.days}
+            <span className="ms-0.5 text-[10px] font-medium text-accent-300/80">{labels.days}</span>
+          </span>
         </button>
-      ) : (
-        <div className="relative flex flex-col items-center px-5 pt-4 pb-3.5 text-center">
-          <button
-            type="button"
-            aria-label={labels.collapse}
-            onClick={() => setCollapsed(true)}
-            className="absolute end-3 top-3 grid size-8 place-items-center rounded-full opacity-80 transition hover:bg-white/10 hover:opacity-100"
-          >
-            <svg aria-hidden viewBox="0 0 16 16" className="size-3.5" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round">
-              <path d="M3.5 3.5l9 9M12.5 3.5l-9 9" />
-            </svg>
-          </button>
+      </aside>
+    );
+  }
 
-          <p className="flex items-center justify-center gap-1.5 px-7 text-[15px] font-extrabold sm:text-base">
-            <FlameIcon className="size-4 shrink-0 text-sun sm:size-5" />
-            <span className="text-sun">{title}</span>
-          </p>
-
-          {description ? (
-            <p className="mt-1 max-w-[260px] text-xs leading-snug opacity-95 sm:text-[13px]">
-              {description}
-            </p>
-          ) : null}
-
-          {/* Always left-to-right: days : hours : minutes reads the same in Arabic. */}
-          <div role="timer" aria-live="off" dir="ltr" className="mt-3 flex items-start justify-center gap-2 sm:gap-2.5">
-            {units.map((unit, i) => (
-              <div key={unit.label} className="flex items-start gap-2 sm:gap-2.5">
-                {i > 0 ? (
-                  <span aria-hidden className="flex h-12 items-center text-xl font-extrabold text-sun sm:h-[52px] sm:text-2xl">
-                    :
-                  </span>
-                ) : null}
-                <div className="flex flex-col items-center">
-                  <div className="flex size-12 items-center justify-center rounded-[14px] bg-sun text-xl leading-none font-extrabold text-forest tabular-nums shadow-sm sm:size-[52px] sm:text-2xl">
-                    {unit.value}
-                  </div>
-                  <span className="mt-1.5 text-[11px] font-semibold">{unit.label}</span>
-                </div>
-              </div>
-            ))}
-          </div>
+  return (
+    <aside
+      aria-label={labels.region}
+      key="expanded"
+      className={`${shell} w-[min(300px,calc(100vw-24px))] rounded-2xl p-3`}
+    >
+      <div className="flex items-start justify-between gap-2 border-b border-white/10 pb-2.5">
+        <div className="flex min-w-0 items-center gap-2">
+          <span className="inline-flex shrink-0 items-center rounded-lg border border-sun/30 bg-sun/15 px-2 py-0.5 text-[10px] font-bold text-sun">
+            {labels.soon}
+          </span>
+          <p className="min-w-0 text-[13px] leading-snug font-bold">{title}</p>
         </div>
-      )}
+        <button
+          type="button"
+          aria-label={labels.collapse}
+          onClick={() => setCollapsed(true)}
+          className="-me-0.5 grid size-7 shrink-0 place-items-center rounded-md text-white/55 transition hover:bg-white/10 hover:text-white"
+        >
+          <svg aria-hidden viewBox="0 0 16 16" className="size-3.5" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round">
+            <path d="M3.5 3.5l9 9M12.5 3.5l-9 9" />
+          </svg>
+        </button>
+      </div>
+
+      {description ? (
+        <p className="mt-2 text-xs leading-snug text-white/75">{description}</p>
+      ) : null}
+
+      {/* Always left-to-right: days | hours | minutes reads the same in Arabic. */}
+      <div
+        role="timer"
+        aria-live="off"
+        dir="ltr"
+        className="mt-2.5 flex items-center divide-x divide-white/10 rounded-xl border border-white/5 bg-black/30 py-2"
+      >
+        {units.map((unit) => (
+          <div key={unit.label} className="flex flex-1 items-baseline justify-center gap-1 px-1">
+            <span className={`text-base font-bold tabular-nums ${unit.accent ? "text-sun" : "text-white"}`}>
+              {unit.value}
+            </span>
+            <span className={`text-[10px] font-medium ${unit.accent ? "text-accent-300/80" : "text-brand-300/80"}`}>
+              {unit.label}
+            </span>
+          </div>
+        ))}
+      </div>
     </aside>
   );
 }

@@ -12,6 +12,8 @@ import { localizeState } from "@/lib/i18n/onboarding";
 import { notifyRegistrationComplete } from "@/lib/email";
 import { deleteObject } from "@/lib/b2";
 import { DOCUMENT_LABELS, fileDocument, leaderFolder, scoutFolder } from "@/lib/storage-paths";
+import { setDocumentPath } from "@/lib/document-paths";
+import { createAdminSupabase } from "@/lib/supabase/admin";
 import {
   APPLICANT_STATUSES,
   LEADER_COMMITTEES,
@@ -312,6 +314,9 @@ async function saveScoutDetails(
     };
   }
 
+  // Every answer goes through the member's own session (RLS decides whose row
+  // it is). The document path is NOT in this write: since migration 0027 only
+  // the server may set it, which happens just below.
   const row = {
     profile_id: profileId,
     date_of_birth: dateOfBirth,
@@ -320,31 +325,11 @@ async function saveScoutDetails(
     parent_phone: parentPhone,
     national_id: nationalId || null,
     stage_id: stageId,
-    document_path: filed.key,
-    document_uploaded_at: new Date().toISOString(),
   };
 
-  let { error } = await supabase
+  const { error } = await supabase
     .from("scout_details")
     .upsert(row, { onConflict: "profile_id" });
-
-  // If document_uploaded_at is missing (migration 0013 never run), PostgREST
-  // rejects the whole insert before Postgres sees it — which would block
-  // registration entirely over an informational timestamp. Retry without it.
-  // 0014 adds the column, so this should never fire after that migration; it
-  // is here because this exact failure has already cost a day once.
-  if (
-    (error?.code === "PGRST204" || error?.code === "42703") &&
-    (error?.message ?? "").includes("document_uploaded_at")
-  ) {
-    console.error(
-      "[onboarding] scout_details.document_uploaded_at is missing — run supabase/migrations/0014_leader_details.sql",
-    );
-    const { document_uploaded_at: _omitted, ...withoutTimestamp } = row;
-    ({ error } = await supabase
-      .from("scout_details")
-      .upsert(withoutTimestamp, { onConflict: "profile_id" }));
-  }
 
   if (error) {
     // 23505 is a unique violation, and national_id is the only unique column
@@ -358,6 +343,19 @@ async function saveScoutDetails(
     console.error("[onboarding] could not save scout details", error);
     return {
       error: describeSaveError(error, "scout_details", "0010_scout_details.sql"),
+    };
+  }
+
+  // fileDocument() has checked the upload is this member's own.
+  const recorded = await setDocumentPath(
+    "scout_details",
+    { column: "profile_id", value: profileId },
+    filed.key,
+  );
+  if (recorded.error) {
+    return {
+      fieldErrors: { document_path: "Could not store the certificate. Please try again." },
+      error: "Please fix the highlighted answers.",
     };
   }
 
@@ -424,11 +422,9 @@ async function writeChild({
     };
   }
 
-  const values = {
-    ...row,
-    document_path: filed.key,
-    document_uploaded_at: new Date().toISOString(),
-  };
+  // The path is set separately by the server (migration 0027), after RLS has
+  // accepted this write as the parent's own child.
+  const values = { ...row };
 
   let childId = existing?.id ?? null;
   let error;
@@ -463,6 +459,18 @@ async function writeChild({
     }
     console.error("[children] could not save a child", error);
     return { error: describeSaveError(error, "scout_details", "0025_parents_and_children.sql") };
+  }
+
+  const recorded = await setDocumentPath(
+    "scout_details",
+    { column: "id", value: childId as string },
+    filed.key,
+  );
+  if (recorded.error) {
+    return {
+      fieldErrors: { document_path: "Could not store the certificate. Please try again." },
+      error: "Please fix the highlighted answers.",
+    };
   }
 
   await Promise.all(filed.cleanup.map(deleteObject));
@@ -726,27 +734,64 @@ async function saveLeaderDetails(
     };
   }
 
-  const { error } = await supabase.from("leader_details").upsert(
-    {
-      profile_id: profileId,
-      date_of_birth: dateOfBirth,
-      personal_phone: personalPhone,
-      national_id: nationalId,
-      id_card_path: filed.key,
-      gender,
-      id_card_uploaded_at: new Date().toISOString(),
-      applicant_status: applicantStatus,
-      university,
-      faculty,
-      // NULL for graduates. The CHECK constraint refuses a graduate with a
-      // year set, so an empty string would fail the write.
-      academic_year: isStudent ? academicYear : null,
-      leadership_years: leadershipYears,
-      join_year: joinYear,
-      committees,
-    },
-    { onConflict: "profile_id" },
-  );
+  const answers = {
+    date_of_birth: dateOfBirth,
+    personal_phone: personalPhone,
+    national_id: nationalId,
+    gender,
+    applicant_status: applicantStatus,
+    university,
+    faculty,
+    // NULL for graduates. The CHECK constraint refuses a graduate with a
+    // year set, so an empty string would fail the write.
+    academic_year: isStudent ? academicYear : null,
+    leadership_years: leadershipYears,
+    join_year: joinYear,
+    committees,
+  };
+
+  // Since migration 0027 only the server may set id_card_path. An existing
+  // row is updated through the member's own session (RLS: their own row) and
+  // the path is then set by the server. A first save has to create the row
+  // with its path in one go (the column is NOT NULL), so the server writes
+  // it — for this member's own id, taken from their session, never the form.
+  let error: { code?: string; message?: string } | null = null;
+  if (current) {
+    ({ error } = await supabase.from("leader_details").update(answers).eq("profile_id", profileId));
+    if (!error) {
+      const recorded = await setDocumentPath(
+        "leader_details",
+        { column: "profile_id", value: profileId },
+        filed.key,
+      );
+      if (recorded.error) {
+        return {
+          fieldErrors: { id_card_path: "Could not store the ID card photo. Please try again." },
+          error: "Please fix the highlighted answers.",
+        };
+      }
+    }
+  } else {
+    let admin;
+    try {
+      admin = createAdminSupabase();
+    } catch (cause) {
+      console.error("[onboarding] SUPABASE_SERVICE_ROLE_KEY is missing", cause);
+      return {
+        fieldErrors: { id_card_path: "Could not store the ID card photo. Please try again." },
+        error: "Please fix the highlighted answers.",
+      };
+    }
+    ({ error } = await admin.from("leader_details").upsert(
+      {
+        ...answers,
+        profile_id: profileId,
+        id_card_path: filed.key,
+        id_card_uploaded_at: new Date().toISOString(),
+      },
+      { onConflict: "profile_id" },
+    ));
+  }
 
   if (error) {
     if (error.code === "23505") {

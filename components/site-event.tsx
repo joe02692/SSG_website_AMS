@@ -24,6 +24,7 @@ export async function SiteEvent() {
         collapse: t.collapse,
         expand: t.expand,
         badge: t.badge,
+        soon: t.soon,
       }}
     />
   );

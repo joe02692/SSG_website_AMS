@@ -146,6 +146,8 @@ const AR: Record<string, string> = {
   // ---- Documents (document-actions.ts, lib/storage-paths.ts)
   "Use a JPG, PNG, WebP or PDF.": "استخدم ملف JPG أو PNG أو WebP أو PDF.",
   "That file is over 10 MB. Try a smaller photo.": "حجم الملف أكبر من 10 ميجابايت. جرّب صورة أصغر.",
+  "Please upload the file again.": "من فضلك ارفع الملف مرة أخرى.",
+  "Too many uploads. Please wait a while and try again.": "عدد كبير من محاولات الرفع. انتظر قليلًا ثم حاول مرة أخرى.",
   "No document on file.": "لا يوجد مستند محفوظ.",
   "Could not open the document. Please try again.": "تعذّر فتح المستند. يُرجى المحاولة مرة أخرى.",
   "Document removed.": "تم حذف المستند.",

@@ -27,9 +27,12 @@ export type Limit = {
 /** The visitor's address as Vercel reports it. */
 export async function clientIp(): Promise<string> {
   const h = await headers();
+  // Vercel sets x-vercel-forwarded-for / x-real-ip itself; prefer them over
+  // x-forwarded-for, whose first entry is whatever the client claims.
   return (
+    h.get("x-vercel-forwarded-for")?.split(",")[0]?.trim() ||
+    h.get("x-real-ip")?.trim() ||
     h.get("x-forwarded-for")?.split(",")[0]?.trim() ||
-    h.get("x-real-ip") ||
     "unknown"
   );
 }

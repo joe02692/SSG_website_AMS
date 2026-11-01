@@ -197,12 +197,20 @@ export async function presignDownload(
 }
 
 /** Reads a whole object into memory. Used to build the bulk ZIP. */
-export async function getObjectBytes(key: string): Promise<Uint8Array | null> {
+export async function getObjectBytes(
+  key: string,
+  /** Refuse (return null) rather than read anything bigger into memory. */
+  maxBytes?: number,
+): Promise<Uint8Array | null> {
   try {
     const result = await client().send(
       new GetObjectCommand({ Bucket: bucketName(), Key: key }),
     );
     if (!result.Body) return null;
+    if (maxBytes !== undefined && (result.ContentLength ?? 0) > maxBytes) {
+      (result.Body as { destroy?: () => void }).destroy?.();
+      return null;
+    }
     return await result.Body.transformToByteArray();
   } catch {
     return null;
@@ -227,6 +235,21 @@ export async function objectExists(key: string): Promise<boolean> {
     return true;
   } catch {
     return false;
+  }
+}
+
+/**
+ * The size of an object in bytes, or null if it isn't there.
+ *
+ * Presigned uploads can't cap the size on their own, so the server checks the
+ * real size of an upload before filing it.
+ */
+export async function objectSize(key: string): Promise<number | null> {
+  try {
+    const head = await client().send(new HeadObjectCommand({ Bucket: bucketName(), Key: key }));
+    return head.ContentLength ?? 0;
+  } catch {
+    return null;
   }
 }
 

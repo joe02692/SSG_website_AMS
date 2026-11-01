@@ -8,6 +8,7 @@ import {
   deleteAllVersions,
   getObjectBytes,
   missingStorageEnv,
+  objectSize,
   presignDownload,
   presignUpload,
   putObject,
@@ -100,7 +101,13 @@ export async function savePlanAction(formData: FormData): Promise<PlanResult> {
     return { error: words.notAllowed };
   }
 
-  const bytes = await getObjectBytes(key);
+  const size = await objectSize(key);
+  if (size === null) return { error: words.uploadFailed };
+  if (size > MAX_PLAN_BYTES) {
+    await deleteAllVersions(key, undefined, true);
+    return { error: words.tooBig };
+  }
+  const bytes = await getObjectBytes(key, MAX_PLAN_BYTES);
   if (!bytes) return { error: words.uploadFailed };
   if (bytes.byteLength > MAX_PLAN_BYTES) {
     await deleteAllVersions(key, undefined, true);

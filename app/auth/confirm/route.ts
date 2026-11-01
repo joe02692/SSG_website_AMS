@@ -1,6 +1,7 @@
 import { NextResponse, type NextRequest } from "next/server";
 import type { EmailOtpType } from "@supabase/supabase-js";
 import { createClient } from "@/lib/supabase/server";
+import { safeRedirectPath } from "@/lib/safe-redirect";
 
 /**
  * Email confirmation landing point.
@@ -21,8 +22,9 @@ export async function GET(request: NextRequest) {
   const type = searchParams.get("type") as EmailOtpType | null;
   const next = searchParams.get("next");
 
-  const destination =
-    next && next.startsWith("/") && !next.startsWith("//") ? next : "/dashboard";
+  // Never another website — see lib/safe-redirect.ts for why a simple
+  // "starts with /" check isn't enough.
+  const destination = safeRedirectPath(next);
 
   const supabase = await createClient();
 

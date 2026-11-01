@@ -8,6 +8,7 @@ import { isStaffRole } from "@/lib/roles";
 import { nameSlug } from "@/lib/documents";
 import { incomingPrefix } from "@/lib/storage-paths";
 import { getLocale } from "@/lib/i18n/server";
+import { HOUR, withinLimits } from "@/lib/rate-limit";
 import { localizeState } from "@/lib/i18n/onboarding";
 import {
   ALLOWED_TYPES,
@@ -56,6 +57,12 @@ async function createUploadUrl(
   // longer decides anything — the key is built from this member's own profile
   // id either way, and which COLUMN the key lands in is decided by the save
   // action from the stored role, never from the request.
+
+  // Each ticket lets the browser put a file in the bucket, so cap how many
+  // one account can ask for.
+  if (!(await withinLimits([{ name: "upload-ticket", key: profile.id, max: 30, windowSeconds: HOUR }]))) {
+    return { error: "Too many uploads. Please wait a while and try again." };
+  }
 
   const contentType = String(formData.get("contentType") ?? "");
   const size = Number(formData.get("size") ?? 0);

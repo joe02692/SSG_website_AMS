@@ -1,4 +1,4 @@
--- Read-only check: have migrations 0019 to 0026 been run?
+-- Read-only check: have migrations 0019 to 0027 been run?
 -- Paste into Supabase → SQL Editor → Run. Changes nothing.
 -- Every row should say "applied". Anything "MISSING" → run that migration.
 
@@ -65,5 +65,12 @@ from (
          to_regclass('public.stage_tools') is not null
            and to_regprocedure('public.copy_last_week_tools(smallint)') is not null,
          'tools for every meeting (weekly lists per stage)'
+  union all
+  select 9,
+         '0027_lock_document_paths',
+         exists (select 1 from pg_trigger where tgname = 'scout_details_protect_document_path')
+           and exists (select 1 from pg_trigger where tgname = 'leader_details_protect_document_path')
+           and exists (select 1 from pg_trigger where tgname = 'profiles_protect_review_fields'),
+         'document paths set by the server only (security fix)'
 ) checks
 order by n;
