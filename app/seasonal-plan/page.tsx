@@ -17,11 +17,10 @@ import {
   listArchive,
   listPlans,
   managedStages,
-  readPlanSheets,
   type ArchivedPlan,
   type PlanFile,
-  type PlanSheet,
 } from "@/lib/seasonal-plans";
+import { planSheetNames, renderPlanSheet, type PlanSheetView } from "@/lib/plan-render";
 import { getLocale, getT } from "@/lib/i18n/server";
 import { intlLocale } from "@/lib/i18n/config";
 
@@ -72,20 +71,26 @@ export default async function SeasonalPlanPage({
   // stage's first file when the link names none).
   const stageFiles = openStage ? plans[openStage] ?? [] : [];
   const open = stageFiles.find((p) => p.fileName === fileParam) ?? (fileParam ? undefined : stageFiles[0]);
-  let sheets: PlanSheet[] | null = null;
+  // The open file is drawn as it looks in Excel: its own colours, borders,
+  // column widths, merged cells and checkboxes (lib/plan-render.ts).
+  let sheetNames: string[] = [];
+  let sheet: PlanSheetView | null = null;
   let previewFailed = false;
+  let sheetIndex = 0;
   if (open) {
     try {
       const bytes = await getObjectBytes(open.key);
-      sheets = bytes ? readPlanSheets(bytes) : null;
-      if (!sheets) previewFailed = true;
+      if (bytes) {
+        sheetNames = planSheetNames(bytes);
+        sheetIndex = Math.min(Math.max(Number(sheetParam) || 0, 0), Math.max(sheetNames.length - 1, 0));
+        sheet = sheetNames.length ? await renderPlanSheet(bytes, open.ext, sheetNames[sheetIndex]) : null;
+      }
+      if (!sheet) previewFailed = true;
     } catch (error) {
       console.error("[seasonal-plan] could not read the plan", error);
       previewFailed = true;
     }
   }
-  const sheetIndex = Math.min(Math.max(Number(sheetParam) || 0, 0), Math.max((sheets?.length ?? 1) - 1, 0));
-  const sheet = sheets?.[sheetIndex];
 
   const date = (iso: string | null) =>
     iso
@@ -242,11 +247,11 @@ export default async function SeasonalPlanPage({
               </p>
             ) : (
               <>
-                {sheets && sheets.length > 1 ? (
+                {sheetNames.length > 1 ? (
                   <nav aria-label={t.sheets} className="mt-4 flex flex-wrap gap-2">
-                    {sheets.map((s, i) => (
+                    {sheetNames.map((name, i) => (
                       <Link
-                        key={`${s.name}-${i}`}
+                        key={`${name}-${i}`}
                         href={`/seasonal-plan?stage=${open.stage}&file=${encodeURIComponent(open.fileName)}&sheet=${i}#plan-preview`}
                         scroll={false}
                         aria-current={i === sheetIndex ? "page" : undefined}
@@ -254,7 +259,7 @@ export default async function SeasonalPlanPage({
                           i === sheetIndex ? "bg-forest text-cream" : "border border-line bg-surface-raised text-ink-muted hover:border-leaf"
                         }`}
                       >
-                        <bdi>{s.name}</bdi>
+                        <bdi>{name}</bdi>
                       </Link>
                     ))}
                   </nav>
@@ -266,15 +271,9 @@ export default async function SeasonalPlanPage({
                   key={`${open.fileName}|${sheetIndex}|${open.updatedAt}`}
                   stage={open.stage}
                   file={open.fileName}
-                  sheetName={sheet.name}
-                  rows={sheet.rows}
-                  formulas={sheet.formulas}
-                  originRow={sheet.originRow}
-                  originCol={sheet.originCol}
-                  rtl={sheet.rtl}
-                  convertsToXlsx={open.ext !== "xlsx"}
+                  sheet={sheet}
+                  convertsToXlsx={open.ext === "xls"}
                 />
-                {sheet.truncated ? <p className="mt-2 text-xs text-ink-muted">{t.truncated(500)}</p> : null}
               </>
             )}
           </section>

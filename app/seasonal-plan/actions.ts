@@ -232,9 +232,11 @@ export async function archiveDownloadAction(formData: FormData): Promise<PlanLin
  *
  * The edits are applied to the file as it is now (not as it was when the page
  * opened), so different leaders' changes to different cells all survive.
- * An .xlsx is rewritten in place — Backblaze keeps the previous version. An
- * .xls or .xlsm can't be written back in its own format: the original goes to
- * the archive and the edited copy is saved as .xlsx beside it.
+ * Only the edited cells change inside the file (lib/plan-edit.ts), so an
+ * .xlsx or .xlsm keeps everything else — checkboxes, styles, macros — and is
+ * saved in place (Backblaze keeps the previous version). The old binary .xls
+ * format can't be edited in place: the original goes to the archive and the
+ * edited copy is saved as .xlsx beside it.
  */
 export async function savePlanEditsAction(input: {
   stage: string;
@@ -266,10 +268,12 @@ export async function savePlanEditsAction(input: {
     const meta = (await objectMetadata(plan.key)) ?? {};
     const editedBy = encodeURIComponent(who.profile.full_name ?? "");
     let fileName = plan.fileName;
-    if (plan.ext === "xlsx") {
-      await putObject(plan.key, result.bytes, PLAN_TYPES.xlsx, { ...meta, "edited-by": editedBy });
+    if (plan.ext !== "xls") {
+      // .xlsx / .xlsm are edited in place (macros, checkboxes and styles
+      // untouched). Backblaze keeps the previous version.
+      await putObject(plan.key, result.bytes, PLAN_TYPES[plan.ext], { ...meta, "edited-by": editedBy });
     } else {
-      // .xls / .xlsm → .xlsx: archive the original, save the edited copy.
+      // The old .xls format → .xlsx: archive the original, save the edited copy.
       const original = meta["original-name"] ? decodeURIComponent(meta["original-name"]) : plan.fileName;
       const asXlsx = original.replace(/\.[^.]+$/, "") + ".xlsx";
       await archivePlanFile(input.stage, plan.key);
