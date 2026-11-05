@@ -1,6 +1,7 @@
 import { createServerClient } from "@supabase/ssr";
 import { NextResponse, type NextRequest } from "next/server";
 import { supabaseAnonKey, supabaseUrl } from "./env";
+import { contentSecurityPolicy, createNonce } from "@/lib/csp";
 
 /** Route prefixes that require a signed-in user. */
 const PROTECTED_PREFIXES = [
@@ -35,6 +36,19 @@ function isAuthPage(pathname: string): boolean {
  * (lib/dal.ts) and in Postgres RLS, close to the data.
  */
 export async function updateSession(request: NextRequest) {
+  // Content-Security-Policy with a fresh nonce (lib/csp.ts). Next.js reads it
+  // from the *request* headers while rendering and puts the nonce on its own
+  // scripts; the browser reads it from the *response* headers. Every page is
+  // rendered per request (they read cookies), which nonces require.
+  const nonce = createNonce();
+  const csp = contentSecurityPolicy(nonce, new URL(supabaseUrl()).origin);
+  request.headers.set("x-nonce", nonce);
+  request.headers.set("content-security-policy", csp);
+  const withCsp = <T extends NextResponse>(response: T): T => {
+    response.headers.set("content-security-policy", csp);
+    return response;
+  };
+
   let supabaseResponse = NextResponse.next({ request });
 
   const supabase = createServerClient(supabaseUrl(), supabaseAnonKey(), {
@@ -78,7 +92,7 @@ export async function updateSession(request: NextRequest) {
     supabaseResponse.cookies.getAll().forEach((cookie) => {
       redirect.cookies.set(cookie);
     });
-    return redirect;
+    return withCsp(redirect);
   }
 
   if (user && isAuthPage(pathname)) {
@@ -89,10 +103,10 @@ export async function updateSession(request: NextRequest) {
     supabaseResponse.cookies.getAll().forEach((cookie) => {
       redirect.cookies.set(cookie);
     });
-    return redirect;
+    return withCsp(redirect);
   }
 
   // Must be returned as-is. Constructing a fresh NextResponse here would
   // drop the refreshed cookies and log members out at random.
-  return supabaseResponse;
+  return withCsp(supabaseResponse);
 }

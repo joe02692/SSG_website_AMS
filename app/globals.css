@@ -219,12 +219,22 @@ body {
 
     /* The sticky header gains a shadow once the page has scrolled — driven
        by the document's scroll position, no scroll listener. */
+    /* Animates the opacity of a ready-made shadow layer rather than the
+       box-shadow itself: opacity runs on the compositor (PageSpeed: "avoid
+       non-composited animations"). The header is sticky, so it is the
+       containing block for the layer. */
     @keyframes header-lift {
       to {
-        box-shadow: 0 6px 24px rgb(15 36 21 / 0.35);
+        opacity: 1;
       }
     }
-    .header-lift {
+    .header-lift::after {
+      content: "";
+      position: absolute;
+      inset: 0;
+      pointer-events: none;
+      box-shadow: 0 6px 24px rgb(15 36 21 / 0.35);
+      opacity: 0;
       animation: header-lift linear both;
       animation-timeline: scroll(root);
       animation-range: 0 80px;
@@ -235,12 +245,12 @@ body {
 /* The event countdown card (components/event-coming-soon.tsx) settling in
    when it appears or is opened again. */
 @media (prefers-reduced-motion: no-preference) {
+  /* Opacity and transform only, so it runs on the compositor (a blur filter
+     here was flagged by PageSpeed as a non-composited animation). */
   @keyframes toast-in {
     from {
       opacity: 0;
-      translate: 0 -10px;
-      scale: 0.96;
-      filter: blur(4px);
+      transform: translateY(-10px) scale(0.96);
     }
   }
   .toast-in {

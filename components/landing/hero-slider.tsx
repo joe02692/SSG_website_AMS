@@ -120,7 +120,12 @@ export function HeroSlider({
                   src={slide.src}
                   alt={slide.alt}
                   fill
-                  priority={i === 0}
+                  // The first photo is the page's largest element (LCP): a <link
+                  // rel=preload> in <head> so it starts downloading before the
+                  // CSS is parsed, at high priority. (`priority` is deprecated in
+                  // Next 16 and didn't set fetchpriority.)
+                  preload={i === 0}
+                  fetchPriority={i === 0 ? "high" : "auto"}
                   sizes={`(max-width: 639px) 100vw, ${coverSizes(slide.src.width / slide.src.height)}`}
                   quality={90}
                   placeholder="blur"

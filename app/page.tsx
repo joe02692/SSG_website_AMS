@@ -16,7 +16,8 @@ import logo from "@/public/images/logo.png";
 
 export async function generateMetadata(): Promise<Metadata> {
   const t = await getT();
-  return { title: t.home.metaTitle, description: t.home.metaDescription };
+  // absolute: the homepage title is complete on its own (no " · name" suffix).
+  return { title: { absolute: t.home.metaTitle }, description: t.home.metaDescription };
 }
 
 /* The homepage is a front door, not the whole house: a welcome, the key

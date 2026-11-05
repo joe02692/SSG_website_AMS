@@ -1,6 +1,8 @@
 /** Homepage words (the slideshow, intro, about, goals, scouting, contact, join). */
 const en = {
-  metaTitle: "El-Salam Scouting Group",
+  // Long enough to describe the page in search results (~50–60 characters),
+  // and every word in it appears on the page itself.
+  metaTitle: "El-Salam Scouting Group | Since 1977 in Tanta, Al Rehab & Madinaty",
   metaDescription:
     "El-Salam Scout Group — one of Egypt's oldest scout groups, building character, service and friendship since 1977 in Tanta, Al Rehab and Madinaty.",
   heroTagline: "Character, Service & Friendship",
@@ -84,7 +86,7 @@ const en = {
 };
 
 const ar: typeof en = {
-  metaTitle: "مجموعة السلام الكشفية",
+  metaTitle: "مجموعة السلام الكشفية | منذ 1977 في طنطا والرحاب ومدينتي",
   metaDescription:
     "مجموعة السلام الكشفية — من أعرق المجموعات الكشفية في مصر، تبني الشخصية وروح الخدمة والصداقة منذ عام 1977 في طنطا والرحاب ومدينتي.",
   heroTagline: "الشخصية والخدمة والصداقة",

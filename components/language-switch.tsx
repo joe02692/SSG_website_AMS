@@ -26,7 +26,6 @@ export async function LanguageSwitch({
       <input type="hidden" name="locale" value={target} />
       <button
         type="submit"
-        aria-label={t.chrome.switchToLabel}
         className={
           compact
             ? `items-center gap-1.5 whitespace-nowrap rounded-md border-2 border-white/40 px-2 py-1.5 text-sm font-bold text-white transition hover:border-white sm:px-2.5 ${className}`
@@ -42,6 +41,9 @@ export async function LanguageSwitch({
         <span lang={target} dir={target === "ar" ? "rtl" : "ltr"}>
           {compact ? t.chrome.switchTo : t.chrome.switchToFull}
         </span>
+        {/* The spoken name starts with the visible label (WCAG 2.5.3 "label in
+            name"), so a voice-control user can say "click EN". */}
+        <span className="sr-only"> — {t.chrome.switchToLabel}</span>
       </button>
     </form>
   );
