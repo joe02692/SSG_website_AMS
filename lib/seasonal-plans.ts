@@ -8,11 +8,12 @@ import { adminStageCode } from "@/lib/stage-admins";
 import { planExtension, type PlanExtension } from "@/lib/seasonal-plan-rules";
 
 /**
- * Seasonal plans — one Excel file per stage, in the same private Backblaze
- * bucket as the members' documents (no extra storage service):
+ * Seasonal plans — up to MAX_PLANS_PER_STAGE Excel files per stage (5 Nov
+ * 2026; it was one), in the same private Backblaze bucket as the members'
+ * documents (no extra storage service). Each file keeps its uploaded name:
  *
  *   Seasonal Plans/Cubs/Cubs seasonal plan.xlsx
- *   Seasonal Plans/Senior Guides/Senior Guides seasonal plan.xls
+ *   Seasonal Plans/Cubs/Winter camp schedule.xlsx
  *
  * Replacing or removing a plan never deletes it: the old file moves to the
  * stage's Archive folder, dated, and leaders can still open it from the page
@@ -21,13 +22,17 @@ import { planExtension, type PlanExtension } from "@/lib/seasonal-plan-rules";
  *   Seasonal Plans/Cubs/Archive/2026-09-30 14-05 — Cubs plan.xlsx
  *
  * Who can do what — checked in app/seasonal-plan/actions.ts on every call:
- *   • view / download: every leader and staff role (the page itself is
- *     leaders-only)
- *   • add / replace / delete: the head site admin for any stage; a stage
+ *   • view / download / EDIT CELLS: every leader and staff role (the page
+ *     itself is leaders-only). Edits are saved by lib/plan-edit.ts.
+ *   • add / replace / archive: the head site admin for any stage; a stage
  *     admin for the stage the head admin assigned them (admin_stage_id)
+ *   • delete for good: the head site admin only
  */
 
 export const PLAN_ROOT = "Seasonal Plans";
+
+/** How many current plan files one stage may have. */
+export const MAX_PLANS_PER_STAGE = 3;
 
 const STAGE_CODES = SCOUT_STAGES.map((s) => s.value);
 
@@ -39,11 +44,6 @@ export function isStageCode(value: unknown): value is string {
 export function planFolder(stageCode: string): string {
   const stage = SCOUT_STAGES.find((s) => s.value === stageCode);
   return `${PLAN_ROOT}/${stage?.label ?? stageCode}/`;
-}
-
-export function planKey(stageCode: string, ext: PlanExtension): string {
-  const stage = SCOUT_STAGES.find((s) => s.value === stageCode);
-  return `${planFolder(stageCode)}${stage?.label ?? stageCode} seasonal plan.${ext}`;
 }
 
 /** Which stages this member may add or delete plans for. */
@@ -60,10 +60,14 @@ export async function managedStages(profile: Profile): Promise<{
 export type PlanFile = {
   stage: string;
   key: string;
+  /** The last part of the key — how the page and actions name a file. */
+  fileName: string;
   ext: PlanExtension;
   size: number;
   updatedAt: string | null;
   uploadedBy: string | null;
+  /** Who last saved cell edits on the site, if anyone. */
+  editedBy: string | null;
   originalName: string | null;
 };
 
@@ -76,38 +80,69 @@ function decode(value: string | undefined): string | null {
   }
 }
 
-/** The current plan for every stage that has one, by stage code. */
-export async function listPlans(): Promise<Record<string, PlanFile>> {
+/**
+ * Every stage's current plan files (up to three each), by stage code, in a
+ * stable order (by file name). Stages without a plan are absent.
+ */
+export async function listPlans(): Promise<Record<string, PlanFile[]>> {
   const objects = await listObjects(`${PLAN_ROOT}/`);
-  const byStage: Record<string, PlanFile> = {};
+  const byStage: Record<string, PlanFile[]> = {};
   for (const code of STAGE_CODES) {
     const folder = planFolder(code);
-    // Newest wins, should a stray second file ever sit in the folder.
-    const inFolder = objects
+    const files = objects
       .filter((o) => o.key.startsWith(folder) && !o.key.startsWith(archiveFolder(code)) && planExtension(o.key))
-      .sort((a, b) => (b.lastModified?.getTime() ?? 0) - (a.lastModified?.getTime() ?? 0));
-    const current = inFolder[0];
-    if (!current) continue;
-    byStage[code] = {
-      stage: code,
-      key: current.key,
-      ext: planExtension(current.key)!,
-      size: current.size,
-      updatedAt: current.lastModified?.toISOString() ?? null,
-      uploadedBy: null,
-      originalName: null,
-    };
+      // Only files directly in the stage folder.
+      .filter((o) => !o.key.slice(folder.length).includes("/"))
+      .sort((a, b) => a.key.localeCompare(b.key))
+      .map(
+        (o): PlanFile => ({
+          stage: code,
+          key: o.key,
+          fileName: o.key.slice(folder.length),
+          ext: planExtension(o.key)!,
+          size: o.size,
+          updatedAt: o.lastModified?.toISOString() ?? null,
+          uploadedBy: null,
+          editedBy: null,
+          originalName: null,
+        }),
+      );
+    if (files.length) byStage[code] = files;
   }
-  // Who uploaded it lives in the object's metadata: one HEAD per plan, at
-  // most eight, in parallel.
+  // Who uploaded / edited lives in each object's metadata: one HEAD per file,
+  // at most 24, in parallel.
   await Promise.all(
-    Object.values(byStage).map(async (plan) => {
-      const meta = await objectMetadata(plan.key);
-      plan.uploadedBy = decode(meta?.["uploaded-by"]);
-      plan.originalName = decode(meta?.["original-name"]);
-    }),
+    Object.values(byStage)
+      .flat()
+      .map(async (plan) => {
+        const meta = await objectMetadata(plan.key);
+        plan.uploadedBy = decode(meta?.["uploaded-by"]);
+        plan.editedBy = decode(meta?.["edited-by"]);
+        plan.originalName = decode(meta?.["original-name"]);
+      }),
   );
   return byStage;
+}
+
+/** One of a stage's current files by its file name, or null. */
+export async function findPlan(stageCode: string, fileName: unknown): Promise<PlanFile | null> {
+  if (typeof fileName !== "string" || !fileName || fileName.includes("/") || fileName.includes("..")) return null;
+  return ((await listPlans())[stageCode] ?? []).find((p) => p.fileName === fileName) ?? null;
+}
+
+/**
+ * Where a new file goes: its own (cleaned) name in the stage folder, with
+ * " (2)", " (3)" … if that name is taken.
+ */
+export async function newPlanKey(stageCode: string, originalName: string, ext: PlanExtension): Promise<string> {
+  const folder = planFolder(stageCode);
+  const base = safeName(originalName.replace(/\.[^.]+$/, ""));
+  const taken = new Set((await listObjects(folder)).map((o) => o.key.toLowerCase()));
+  for (let n = 1; n < 100; n++) {
+    const key = `${folder}${base}${n === 1 ? "" : ` (${n})`}.${ext}`;
+    if (!taken.has(key.toLowerCase())) return key;
+  }
+  return `${folder}${base} ${Date.now()}.${ext}`;
 }
 
 // ------------------------------------------------------------ Archive
@@ -127,37 +162,30 @@ function stamp(date: Date): string {
 }
 
 /** A file name without characters that would invent folders or break downloads. */
-function safeName(name: string): string {
+export function safeName(name: string): string {
   return name.replace(/[\\/:*?"<>|\u0000-\u001f]/g, " ").replace(/\s+/g, " ").trim().slice(0, 120) || "plan";
 }
 
 /**
- * Moves the stage's current plan file(s) into its Archive folder — copied
+ * Moves one current plan file into the stage's Archive folder — copied
  * (keeping who uploaded it) and only then removed from the stage folder.
- * Nothing is ever deleted outright. Called before a new plan is saved and
- * when a plan is taken down.
+ * Used when a file is replaced, taken down, or converted to .xlsx by an edit.
  */
-export async function archiveCurrentPlans(stageCode: string): Promise<number> {
-  const folder = planFolder(stageCode);
-  const current = (await listObjects(folder)).filter(
-    (o) => !o.key.startsWith(archiveFolder(stageCode)) && planExtension(o.key),
-  );
+export async function archivePlanFile(stageCode: string, key: string): Promise<void> {
+  const meta = await objectMetadata(key);
+  if (!meta) return; // already gone
+  const ext = planExtension(key)!;
+  const original = decode(meta["original-name"]);
+  const base = safeName((original ?? key.split("/").pop() ?? "plan").replace(/\.[^.]+$/, ""));
   const when = stamp(new Date());
-  for (const file of current) {
-    const meta = await objectMetadata(file.key);
-    const ext = planExtension(file.key)!;
-    const original = decode(meta?.["original-name"]);
-    const base = safeName((original ?? file.key.split("/").pop() ?? "plan").replace(/\.[^.]+$/, ""));
-    let target = `${archiveFolder(stageCode)}${when} — ${base}.${ext}`;
-    // Two archives in the same minute keep both.
-    for (let n = 2; (await listObjects(target)).some((o) => o.key === target); n++) {
-      target = `${archiveFolder(stageCode)}${when} — ${base} (${n}).${ext}`;
-    }
-    await copyObject(file.key, target);
-    // Only the exact key — and only after the copy succeeded.
-    await deleteAllVersions(file.key, undefined, true);
+  let target = `${archiveFolder(stageCode)}${when} — ${base}.${ext}`;
+  // Two archives in the same minute keep both.
+  for (let n = 2; (await listObjects(target)).some((o) => o.key === target); n++) {
+    target = `${archiveFolder(stageCode)}${when} — ${base} (${n}).${ext}`;
   }
-  return current.length;
+  await copyObject(key, target);
+  // Only the exact key — and only after the copy succeeded.
+  await deleteAllVersions(key, undefined, true);
 }
 
 /** How many archived plans each stage has (one listing for all stages). */
@@ -214,16 +242,28 @@ export function isRealExcel(ext: PlanExtension, bytes: Uint8Array): boolean {
 
 // ------------------------------------------------------------ Preview
 
-export type PlanSheet = { name: string; rows: string[][]; truncated: boolean; rtl: boolean };
+export type PlanSheet = {
+  name: string;
+  /** Cell text as Excel shows it, row by row. */
+  rows: string[][];
+  /** true where the cell is a formula — shown, but locked for editing. */
+  formulas: boolean[][];
+  /** Excel address of rows[0][0] (0-based): row 0 / col 0 = A1. */
+  originRow: number;
+  originCol: number;
+  truncated: boolean;
+  rtl: boolean;
+};
 
 const MAX_ROWS = 500;
 const MAX_COLS = 40;
 
 /**
- * The workbook as plain text tables, for showing on the page. Values are
- * Excel's formatted text (dates look like dates, 0.5 like 50% if formatted
- * so). Nothing in the file runs — SheetJS reads cell values only, and macros
- * in an .xlsm are ignored.
+ * The workbook as plain text tables, for showing (and editing) on the page.
+ * Values are Excel's formatted text (dates look like dates, 0.5 like 50% if
+ * formatted so). Blank rows inside the sheet are kept, so every cell keeps
+ * its real address for editing. Nothing in the file runs — SheetJS reads
+ * cell values only, and macros in an .xlsm are ignored.
  */
 export function readPlanSheets(bytes: Uint8Array): PlanSheet[] {
   const book = XLSX.read(bytes, {
@@ -236,26 +276,39 @@ export function readPlanSheets(bytes: Uint8Array): PlanSheet[] {
   const rtl = Boolean(book.Workbook?.Views?.[0]?.RTL);
   return book.SheetNames.map((name) => {
     const sheet = book.Sheets[name];
-    const rows = XLSX.utils.sheet_to_json<unknown[]>(sheet, {
-      header: 1,
-      raw: false,
-      blankrows: false,
-      defval: "",
-    });
-    const width = Math.min(
-      MAX_COLS,
-      rows.reduce((max, row) => Math.max(max, row.length), 0),
-    );
-    const text = rows
-      .slice(0, MAX_ROWS)
-      .map((row) => Array.from({ length: width }, (_, c) => String(row[c] ?? "").trim()));
-    // Drop columns that are empty all the way down (common at the right edge).
-    const used = Array.from({ length: width }, (_, c) => text.some((row) => row[c] !== ""));
-    const lastUsed = used.lastIndexOf(true);
+    const ref = sheet["!ref"];
+    if (!ref) return { name, rows: [], formulas: [], originRow: 0, originCol: 0, truncated: false, rtl };
+    const range = XLSX.utils.decode_range(ref);
+    const lastRow = Math.min(range.e.r, range.s.r + MAX_ROWS - 1);
+    const lastCol = Math.min(range.e.c, range.s.c + MAX_COLS - 1);
+    const rows: string[][] = [];
+    const formulas: boolean[][] = [];
+    for (let r = range.s.r; r <= lastRow; r++) {
+      const textRow: string[] = [];
+      const formulaRow: boolean[] = [];
+      for (let c = range.s.c; c <= lastCol; c++) {
+        const cell = sheet[XLSX.utils.encode_cell({ r, c })] as XLSX.CellObject | undefined;
+        textRow.push(cell ? String(XLSX.utils.format_cell(cell) ?? "").trim() : "");
+        formulaRow.push(Boolean(cell?.f));
+      }
+      rows.push(textRow);
+      formulas.push(formulaRow);
+    }
+    // Trailing rows and columns that are empty all the way are dropped.
+    while (rows.length && rows[rows.length - 1].every((v) => v === "")) {
+      rows.pop();
+      formulas.pop();
+    }
+    const width = rows.reduce((max, row) => Math.max(max, row.length), 0);
+    let lastUsed = width - 1;
+    while (lastUsed >= 0 && rows.every((row) => row[lastUsed] === "")) lastUsed--;
     return {
       name,
-      rows: text.map((row) => row.slice(0, lastUsed + 1)),
-      truncated: rows.length > MAX_ROWS,
+      rows: rows.map((row) => row.slice(0, lastUsed + 1)),
+      formulas: formulas.map((row) => row.slice(0, lastUsed + 1)),
+      originRow: range.s.r,
+      originCol: range.s.c,
+      truncated: range.e.r > lastRow,
       rtl,
     };
   });

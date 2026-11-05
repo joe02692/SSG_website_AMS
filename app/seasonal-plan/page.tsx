@@ -2,7 +2,8 @@ import type { Metadata } from "next";
 import Link from "next/link";
 import { SiteShell } from "@/components/site-shell";
 import { PageBanner } from "@/components/page-banner";
-import { PlanControls } from "@/components/seasonal/plan-controls";
+import { AddPlanFile, PlanFileControls } from "@/components/seasonal/plan-controls";
+import { PlanSheetEditor } from "@/components/seasonal/plan-sheet-editor";
 import { requireRole } from "@/lib/dal";
 import { STAFF_ROLES } from "@/lib/roles";
 import { getObjectBytes } from "@/lib/b2";
@@ -10,6 +11,7 @@ import { SCOUT_STAGES } from "@/lib/onboarding";
 import { ArchiveDownload } from "@/components/seasonal/archive-download";
 import { StageToolsSection } from "@/components/seasonal/stage-tools-section";
 import {
+  MAX_PLANS_PER_STAGE,
   archiveCounts,
   isStageCode,
   listArchive,
@@ -29,27 +31,28 @@ export async function generateMetadata(): Promise<Metadata> {
 }
 
 /**
- * The season plan, for leaders and staff only: one Excel file per stage.
+ * The season plans, for leaders and staff only: up to three Excel files per
+ * stage.
  *
- * Every leader can open and download every stage's plan. The head site admin
- * can add, replace and delete any of them; a stage admin only their own
- * stage's (see lib/seasonal-plans.ts). Scouts are sent to their dashboard,
- * visitors to the login page.
+ * Every leader can open, edit and download every stage's files. The head
+ * site admin can add, replace and archive any of them (and delete for good);
+ * a stage admin only their own stage's (see lib/seasonal-plans.ts). Scouts are
+ * sent to their dashboard, visitors to the login page.
  */
 export default async function SeasonalPlanPage({
   searchParams,
 }: {
-  searchParams: Promise<{ stage?: string; sheet?: string }>;
+  searchParams: Promise<{ stage?: string; sheet?: string; file?: string }>;
 }) {
   const profile = await requireRole(...STAFF_ROLES);
   const all = await getT();
   const t = all.pages.seasonal;
   const locale = await getLocale();
-  const { stage: openStage, sheet: sheetParam } = await searchParams;
+  const { stage: openStage, sheet: sheetParam, file: fileParam } = await searchParams;
 
   const managed = await managedStages(profile);
 
-  let plans: Record<string, PlanFile> = {};
+  let plans: Record<string, PlanFile[]> = {};
   let archived: Record<string, number> = {};
   let storageFailed = false;
   const selected = isStageCode(openStage) ? openStage : null;
@@ -65,8 +68,10 @@ export default async function SeasonalPlanPage({
     storageFailed = true;
   }
 
-  // The plan being read on the page, if one was opened.
-  const open = openStage ? plans[openStage] : undefined;
+  // The file being read on the page, if one was opened (?file=… — or the
+  // stage's first file when the link names none).
+  const stageFiles = openStage ? plans[openStage] ?? [] : [];
+  const open = stageFiles.find((p) => p.fileName === fileParam) ?? (fileParam ? undefined : stageFiles[0]);
   let sheets: PlanSheet[] | null = null;
   let previewFailed = false;
   if (open) {
@@ -118,11 +123,12 @@ export default async function SeasonalPlanPage({
           </p>
         ) : null}
 
-        <ul className="grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
+        <ul className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4">
           {SCOUT_STAGES.map((stage, i) => {
-            const plan = plans[stage.value];
+            const files = plans[stage.value] ?? [];
             const name = all.stages[stage.value as keyof typeof all.stages];
             const isOpen = open?.stage === stage.value;
+            const canManage = managed.codes.includes(stage.value);
             return (
               <li
                 key={stage.value}
@@ -137,39 +143,56 @@ export default async function SeasonalPlanPage({
                   <h2 className="text-lg leading-tight text-forest">{name}</h2>
                 </div>
 
-                <div className="mt-3 flex-1 text-sm">
-                  {plan ? (
-                    <>
-                      <p className="flex items-center gap-2 font-medium text-ink">
-                        <ExcelIcon />
-                        <bdi className="min-w-0 truncate">{plan.originalName ?? `${name}.${plan.ext}`}</bdi>
-                      </p>
-                      <p className="mt-1 text-xs text-ink-muted">
-                        {t.updated(date(plan.updatedAt))}
-                        {plan.uploadedBy ? (
-                          <>
-                            {" "}
-                            {t.by} <bdi>{plan.uploadedBy}</bdi>
-                          </>
-                        ) : null}{" "}
-                        · <bdi>{t.size(plan.size)}</bdi>
-                      </p>
-                    </>
-                  ) : (
-                    <p className="text-ink-subtle">{t.noPlan}</p>
-                  )}
+                {/* Up to three files, each with its own buttons. */}
+                <div className="mt-3 flex-1 space-y-3 text-sm">
+                  {files.length === 0 ? <p className="text-ink-subtle">{t.noPlan}</p> : null}
+                  {files.map((plan) => {
+                    const fileOpen = isOpen && open?.fileName === plan.fileName;
+                    return (
+                      <div
+                        key={plan.fileName}
+                        className={`space-y-2 rounded-xl border p-2.5 ${fileOpen ? "border-leaf bg-leaf/5" : "border-line"}`}
+                      >
+                        <div>
+                          <p className="flex items-center gap-2 font-medium text-ink">
+                            <ExcelIcon />
+                            <bdi className="min-w-0 truncate">{plan.originalName ?? plan.fileName}</bdi>
+                          </p>
+                          <p className="mt-1 text-xs text-ink-muted">
+                            {t.updated(date(plan.updatedAt))}
+                            {plan.editedBy ? (
+                              <>
+                                {" "}
+                                {t.editedBy} <bdi>{plan.editedBy}</bdi>
+                              </>
+                            ) : plan.uploadedBy ? (
+                              <>
+                                {" "}
+                                {t.by} <bdi>{plan.uploadedBy}</bdi>
+                              </>
+                            ) : null}{" "}
+                            · <bdi>{t.size(plan.size)}</bdi>
+                          </p>
+                        </div>
+                        <Link
+                          href={`/seasonal-plan?stage=${stage.value}&file=${encodeURIComponent(plan.fileName)}#plan-preview`}
+                          scroll={false}
+                          className="inline-flex w-full items-center justify-center rounded-md bg-sun px-3 py-1.5 text-sm font-bold text-forest transition hover:opacity-85"
+                        >
+                          {t.open}
+                        </Link>
+                        <PlanFileControls
+                          stage={stage.value}
+                          file={plan.fileName}
+                          canManage={canManage}
+                          canPurge={profile.role === "head_site_admin"}
+                        />
+                      </div>
+                    );
+                  })}
                 </div>
 
                 <div className="mt-4 space-y-2">
-                  {plan ? (
-                    <Link
-                      href={`/seasonal-plan?stage=${stage.value}#plan-preview`}
-                      scroll={false}
-                      className="inline-flex w-full items-center justify-center rounded-md bg-sun px-3 py-2 text-sm font-bold text-forest transition hover:opacity-85"
-                    >
-                      {t.open}
-                    </Link>
-                  ) : null}
                   {archived[stage.value] ? (
                     <Link
                       href={`/seasonal-plan?stage=${stage.value}#plan-archive`}
@@ -180,11 +203,7 @@ export default async function SeasonalPlanPage({
                       {t.archiveLink(archived[stage.value])}
                     </Link>
                   ) : null}
-                  <PlanControls
-                    stage={stage.value}
-                    hasPlan={Boolean(plan)}
-                    canManage={managed.codes.includes(stage.value)}
-                  />
+                  {canManage ? <AddPlanFile stage={stage.value} count={files.length} max={MAX_PLANS_PER_STAGE} /> : null}
                 </div>
               </li>
             );
@@ -200,6 +219,7 @@ export default async function SeasonalPlanPage({
             <div className="flex flex-wrap items-center justify-between gap-3">
               <h2 id="plan-preview-heading" className="text-[clamp(20px,3vw,26px)] text-maroon">
                 {t.previewTitle(all.stages[open.stage as keyof typeof all.stages])}
+                <bdi className="mt-1 block text-sm font-semibold text-ink-muted">{open.originalName ?? open.fileName}</bdi>
               </h2>
               <Link
                 href="/seasonal-plan"
@@ -227,7 +247,7 @@ export default async function SeasonalPlanPage({
                     {sheets.map((s, i) => (
                       <Link
                         key={`${s.name}-${i}`}
-                        href={`/seasonal-plan?stage=${open.stage}&sheet=${i}#plan-preview`}
+                        href={`/seasonal-plan?stage=${open.stage}&file=${encodeURIComponent(open.fileName)}&sheet=${i}#plan-preview`}
                         scroll={false}
                         aria-current={i === sheetIndex ? "page" : undefined}
                         className={`rounded-full px-3 py-1 text-sm font-semibold transition ${
@@ -240,33 +260,20 @@ export default async function SeasonalPlanPage({
                   </nav>
                 ) : null}
 
-                {sheet.rows.length === 0 ? (
-                  <p className="mt-4 text-sm text-ink-muted">{t.emptySheet}</p>
-                ) : (
-                  <div className="relative mt-4 max-h-[75vh] overflow-auto rounded-xl border border-line bg-surface-raised">
-                    {/* Laid out the way the sheet is set in Excel: right-to-left
-                        sheets stay right-to-left whatever language the site is in. */}
-                    <table dir={sheet.rtl ? "rtl" : "ltr"} className="min-w-full border-collapse text-sm">
-                      <tbody>
-                        {sheet.rows.map((row, r) => (
-                          <tr key={r} className={r === 0 ? undefined : "even:bg-surface/60"}>
-                            {row.map((cell, c) => (
-                              <td
-                                key={c}
-                                dir="auto"
-                                className={`min-w-[7rem] max-w-[22rem] border border-line/70 px-3 py-2 align-top whitespace-pre-wrap text-start ${
-                                  r === 0 ? "sticky top-0 z-10 bg-butter font-bold text-forest" : ""
-                                }`}
-                              >
-                                {cell}
-                              </td>
-                            ))}
-                          </tr>
-                        ))}
-                      </tbody>
-                    </table>
-                  </div>
-                )}
+                {/* Every leader can edit the cells (5 Nov 2026). The key makes a
+                    fresh editor per file and sheet. */}
+                <PlanSheetEditor
+                  key={`${open.fileName}|${sheetIndex}|${open.updatedAt}`}
+                  stage={open.stage}
+                  file={open.fileName}
+                  sheetName={sheet.name}
+                  rows={sheet.rows}
+                  formulas={sheet.formulas}
+                  originRow={sheet.originRow}
+                  originCol={sheet.originCol}
+                  rtl={sheet.rtl}
+                  convertsToXlsx={open.ext !== "xlsx"}
+                />
                 {sheet.truncated ? <p className="mt-2 text-xs text-ink-muted">{t.truncated(500)}</p> : null}
               </>
             )}
@@ -291,7 +298,7 @@ export default async function SeasonalPlanPage({
                       {t.archivedOn(date(file.archivedAt))} · <bdi>{t.size(file.size)}</bdi>
                     </span>
                   </span>
-                  <ArchiveDownload stage={selected} fileKey={file.key} />
+                  <ArchiveDownload stage={selected} fileKey={file.key} canPurge={profile.role === "head_site_admin"} />
                 </li>
               ))}
             </ul>
