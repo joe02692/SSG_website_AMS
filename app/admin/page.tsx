@@ -189,6 +189,21 @@ export default async function MembersPage() {
             {t.registrations}{" "}
             <span aria-hidden className="ms-1 inline-block rtl:-scale-x-100">→</span>
           </Link>
+          {/* Events page and the stage pop-ups (migration 0028). */}
+          <Link
+            href="/admin/events"
+            className="ms-2 mt-2 inline-flex rounded-lg border border-line bg-surface-raised px-4 py-2.5 text-sm font-semibold text-ink transition hover:border-brand-300"
+          >
+            {all.features.adminEvents.title}{" "}
+            <span aria-hidden className="ms-1 inline-block rtl:-scale-x-100">→</span>
+          </Link>
+          <Link
+            href="/admin/stages"
+            className="ms-2 mt-2 inline-flex rounded-lg border border-line bg-surface-raised px-4 py-2.5 text-sm font-semibold text-ink transition hover:border-brand-300"
+          >
+            {all.features.adminStages.title}{" "}
+            <span aria-hidden className="ms-1 inline-block rtl:-scale-x-100">→</span>
+          </Link>
         </p>
 
         <dl className="mt-6 flex flex-wrap gap-3">

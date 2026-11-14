@@ -11,21 +11,41 @@ import {
 import { useT } from "@/lib/i18n/client";
 
 type Item = { id: string; name: string; quantity: number | null };
+type Action = (prev: ToolsState, data: FormData) => Promise<ToolsState>;
+
+/** The server actions a list uses. Default: the weekly stage tools (0026). */
+export type ListActions = { add: Action; remove: Action; move: Action; copy?: Action };
+
+const STAGE_TOOLS: ListActions = {
+  add: addToolAction,
+  remove: removeToolAction,
+  move: moveToolAction,
+  copy: copyLastWeekAction,
+};
 
 /**
- * A stage admin's own list (open days only): add, remove, move up/down, and
- * copy last week's items into an empty list. Each change goes to the server
- * at once; the page refreshes with the saved list.
+ * An editable list (open days only): add, remove, move up/down, and copy
+ * last week's items into an empty list. Each change goes to the server at
+ * once; the page refreshes with the saved list.
+ *
+ * Used for the weekly stage tools (default actions) and for the committee
+ * and event papers (migration 0028), which pass their own actions plus the
+ * extra form fields that name the paper.
  */
 export function ToolsEditor({
   stage,
   items,
   canCopy,
+  actions = STAGE_TOOLS,
+  fields = {},
 }: {
   stage: string;
   items: Item[];
   /** There is an earlier week to copy from and this week's list is empty. */
   canCopy: boolean;
+  actions?: ListActions;
+  /** Extra form fields sent with every change (e.g. kind, event). */
+  fields?: Record<string, string>;
 }) {
   const t = useT().pages.tools;
   const [state, setState] = useState<ToolsState>({});
@@ -33,10 +53,11 @@ export function ToolsEditor({
   const nameRef = useRef<HTMLInputElement>(null);
   const qtyRef = useRef<HTMLInputElement>(null);
 
-  function run(action: (prev: ToolsState, data: FormData) => Promise<ToolsState>, fields: Record<string, string>, after?: (r: ToolsState) => void) {
+  function run(action: Action, values: Record<string, string>, after?: (r: ToolsState) => void) {
     const data = new FormData();
-    data.set("stage", stage);
     for (const [k, v] of Object.entries(fields)) data.set(k, v);
+    data.set("stage", stage);
+    for (const [k, v] of Object.entries(values)) data.set(k, v);
     startTransition(async () => {
       const result = await action({}, data);
       setState(result);
@@ -47,7 +68,7 @@ export function ToolsEditor({
   function onAdd(event: React.FormEvent<HTMLFormElement>) {
     event.preventDefault();
     run(
-      addToolAction,
+      actions.add,
       { name: nameRef.current?.value ?? "", quantity: qtyRef.current?.value ?? "" },
       (result) => {
         // Only a saved item clears the boxes; on an error what was typed stays.
@@ -74,24 +95,24 @@ export function ToolsEditor({
                 </span>
               ) : null}
               <span className="flex shrink-0 items-center gap-0.5">
-                <IconButton label={t.moveUp(item.name)} disabled={pending || i === 0} onClick={() => run(moveToolAction, { id: item.id, direction: "up" })}>
+                <IconButton label={t.moveUp(item.name)} disabled={pending || i === 0} onClick={() => run(actions.move, { id: item.id, direction: "up" })}>
                   <path d="M10 15V5M5.5 9.5 10 5l4.5 4.5" />
                 </IconButton>
-                <IconButton label={t.moveDown(item.name)} disabled={pending || i === items.length - 1} onClick={() => run(moveToolAction, { id: item.id, direction: "down" })}>
+                <IconButton label={t.moveDown(item.name)} disabled={pending || i === items.length - 1} onClick={() => run(actions.move, { id: item.id, direction: "down" })}>
                   <path d="M10 5v10M5.5 10.5 10 15l4.5-4.5" />
                 </IconButton>
-                <IconButton label={t.remove(item.name)} danger disabled={pending} onClick={() => run(removeToolAction, { id: item.id })}>
+                <IconButton label={t.remove(item.name)} danger disabled={pending} onClick={() => run(actions.remove, { id: item.id })}>
                   <path d="M6 6l8 8M14 6l-8 8" />
                 </IconButton>
               </span>
             </li>
           ))}
         </ol>
-      ) : canCopy ? (
+      ) : canCopy && actions.copy ? (
         <button
           type="button"
           disabled={pending}
-          onClick={() => run(copyLastWeekAction, {})}
+          onClick={() => actions.copy && run(actions.copy, {})}
           className="rounded-lg border-2 border-dashed border-leaf px-3 py-2 text-sm font-semibold text-forest transition hover:bg-leaf/10 disabled:opacity-60"
         >
           {pending ? t.copying : t.copyLastWeek}

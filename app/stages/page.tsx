@@ -4,6 +4,8 @@ import { SiteShell } from "@/components/site-shell";
 import { PageBanner } from "@/components/page-banner";
 import { getLocale, getT } from "@/lib/i18n/server";
 import { localizedStages } from "@/lib/i18n/content";
+import { StageExplorer, type StageCardData } from "@/components/stages/stage-explorer";
+import { getPublicLeaders, getStageInfoRows, leadersOfStage, localizeStageInfo } from "@/lib/leaders";
 
 export async function generateMetadata(): Promise<Metadata> {
   const t = (await getT()).pages.stages;
@@ -12,7 +14,16 @@ export async function generateMetadata(): Promise<Metadata> {
 
 export default async function StagesPage() {
   const t = (await getT()).pages.stages;
-  const stages = localizedStages(await getLocale());
+  const locale = await getLocale();
+  const stages = localizedStages(locale);
+  // Each card opens a pop-up with the stage's text and leaders (0028).
+  const [info, leaders] = await Promise.all([getStageInfoRows(), getPublicLeaders()]);
+  const cards: StageCardData[] = stages.map((stage) => ({
+    code: stage.value,
+    name: stage.name,
+    info: localizeStageInfo(info[stage.value], locale),
+    leaders: leadersOfStage(leaders, stage.value).map(({ id, name, photo, title }) => ({ id, name, photo, title })),
+  }));
   return (
     <SiteShell>
       <PageBanner title={t.title(stages.length)} eyebrow={t.eyebrow}>
@@ -20,24 +31,7 @@ export default async function StagesPage() {
       </PageBanner>
 
       <section className="mx-auto w-[calc(100%-40px)] max-w-[1100px] py-10">
-        <ol className="grid grid-cols-1 gap-3 min-[420px]:grid-cols-2 md:grid-cols-4">
-          {stages.map((stage, i) => (
-            <li
-              key={stage.value}
-              className="reveal flex items-center gap-3 rounded-xl border-2 border-line bg-surface-raised p-4 transition hover:-translate-y-0.5 hover:border-leaf hover:shadow-md"
-            >
-              <span
-                aria-hidden
-                className="grid size-10 shrink-0 place-items-center rounded-full bg-forest font-display text-sm font-semibold text-sun"
-              >
-                {String(i + 1).padStart(2, "0")}
-              </span>
-              <span className="min-w-0 font-display text-lg leading-tight text-forest">
-                {stage.name}
-              </span>
-            </li>
-          ))}
-        </ol>
+        <StageExplorer stages={cards} />
 
         <div className="mt-10 flex flex-col items-start gap-4 rounded-2xl bg-sun px-6 py-6 text-forest sm:flex-row sm:items-center sm:justify-between">
           <p className="text-base font-medium">

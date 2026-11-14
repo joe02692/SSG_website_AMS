@@ -20,7 +20,9 @@ import {
   usesScoutDetails,
 } from "@/lib/onboarding";
 import { getLocale, getT } from "@/lib/i18n/server";
-import { isParentRole } from "@/lib/roles";
+import { isParentRole, isStaffRole } from "@/lib/roles";
+import { LeaderPublicForm } from "@/components/profile/leader-public-form";
+import { getOwnLeaderProfile } from "@/lib/leader-profile";
 import { localizeQuestions } from "@/lib/i18n/onboarding";
 
 export async function generateMetadata(): Promise<Metadata> {
@@ -55,6 +57,18 @@ export default async function ProfilePage() {
   // Derived on read, never stored — the same rule for both roles.
   const birthDate = isScout ? scout?.date_of_birth : leader?.date_of_birth;
   const age = birthDate ? ageFromDateOfBirth(birthDate) : null;
+
+  // Leaders' public profile (0028): photo, title, about, opt-in.
+  const publicProfile =
+    profile && isStaffRole(profile.role) ? await getOwnLeaderProfile(profile) : null;
+  const lf = all.features.leaderForm;
+  const leaderFacts = leader
+    ? [
+        ...(age !== null ? [{ label: lf.factAge, value: String(age) }] : []),
+        { label: lf.factEducation, value: `${leader.faculty} · ${leader.university}` },
+        { label: lf.factJoined, value: String(leader.join_year) },
+      ]
+    : [];
 
   // No signed URL is minted here on purpose. One signed at render time expires
   // 60 seconds later — usually before anyone clicks View — and until then it is
@@ -103,6 +117,35 @@ export default async function ProfilePage() {
             />
           </div>
         </section>
+
+        {publicProfile ? (
+          <section id="public-profile" aria-labelledby="public-profile-heading" className="mt-8 scroll-mt-24">
+            <h2 id="public-profile-heading" className="text-lg font-semibold tracking-tight text-ink">
+              {lf.title}
+            </h2>
+            <p className="mt-1 text-sm text-ink-muted">{lf.intro}</p>
+            <div className="mt-4">
+              {publicProfile.missing ? (
+                <p className="rounded-lg border border-warning-line bg-warning-surface px-3 py-2.5 text-sm text-warning-ink">
+                  {lf.missing}
+                </p>
+              ) : (
+                <LeaderPublicForm
+                  id={profile!.id}
+                  name={profile!.full_name ?? ""}
+                  photo={publicProfile.photo}
+                  about={publicProfile.about}
+                  isPublic={publicProfile.isPublic}
+                  facts={leaderFacts}
+                  stages={publicProfile.stages.map((s) => ({
+                    ...s,
+                    name: all.stages[s.code as keyof typeof all.stages] ?? s.code,
+                  }))}
+                />
+              )}
+            </div>
+          </section>
+        ) : null}
 
         {/* The document upload used to be a separate section here. It is now
             one of the questions in the form above — the birth certificate for

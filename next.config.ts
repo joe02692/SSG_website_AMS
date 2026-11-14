@@ -33,6 +33,12 @@ const nextConfig: NextConfig = {
   // Don't advertise "X-Powered-By: Next.js" (flagged by Seobility and
   // securityheaders.com — it only helps someone looking for known holes).
   poweredByHeader: false,
+  // Event photos and leaders' profile pictures are sent through server
+  // actions. The browser shrinks them first (lib/shrink-image.ts); this is the
+  // ceiling for a photo it couldn't shrink (default is 1 MB).
+  experimental: {
+    serverActions: { bodySizeLimit: "3mb" },
+  },
   // experimental.inlineCss was tried (1 Nov 2026) and rejected: Next embeds the
   // 79 KB stylesheet twice in every page (a <style> tag and the React payload),
   // tripling the HTML for a ~140 ms gain. The cached external file is better.

@@ -10,6 +10,8 @@ import { getObjectBytes } from "@/lib/b2";
 import { SCOUT_STAGES } from "@/lib/onboarding";
 import { ArchiveDownload } from "@/components/seasonal/archive-download";
 import { StageToolsSection } from "@/components/seasonal/stage-tools-section";
+import { CommitteePapersSection } from "@/components/seasonal/committee-papers-section";
+import { editableCommittees } from "@/lib/request-papers";
 import {
   MAX_PLANS_PER_STAGE,
   archiveCounts,
@@ -217,6 +219,9 @@ export default async function SeasonalPlanPage({
 
         {/* --------------------------------------- Tools for every meeting (0026) */}
         <StageToolsSection editable={managed.codes} />
+
+        {/* ------------------------------- Committee paper requests (0028) */}
+        <CommitteePapersSection editable={await editableCommittees(profile)} />
 
         {/* ------------------------------------------------------ The open plan */}
         {open ? (

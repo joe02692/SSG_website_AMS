@@ -24,8 +24,8 @@ const navBefore = (t: Dictionary) => [
 ];
 const navAfter = (t: Dictionary) => [
   { href: "/stages", label: t.chrome.nav.stages },
+  { href: "/events", label: t.chrome.nav.events },
   { href: "/gallery", label: t.chrome.nav.activities },
-  { href: "/signup", label: t.chrome.nav.joinUs },
 ];
 
 const navLink = "whitespace-nowrap text-sm xl:text-[15px] font-bold text-white transition hover:text-butter";
@@ -101,6 +101,26 @@ async function LeaderNavLink({ mobile = false }: { mobile?: boolean }) {
   ) : (
     <NavLink href="/seasonal-plan" className={navLink}>
       {t.chrome.nav.seasonalPlan}
+    </NavLink>
+  );
+}
+
+/**
+ * "Join Us" — for visitors only. Signed-in members have already joined, and
+ * dropping it keeps the members' longer menu (Seasonal Plan, Events, Stage,
+ * Admin…) on one line at laptop widths.
+ */
+async function JoinNavLink({ mobile = false }: { mobile?: boolean }) {
+  const profile = await getCurrentProfile();
+  if (profile) return null;
+  const t = await getT();
+  return mobile ? (
+    <Link href="/signup" className={menuLink}>
+      {t.chrome.nav.joinUs}
+    </Link>
+  ) : (
+    <NavLink href="/signup" className={navLink}>
+      {t.chrome.nav.joinUs}
     </NavLink>
   );
 }
@@ -223,6 +243,9 @@ export async function SiteHeader() {
               </NavLink>
             ))}
             <Suspense fallback={null}>
+              <JoinNavLink />
+            </Suspense>
+            <Suspense fallback={null}>
               <StaffLinks />
             </Suspense>
           </nav>
@@ -248,6 +271,9 @@ export async function SiteHeader() {
                 {item.label}
               </Link>
             ))}
+            <Suspense fallback={null}>
+              <JoinNavLink mobile />
+            </Suspense>
             <Suspense fallback={null}>
               <MenuAuth />
             </Suspense>

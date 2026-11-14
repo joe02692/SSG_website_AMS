@@ -8,6 +8,7 @@ import roles from "@/lib/i18n/dict/roles";
 import stages from "@/lib/i18n/dict/stages";
 import account from "@/lib/i18n/dict/account";
 import members from "@/lib/i18n/dict/members";
+import features from "@/lib/i18n/dict/features";
 
 /**
  * Every user-facing word on the site, in English and Arabic.
@@ -29,6 +30,7 @@ export const dictionaries = {
     stages: stages.en,
     account: account.en,
     members: members.en,
+    features: features.en,
   },
   ar: {
     chrome: chrome.ar,
@@ -41,6 +43,7 @@ export const dictionaries = {
     stages: stages.ar,
     account: account.ar,
     members: members.ar,
+    features: features.ar,
   },
 };
 
