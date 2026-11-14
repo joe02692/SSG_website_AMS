@@ -1,6 +1,7 @@
 import type { Metadata, Viewport } from "next";
 import { Noto_Sans, Noto_Sans_Arabic } from "next/font/google";
 import { Analytics } from "@vercel/analytics/next";
+import { SpeedInsights } from "@vercel/speed-insights/next";
 import { SITE_URL } from "@/lib/site-url";
 import { I18nProvider } from "@/lib/i18n/client";
 import { dirOf } from "@/lib/i18n/config";
@@ -68,6 +69,9 @@ export default async function RootLayout({ children }: LayoutProps<"/">) {
         {/* Cookie-free visitor counts (Vercel Web Analytics). Needs switching
             on once in the Vercel dashboard: Project → Analytics → Enable. */}
         <Analytics />
+        {/* Real-visitor page speed (Core Web Vitals). Needs switching on once
+            in the Vercel dashboard: Project → Speed Insights → Enable. */}
+        <SpeedInsights />
       </body>
     </html>
   );
