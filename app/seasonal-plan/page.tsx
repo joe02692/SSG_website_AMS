@@ -11,7 +11,7 @@ import { SCOUT_STAGES } from "@/lib/onboarding";
 import { ArchiveDownload } from "@/components/seasonal/archive-download";
 import { StageToolsSection } from "@/components/seasonal/stage-tools-section";
 import { CommitteePapersSection } from "@/components/seasonal/committee-papers-section";
-import { editableCommittees } from "@/lib/request-papers";
+import { canSetItemSource, editableCommittees } from "@/lib/request-papers";
 import {
   MAX_PLANS_PER_STAGE,
   archiveCounts,
@@ -46,6 +46,8 @@ export default async function SeasonalPlanPage({
   searchParams: Promise<{ stage?: string; sheet?: string; file?: string }>;
 }) {
   const profile = await requireRole(...STAFF_ROLES);
+  // Tools & logistics committee + head admin choose where items come from (0029).
+  const logistics = await canSetItemSource(profile);
   const all = await getT();
   const t = all.pages.seasonal;
   const locale = await getLocale();
@@ -218,10 +220,10 @@ export default async function SeasonalPlanPage({
         </ul>
 
         {/* --------------------------------------- Tools for every meeting (0026) */}
-        <StageToolsSection editable={managed.codes} />
+        <StageToolsSection editable={managed.codes} canSetSource={logistics} />
 
         {/* ------------------------------- Committee paper requests (0028) */}
-        <CommitteePapersSection editable={await editableCommittees(profile)} />
+        <CommitteePapersSection editable={await editableCommittees(profile)} canSetSource={logistics} />
 
         {/* ------------------------------------------------------ The open plan */}
         {open ? (

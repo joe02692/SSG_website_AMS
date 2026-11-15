@@ -65,7 +65,18 @@ export function toolsWindow(now = new Date()): ToolsWindow {
   };
 }
 
-export type ToolItem = { id: string; name: string; quantity: number | null; position: number };
+/** Where an item comes from (0029): set by the logistics committee. */
+export type ItemSource = "store" | "hall" | "purchase";
+export const ITEM_SOURCES: ItemSource[] = ["store", "hall", "purchase"];
+
+export type ToolItem = {
+  id: string;
+  name: string;
+  quantity: number | null;
+  position: number;
+  notes: string | null;
+  source: ItemSource | null;
+};
 
 export type StageTools = {
   items: ToolItem[];
@@ -78,6 +89,8 @@ type Row = {
   name: string;
   quantity: number | null;
   position: number;
+  notes?: string | null;
+  source?: ItemSource | null;
   updated_at: string;
   stages: { code: string } | null;
   editor: { full_name: string | null } | null;
@@ -93,10 +106,10 @@ export async function getWeekTools(weekStart: string): Promise<{
   missing: boolean;
 }> {
   const supabase = await createClient();
-  const [current, earlier] = await Promise.all([
+  const [current0, earlier] = await Promise.all([
     supabase
       .from("stage_tools")
-      .select("id, name, quantity, position, updated_at, stages(code), editor:updated_by(full_name)")
+      .select("id, name, quantity, position, notes, source, updated_at, stages(code), editor:updated_by(full_name)")
       .eq("week_start", weekStart)
       .order("position", { ascending: true })
       .order("created_at", { ascending: true }),
@@ -108,6 +121,16 @@ export async function getWeekTools(weekStart: string): Promise<{
       .limit(2000),
   ]);
 
+  // Before migration 0029 there are no notes/source columns: read without them.
+  const current =
+    current0.error && current0.error.code === "42703"
+      ? await supabase
+          .from("stage_tools")
+          .select("id, name, quantity, position, updated_at, stages(code), editor:updated_by(full_name)")
+          .eq("week_start", weekStart)
+          .order("position", { ascending: true })
+          .order("created_at", { ascending: true })
+      : current0;
   if (current.error) return { byStage: {}, hasLastWeek: {}, missing: true };
 
   const byStage: Record<string, StageTools> = {};
@@ -117,7 +140,14 @@ export async function getWeekTools(weekStart: string): Promise<{
     const code = row.stages?.code;
     if (!code || !byStage[code]) continue;
     const list = byStage[code];
-    list.items.push({ id: row.id, name: row.name, quantity: row.quantity, position: row.position });
+    list.items.push({
+      id: row.id,
+      name: row.name,
+      quantity: row.quantity,
+      position: row.position,
+      notes: row.notes ?? null,
+      source: row.source ?? null,
+    });
     if (!list.updatedAt || row.updated_at > list.updatedAt) {
       list.updatedAt = row.updated_at;
       list.updatedBy = row.editor?.full_name ?? null;

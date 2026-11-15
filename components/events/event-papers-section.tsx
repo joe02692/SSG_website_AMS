@@ -5,7 +5,7 @@ import {
   eventRequestWindow,
   type Paper,
 } from "@/lib/request-papers";
-import { addPaperItemAction, movePaperItemAction, removePaperItemAction } from "@/app/requests/actions";
+import { addPaperItemAction, movePaperItemAction, removePaperItemAction, updatePaperNoteAction } from "@/app/requests/actions";
 import { ToolsEditor } from "@/components/seasonal/tools-editor";
 import { PaperCard } from "@/components/requests/paper-card";
 import { getLocale, getT } from "@/lib/i18n/server";
@@ -21,11 +21,14 @@ export async function EventPapersSection({
   events,
   papers,
   editable,
+  canSetSource = false,
 }: {
   events: SiteEvent[];
   papers: Record<string, Record<string, Paper>>;
   /** Paper keys this leader may edit: own stage(s) + "general". */
   editable: string[];
+  /** Tools & logistics committee + head admin: the مخزن / قاعة / مشتريات dropdown. */
+  canSetSource?: boolean;
 }) {
   const all = await getT();
   const t = all.features.eventPapers;
@@ -39,7 +42,7 @@ export async function EventPapersSection({
       hour: "numeric",
       minute: "2-digit",
     });
-  const actions = { add: addPaperItemAction, remove: removePaperItemAction, move: movePaperItemAction };
+  const actions = { add: addPaperItemAction, remove: removePaperItemAction, move: movePaperItemAction, note: updatePaperNoteAction };
   const keys = [GENERAL_PAPER, ...SCOUT_STAGES.map((s) => s.value)];
 
   return (
@@ -88,7 +91,7 @@ export async function EventPapersSection({
                   </span>
                 </summary>
 
-                <ul className="grid gap-4 border-t border-line p-4 sm:grid-cols-2 lg:grid-cols-3">
+                <ul className="grid gap-5 border-t border-line p-4 lg:grid-cols-2">
                   {keys.map((key) => {
                     const paper = eventPapers[key] ?? { items: [], updatedAt: null, updatedBy: null };
                     const mine = editable.includes(key);
@@ -101,13 +104,15 @@ export async function EventPapersSection({
                         paper={paper}
                         highlight={mine && key !== GENERAL_PAPER}
                         canEdit={mine && open}
-                        emptyText={t.empty}
                         stamp={stamp}
                         editor={
                           <ToolsEditor
                             stage={key}
                             items={paper.items}
-                            canCopy={false}
+                            canEdit={mine && open}
+                            canSetSource={canSetSource}
+                            list="request_items"
+                            emptyText={t.empty}
                             actions={actions}
                             fields={{ kind: "event", event: event.id }}
                           />

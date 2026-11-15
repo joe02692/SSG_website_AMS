@@ -69,6 +69,8 @@ export type ScoutDetails = {
   stage_id: number;
   /** Joined from public.stages — the code the onboarding form uses. */
   stage_code: string | null;
+  /** 0029: a scout who signed himself up waits for approval. */
+  review_status?: "pending" | "approved" | "rejected";
 };
 
 /**
@@ -80,13 +82,17 @@ export const getScoutDetails = cache(async (): Promise<ScoutDetails | null> => {
   if (!user) return null;
 
   const supabase = await createClient();
-  const { data, error } = await supabase
-    .from("scout_details")
-    .select(
-      "profile_id, date_of_birth, address, national_id, personal_phone, parent_phone, document_path, document_uploaded_at, stage_id, stages(code)",
-    )
-    .eq("profile_id", user.id)
-    .maybeSingle();
+  const columns =
+    "profile_id, date_of_birth, address, national_id, personal_phone, parent_phone, document_path, document_uploaded_at, stage_id, stages(code)";
+  const read = (withReview: boolean) =>
+    supabase
+      .from("scout_details")
+      .select(withReview ? `${columns}, review_status` : columns)
+      .eq("profile_id", user.id)
+      .maybeSingle();
+  let { data, error } = await read(true);
+  // Before migration 0029 there is no review_status column.
+  if (error?.code === "42703") ({ data, error } = await read(false));
 
   if (error || !data) return null;
 

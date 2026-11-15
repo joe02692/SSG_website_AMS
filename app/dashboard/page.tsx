@@ -2,7 +2,7 @@ import type { Metadata } from "next";
 import Link from "next/link";
 import { SiteShell } from "@/components/site-shell";
 import { BannerScenery } from "@/components/green-scenery";
-import { requireUser, getCurrentProfile, getMyChildren } from "@/lib/dal";
+import { requireUser, getCurrentProfile, getMyChildren, getScoutDetails } from "@/lib/dal";
 import { isHeadSiteAdminRole, isParentRole, isStageRole } from "@/lib/roles";
 import { ageFromDateOfBirth, usesScoutDetails } from "@/lib/onboarding";
 import { LinkChildForm } from "@/components/children/link-child-form";
@@ -34,6 +34,9 @@ export default async function DashboardPage({
   // A scout's own account can invite a parent with a code (0025).
   const isScout = Boolean(profile) && usesScoutDetails(profile?.role) && profile?.role === "scout";
   const children = isParent ? await getMyChildren() : [];
+  // 0029: a scout who signed himself up waits for his stage's approval.
+  const review = isScout ? (await getScoutDetails())?.review_status : undefined;
+  const ta = all.features.scoutApproval;
   const tc = all.account.children;
 
   const actions = [
@@ -99,6 +102,23 @@ export default async function DashboardPage({
           >
             {t.denied}
           </p>
+        ) : null}
+
+        {review === "pending" || review === "rejected" ? (
+          <div
+            role="status"
+            className={`mb-8 flex items-start gap-3 rounded-2xl border-2 p-4 sm:p-5 ${
+              review === "pending" ? "border-sun bg-sun/15" : "border-danger-line bg-danger-surface"
+            }`}
+          >
+            <span aria-hidden className="text-2xl leading-none">{review === "pending" ? "⏳" : "✋"}</span>
+            <div>
+              <p className="font-display text-lg font-semibold text-forest">
+                {review === "pending" ? ta.pendingTitle : ta.rejectedTitle}
+              </p>
+              <p className="mt-1 text-sm text-ink">{review === "pending" ? ta.pendingBody : ta.rejectedBody}</p>
+            </div>
+          </div>
         ) : null}
 
         <h2 className="text-xl text-maroon">{t.whereNext}</h2>

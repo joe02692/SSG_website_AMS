@@ -16,6 +16,7 @@ import { MAX_TOOLS_PER_STAGE, toolsWindow } from "@/lib/stage-tools";
 export type ToolsState = { error?: string; notice?: string };
 
 const UUID = /^[0-9a-f-]{36}$/i;
+const MAX_NOTES = 200;
 
 /** The member, their stage's id, and this week's Saturday — or an error. */
 async function editor(stage: unknown) {
@@ -55,7 +56,9 @@ export async function addToolAction(_prev: ToolsState, formData: FormData): Prom
   const rawQty = String(formData.get("quantity") ?? "")
     .trim()
     .replace(/[٠-٩]/g, (d) => String(d.charCodeAt(0) - 0x0660));
+  const notes = String(formData.get("notes") ?? "").trim().replace(/\s+/g, " ");
   if (!name) return { error: t.nameRequired };
+  if (notes.length > MAX_NOTES) return { error: t.notesTooLong(MAX_NOTES) };
   if (name.length > 80) return { error: t.nameTooLong };
   let quantity: number | null = null;
   if (rawQty) {
@@ -78,6 +81,8 @@ export async function addToolAction(_prev: ToolsState, formData: FormData): Prom
     week_start: who.week,
     name,
     quantity,
+    // Only sent when written, so the add still works before migration 0029.
+    ...(notes ? { notes } : {}),
     position: (rows[0]?.position ?? -1) + 1,
     created_by: who.profile.id,
     updated_by: who.profile.id,
@@ -162,4 +167,26 @@ export async function copyLastWeekAction(_prev: ToolsState, formData: FormData):
   }
   done();
   return { notice: Number(data) > 0 ? who.t.copied(Number(data)) : who.t.nothingToCopy };
+}
+
+/** Writes (or clears) one item's notes — same people and days as the items. */
+export async function updateToolNoteAction(_prev: ToolsState, formData: FormData): Promise<ToolsState> {
+  const who = await editor(formData.get("stage"));
+  if ("error" in who) return { error: who.error };
+  const id = String(formData.get("id") ?? "");
+  if (!UUID.test(id)) return { error: who.t.notAllowed };
+  const notes = String(formData.get("notes") ?? "").trim().replace(/\s+/g, " ");
+  if (notes.length > MAX_NOTES) return { error: who.t.notesTooLong(MAX_NOTES) };
+  const { error } = await who.supabase
+    .from("stage_tools")
+    .update({ notes: notes || null, updated_by: who.profile.id })
+    .eq("id", id)
+    .eq("stage_id", who.stageId)
+    .eq("week_start", who.week);
+  if (error) {
+    console.error("[tools] could not save the note", error);
+    return { error: describe(error, who.t.couldNotSave, who.t) };
+  }
+  done();
+  return {};
 }

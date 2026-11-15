@@ -4,6 +4,7 @@ import { SiteShell } from "@/components/site-shell";
 import { requireRole } from "@/lib/dal";
 import { STAGE_ROLES } from "@/lib/roles";
 import { getT } from "@/lib/i18n/server";
+import { ScoutRequests } from "@/components/members/scout-requests";
 
 export async function generateMetadata(): Promise<Metadata> {
   return { title: (await getT()).account.stage.metaTitle };
@@ -31,6 +32,9 @@ export default async function StagePage() {
         <p className="mt-2 text-ink-muted">
           {t.intro}
         </p>
+
+        {/* New scouts of this stage waiting for approval (0029). */}
+        {profile.role === "stage_admin" ? <ScoutRequests /> : null}
 
         <div className="mt-8 rounded-2xl border border-dashed border-line bg-surface p-10 text-center">
           <p className="text-lg font-medium text-ink">{t.empty}</p>

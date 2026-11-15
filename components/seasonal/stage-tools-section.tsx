@@ -9,7 +9,7 @@ import { ToolsEditor } from "@/components/seasonal/tools-editor";
  * stage with this week's list. Every leader sees all of them; a stage admin's
  * own card (any card for the head admin) can be changed Saturday → Wednesday.
  */
-export async function StageToolsSection({ editable }: { editable: string[] }) {
+export async function StageToolsSection({ editable, canSetSource = false }: { editable: string[]; canSetSource?: boolean }) {
   const all = await getT();
   const t = all.pages.tools;
   const locale = await getLocale();
@@ -52,7 +52,7 @@ export async function StageToolsSection({ editable }: { editable: string[] }) {
             <span>{window.open ? t.openUntil(day(window.closesOn)) : t.closedUntil(day(window.nextWeek))}</span>
           </p>
 
-          <ul className="mt-5 grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
+          <ul className="mt-5 grid gap-5 lg:grid-cols-2">
             {SCOUT_STAGES.map((stage) => {
               const list = byStage[stage.value] ?? { items: [], updatedAt: null, updatedBy: null };
               const mine = editable.includes(stage.value);
@@ -61,12 +61,12 @@ export async function StageToolsSection({ editable }: { editable: string[] }) {
               return (
                 <li
                   key={stage.value}
-                  className={`flex min-w-0 flex-col gap-2 rounded-2xl border-2 bg-surface-raised p-4 ${
+                  className={`flex min-w-0 flex-col gap-3 rounded-2xl border-2 bg-surface-raised p-5 ${
                     mine ? "border-leaf shadow-md" : "border-line"
                   }`}
                 >
                   <div className="flex items-center justify-between gap-2">
-                    <h3 className="text-lg leading-tight text-forest">{name}</h3>
+                    <h3 className="text-xl leading-tight text-forest">{name}</h3>
                     {canEdit ? (
                       <span className="shrink-0 rounded-full bg-sun px-2.5 py-0.5 text-[11px] font-bold text-forest">
                         {t.youEdit}
@@ -77,29 +77,15 @@ export async function StageToolsSection({ editable }: { editable: string[] }) {
                     {list.items.length > 0 ? t.items(list.items.length) : t.none}
                   </span>
 
-                  {canEdit ? (
-                    <ToolsEditor
-                      stage={stage.value}
-                      items={list.items.map(({ id, name: itemName, quantity }) => ({ id, name: itemName, quantity }))}
-                      canCopy={list.items.length === 0 && Boolean(hasLastWeek[stage.value])}
-                    />
-                  ) : list.items.length > 0 ? (
-                    <ol className="divide-y divide-line/70">
-                      {list.items.map((item, i) => (
-                        <li key={item.id} className="flex items-center gap-2 py-1.5 text-sm">
-                          <span className="w-5 shrink-0 text-xs text-ink-muted tabular-nums">{i + 1}.</span>
-                          <bdi className="min-w-0 flex-1 break-words text-ink">{item.name}</bdi>
-                          {item.quantity ? (
-                            <span className="shrink-0 rounded-md bg-surface px-1.5 text-xs text-ink-muted tabular-nums" dir="ltr">
-                              × {item.quantity}
-                            </span>
-                          ) : null}
-                        </li>
-                      ))}
-                    </ol>
-                  ) : (
-                    <p className="text-sm text-ink-subtle">{t.noneBody}</p>
-                  )}
+                  <ToolsEditor
+                    stage={stage.value}
+                    items={list.items}
+                    canEdit={canEdit}
+                    canCopy={list.items.length === 0 && Boolean(hasLastWeek[stage.value])}
+                    canSetSource={canSetSource}
+                    list="stage_tools"
+                    emptyText={t.noneBody}
+                  />
 
                   {list.updatedAt ? (
                     <p className="mt-auto border-t border-dashed border-line pt-2 text-[11.5px] text-ink-muted">

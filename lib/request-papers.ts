@@ -5,6 +5,7 @@ import { LEADER_COMMITTEES, SCOUT_STAGES } from "@/lib/onboarding";
 import type { Profile } from "@/lib/dal";
 import { getLeaderDetails } from "@/lib/dal";
 import { managedStages } from "@/lib/seasonal-plans";
+import type { ItemSource } from "@/lib/stage-tools";
 
 /**
  * "Paper requests" (migration 0028, table request_items) — item lists like
@@ -59,7 +60,7 @@ export function eventRequestWindow(startsAt: string, now = Date.now()): EventWin
   };
 }
 
-export type PaperItem = { id: string; name: string; quantity: number | null };
+export type PaperItem = { id: string; name: string; quantity: number | null; notes: string | null; source: ItemSource | null };
 export type Paper = { items: PaperItem[]; updatedAt: string | null; updatedBy: string | null };
 
 type Row = {
@@ -68,14 +69,20 @@ type Row = {
   event_id: string | null;
   name: string;
   quantity: number | null;
+  notes?: string | null;
+  source?: ItemSource | null;
   updated_at: string;
   editor: { full_name: string | null } | null;
 };
 
+const COLUMNS = "id, list_key, event_id, name, quantity, notes, source, updated_at, editor:updated_by(full_name)";
+/** Before migration 0029 (no notes/source columns). */
+const COLUMNS_0028 = "id, list_key, event_id, name, quantity, updated_at, editor:updated_by(full_name)";
+
 const emptyPaper = (): Paper => ({ items: [], updatedAt: null, updatedBy: null });
 
 function addRow(paper: Paper, row: Row) {
-  paper.items.push({ id: row.id, name: row.name, quantity: row.quantity });
+  paper.items.push({ id: row.id, name: row.name, quantity: row.quantity, notes: row.notes ?? null, source: row.source ?? null });
   if (!paper.updatedAt || row.updated_at > paper.updatedAt) {
     paper.updatedAt = row.updated_at;
     paper.updatedBy = row.editor?.full_name ?? null;
@@ -89,14 +96,16 @@ export async function getCommitteePapers(weekStart: string): Promise<{
   missing: boolean;
 }> {
   const supabase = await createClient();
-  const [current, earlier] = await Promise.all([
+  const committeeQuery = (columns: string) =>
     supabase
       .from("request_items")
-      .select("id, list_key, event_id, name, quantity, updated_at, editor:updated_by(full_name)")
+      .select(columns)
       .eq("kind", "committee")
       .eq("week_start", weekStart)
       .order("position", { ascending: true })
-      .order("created_at", { ascending: true }),
+      .order("created_at", { ascending: true });
+  const [current0, earlier] = await Promise.all([
+    committeeQuery(COLUMNS),
     supabase
       .from("request_items")
       .select("list_key")
@@ -104,6 +113,7 @@ export async function getCommitteePapers(weekStart: string): Promise<{
       .lt("week_start", weekStart)
       .limit(2000),
   ]);
+  const current = current0.error?.code === "42703" ? await committeeQuery(COLUMNS_0028) : current0;
   if (current.error) return { byKey: {}, hasLastWeek: {}, missing: true };
 
   const byKey: Record<string, Paper> = {};
@@ -125,13 +135,16 @@ export async function getEventPapers(eventIds: string[]): Promise<Record<string,
   }
   if (eventIds.length === 0) return out;
   const supabase = await createClient();
-  const { data, error } = await supabase
-    .from("request_items")
-    .select("id, list_key, event_id, name, quantity, updated_at, editor:updated_by(full_name)")
-    .eq("kind", "event")
-    .in("event_id", eventIds)
-    .order("position", { ascending: true })
-    .order("created_at", { ascending: true });
+  const eventQuery = (columns: string) =>
+    supabase
+      .from("request_items")
+      .select(columns)
+      .eq("kind", "event")
+      .in("event_id", eventIds)
+      .order("position", { ascending: true })
+      .order("created_at", { ascending: true });
+  let { data, error } = await eventQuery(COLUMNS);
+  if (error?.code === "42703") ({ data, error } = await eventQuery(COLUMNS_0028));
   if (error) {
     console.error("[papers] could not read event papers", error);
     return out;
@@ -148,6 +161,11 @@ export async function editableCommittees(profile: Profile): Promise<string[]> {
   if (profile.role === "head_site_admin") return COMMITTEE_CODES;
   const details = await getLeaderDetails();
   return (details?.committees ?? []).filter((c) => COMMITTEE_CODES.includes(c));
+}
+
+/** May the signed-in leader set where items come from (0029)? Logistics + head admin. */
+export async function canSetItemSource(profile: Profile): Promise<boolean> {
+  return (await editableCommittees(profile)).includes("logistics");
 }
 
 /** The event papers the signed-in leader may edit: own stage(s) + general. */

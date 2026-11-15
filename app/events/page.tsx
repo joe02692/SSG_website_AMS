@@ -7,7 +7,7 @@ import { EventPapersSection } from "@/components/events/event-papers-section";
 import { getCurrentProfile } from "@/lib/dal";
 import { isStaffRole } from "@/lib/roles";
 import { getUpcomingEvents, localizeEvent } from "@/lib/events";
-import { editableEventPapers, getEventPapers } from "@/lib/request-papers";
+import { canSetItemSource, editableEventPapers, getEventPapers } from "@/lib/request-papers";
 import { getLocale, getT } from "@/lib/i18n/server";
 import { intlLocale } from "@/lib/i18n/config";
 
@@ -30,9 +30,9 @@ export default async function EventsPage() {
   const now = requestTime();
 
   const leader = profile && isStaffRole(profile.role) ? profile : null;
-  const [papers, editable] = leader
-    ? await Promise.all([getEventPapers(events.map((e) => e.id)), editableEventPapers(leader)])
-    : [{}, []];
+  const [papers, editable, logistics] = leader
+    ? await Promise.all([getEventPapers(events.map((e) => e.id)), editableEventPapers(leader), canSetItemSource(leader)])
+    : [{}, [], false];
 
   return (
     <SiteShell>
@@ -84,7 +84,7 @@ export default async function EventsPage() {
             </Link>
           </div>
         ) : (
-          <EventPapersSection events={events} papers={papers} editable={editable} />
+          <EventPapersSection events={events} papers={papers} editable={editable} canSetSource={logistics} />
         )}
       </div>
     </SiteShell>

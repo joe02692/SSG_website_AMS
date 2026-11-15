@@ -14,6 +14,7 @@ import { optionLabel } from "@/lib/i18n/onboarding";
 import { stageAdminsByStage } from "@/lib/stage-admins";
 import { EVENT_TIMEZONE, getEventForEdit, isoToCairoLocal } from "@/lib/site-event";
 import { EventSettings } from "@/components/admin/event-settings";
+import { ScoutRequests } from "@/components/members/scout-requests";
 
 export async function generateMetadata(): Promise<Metadata> {
   return { title: (await getT()).members.page.metaTitle };
@@ -221,6 +222,9 @@ export default async function MembersPage() {
             </div>
           ))}
         </dl>
+
+        {/* ------------------------------- New scouts waiting for approval (0029) */}
+        <ScoutRequests showStage />
 
         {/* ----------------------------------------------- Event countdown */}
         <section aria-labelledby="event-heading" className="mt-10">

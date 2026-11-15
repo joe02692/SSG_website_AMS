@@ -28,6 +28,7 @@ import type { ToolsState } from "@/app/seasonal-plan/tools-actions";
  */
 
 const UUID = /^[0-9a-f-]{36}$/i;
+const MAX_NOTES = 200;
 
 type Scope = {
   kind: "committee" | "event";
@@ -114,7 +115,9 @@ export async function addPaperItemAction(_prev: ToolsState, formData: FormData):
   const rawQty = String(formData.get("quantity") ?? "")
     .trim()
     .replace(/[٠-٩]/g, (d) => String(d.charCodeAt(0) - 0x0660));
+  const notes = String(formData.get("notes") ?? "").trim().replace(/\s+/g, " ");
   if (!name) return { error: t.nameRequired };
+  if (notes.length > MAX_NOTES) return { error: t.notesTooLong(MAX_NOTES) };
   if (name.length > 80) return { error: t.nameTooLong };
   let quantity: number | null = null;
   if (rawQty) {
@@ -133,6 +136,8 @@ export async function addPaperItemAction(_prev: ToolsState, formData: FormData):
     week_start: scope.week,
     name,
     quantity,
+    // Only sent when written, so the add still works before migration 0029.
+    ...(notes ? { notes } : {}),
     position: last + 1,
     created_by: who.profile.id,
     updated_by: who.profile.id,
@@ -202,4 +207,28 @@ export async function copyCommitteeWeekAction(_prev: ToolsState, formData: FormD
   }
   done(who.scope);
   return { notice: Number(data) > 0 ? who.t.copied(Number(data)) : who.t.nothingToCopy };
+}
+
+/** Writes (or clears) one item's notes — same people and window as the items. */
+export async function updatePaperNoteAction(_prev: ToolsState, formData: FormData): Promise<ToolsState> {
+  const who = await editor(formData);
+  if ("error" in who) return { error: who.error };
+  const id = String(formData.get("id") ?? "");
+  if (!UUID.test(id)) return { error: who.t.notAllowed };
+  const notes = String(formData.get("notes") ?? "").trim().replace(/\s+/g, " ");
+  if (notes.length > MAX_NOTES) return { error: who.t.notesTooLong(MAX_NOTES) };
+  const { match, nulls } = paperMatch(who.scope);
+  let query = who.supabase
+    .from("request_items")
+    .update({ notes: notes || null, updated_by: who.profile.id })
+    .eq("id", id)
+    .match(match);
+  for (const column of nulls) query = query.is(column, null);
+  const { error } = await query;
+  if (error) {
+    console.error("[papers] could not save the note", error);
+    return { error: describe(error, who.t.couldNotSave, who.t) };
+  }
+  done(who.scope);
+  return {};
 }

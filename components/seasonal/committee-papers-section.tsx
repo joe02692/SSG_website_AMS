@@ -1,6 +1,7 @@
 import { toolsWindow, TOOLS_TIMEZONE } from "@/lib/stage-tools";
 import { COMMITTEE_CODES, getCommitteePapers } from "@/lib/request-papers";
 import {
+  updatePaperNoteAction,
   addPaperItemAction,
   copyCommitteeWeekAction,
   movePaperItemAction,
@@ -17,7 +18,7 @@ import { intlLocale } from "@/lib/i18n/config";
  * committee's own members (and the head admin) change theirs, Saturday →
  * Wednesday — the same week as the stage tools above.
  */
-export async function CommitteePapersSection({ editable }: { editable: string[] }) {
+export async function CommitteePapersSection({ editable, canSetSource = false }: { editable: string[]; canSetSource?: boolean }) {
   const all = await getT();
   const t = all.features.committeePapers;
   const tt = all.pages.tools;
@@ -38,6 +39,7 @@ export async function CommitteePapersSection({ editable }: { editable: string[] 
     add: addPaperItemAction,
     remove: removePaperItemAction,
     move: movePaperItemAction,
+    note: updatePaperNoteAction,
     copy: copyCommitteeWeekAction,
   };
 
@@ -66,7 +68,7 @@ export async function CommitteePapersSection({ editable }: { editable: string[] 
             <span>{window.open ? tt.openUntil(day(window.closesOn)) : tt.closedUntil(day(window.nextWeek))}</span>
           </p>
 
-          <ul className="mt-5 grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
+          <ul className="mt-5 grid gap-5 lg:grid-cols-2">
             {COMMITTEE_CODES.map((code) => {
               const paper = byKey[code] ?? { items: [], updatedAt: null, updatedBy: null };
               const mine = editable.includes(code);
@@ -77,13 +79,16 @@ export async function CommitteePapersSection({ editable }: { editable: string[] 
                   paper={paper}
                   highlight={mine}
                   canEdit={mine && window.open}
-                  emptyText={t.empty}
                   stamp={stamp}
                   editor={
                     <ToolsEditor
                       stage={code}
                       items={paper.items}
+                      canEdit={mine && window.open}
                       canCopy={paper.items.length === 0 && Boolean(hasLastWeek[code])}
+                      canSetSource={canSetSource}
+                      list="request_items"
+                      emptyText={t.empty}
                       actions={actions}
                       fields={{ kind: "committee" }}
                     />
