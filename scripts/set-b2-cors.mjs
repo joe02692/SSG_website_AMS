@@ -24,6 +24,10 @@ import { readFileSync } from "node:fs";
 
 /** Origins allowed to upload. Override with B2_CORS_ORIGINS (comma-separated). */
 const DEFAULT_ORIGINS = [
+  // The live domain (Nov 2026). Both spellings: ssgscouting.com redirects to
+  // www, but a browser that started on either one is the page's origin.
+  "https://www.ssgscouting.com",
+  "https://ssgscouting.com",
   "https://ssg-website-ams.vercel.app",
   "https://ssg-website-ams-git-main-ssg-it.vercel.app",
   "http://localhost:3000",
