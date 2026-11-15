@@ -86,7 +86,7 @@ export default async function LeaderPage({ params }: PageProps<"/leaders/[id]">)
         ) : null}
 
         <p className="mt-10">
-          <Link href="/stages" className="text-sm font-semibold text-brand-ink underline-offset-4 hover:underline">
+          <Link href={leader.stages[0] ? `/stages#${leader.stages[0]}` : "/stages"} className="text-sm font-semibold text-brand-ink underline-offset-4 hover:underline">
             <span aria-hidden className="inline-block rtl:-scale-x-100">←</span> {t.back}
           </Link>
         </p>

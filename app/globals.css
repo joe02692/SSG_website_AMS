@@ -427,3 +427,29 @@ html[lang="ar"] body * {
 html[lang="ar"] body {
   line-height: 1.7;
 }
+
+/* The stage pop-up on /stages (components/stages/stage-explorer.tsx).
+   The page behind it doesn't scroll while it is open… */
+html:has(dialog.stage-dialog[open]) {
+  overflow: hidden;
+}
+/* …and it eases in. Decoration only: without it the pop-up simply appears. */
+@media (prefers-reduced-motion: no-preference) {
+  @keyframes stage-dialog-in {
+    from {
+      opacity: 0;
+      transform: translateY(14px) scale(0.97);
+    }
+  }
+  @keyframes stage-backdrop-in {
+    from {
+      opacity: 0;
+    }
+  }
+  .stage-dialog[open] {
+    animation: stage-dialog-in 0.28s cubic-bezier(0.16, 1, 0.3, 1) both;
+  }
+  .stage-dialog[open]::backdrop {
+    animation: stage-backdrop-in 0.2s ease-out both;
+  }
+}
