@@ -81,18 +81,25 @@ export async function saveLeaderProfileAction(
   const mine = new Map(((held ?? []) as { stage_id: number; title: string }[]).map((r) => [r.stage_id, r.title]));
 
   const taken: string[] = [];
+  let failed = false;
   for (const stage of stages) {
     const wanted = String(formData.get(`title_${stage.code}`) ?? "");
     const now = mine.get(stage.id) ?? "";
     if (wanted === now) continue;
     if (wanted === "") {
       const { error: releaseError } = await supabase.rpc("release_stage_title", { p_stage: stage.id });
-      if (releaseError) console.error("[leader-profile] could not release", releaseError);
+      if (releaseError) {
+        console.error("[leader-profile] could not release", releaseError);
+        failed = true;
+      }
     } else if (wanted === "leader" || wanted === "assistant") {
       const { error: claimError } = await supabase.rpc("claim_stage_title", { p_stage: stage.id, p_title: wanted });
       if (claimError) {
         if (claimError.hint === "TAKEN") taken.push(stage.code);
-        else console.error("[leader-profile] could not claim", claimError);
+        else {
+          console.error("[leader-profile] could not claim", claimError);
+          failed = true;
+        }
       }
     }
   }
@@ -101,5 +108,6 @@ export async function saveLeaderProfileAction(
   revalidatePath("/stages");
   revalidatePath(`/leaders/${profile.id}`);
   if (taken.length > 0) return { error: t.titleTaken, field: "titles" };
+  if (failed) return { error: t.titleFailed, field: "titles" };
   return { notice: t.saved };
 }

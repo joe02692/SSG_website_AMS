@@ -27,7 +27,9 @@ export async function GET(_request: Request, ctx: RouteContext<"/media/[...key]"
   return new Response(new Uint8Array(bytes), {
     headers: {
       "Content-Type": "image/webp",
-      "Cache-Control": "public, max-age=31536000, immutable",
+      // s-maxage is what lets Vercel's CDN keep it (max-age alone only
+      // reaches the browser), so B2 is asked once per photo, not per visitor.
+      "Cache-Control": "public, max-age=31536000, s-maxage=31536000, immutable",
       "Content-Disposition": "inline",
     },
   });

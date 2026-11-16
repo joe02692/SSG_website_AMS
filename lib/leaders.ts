@@ -1,5 +1,6 @@
 import "server-only";
 
+import { cache } from "react";
 import { createClient } from "@/lib/supabase/server";
 import { publicImageUrl } from "@/lib/public-images";
 import type { Locale } from "@/lib/i18n/config";
@@ -43,7 +44,8 @@ type LeaderRow = {
   titles: { stage: string; title: StageTitle }[] | null;
 };
 
-export async function getPublicLeaders(): Promise<PublicLeader[]> {
+/** Once per request, however many parts of the page ask (React cache). */
+export const getPublicLeaders = cache(async (): Promise<PublicLeader[]> => {
   const supabase = await createClient();
   const { data, error } = await supabase.rpc("public_leaders");
   if (error) {
@@ -65,7 +67,7 @@ export async function getPublicLeaders(): Promise<PublicLeader[]> {
       titles: row.titles ?? [],
     }))
     .sort((a, b) => a.name.localeCompare(b.name));
-}
+});
 
 /** A stage's leaders: the stage leader first, then the assistant, then the rest. */
 export function leadersOfStage(leaders: PublicLeader[], stage: string): (PublicLeader & { title: StageTitle | null })[] {

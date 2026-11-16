@@ -90,7 +90,7 @@ export function FeaturedEvent({ event, locale, t, now }: { event: SiteEvent; loc
     <article className="reveal overflow-hidden rounded-3xl border-2 border-line bg-surface-raised shadow-sm md:grid md:grid-cols-[1.1fr_1fr]">
       <div className="relative aspect-[16/10] md:aspect-auto md:min-h-[320px]">
         {event.photo ? (
-          <Image src={event.photo} alt="" fill unoptimized priority sizes="(min-width: 768px) 55vw, 100vw" className="object-cover" />
+          <Image src={event.photo} alt="" fill unoptimized preload fetchPriority="high" sizes="(min-width: 768px) 55vw, 100vw" className="object-cover" />
         ) : (
           <NoPhoto />
         )}

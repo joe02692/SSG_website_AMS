@@ -14,6 +14,7 @@ import {
 } from "@/lib/roles";
 import { missingStorageEnv } from "@/lib/b2";
 import { moveToFormerMembers } from "@/lib/storage-paths";
+import { deletePublicImage } from "@/lib/public-images";
 
 /* The invite-code actions lived here — createInviteAction, deleteInviteAction
  * and the code generator. Leader access is now requested and approved, so
@@ -212,11 +213,20 @@ async function deleteMember(
     }
   }
 
+  // A leader's public profile picture (0028) lives in B2, not in the database:
+  // note it now, remove it once the account is really gone.
+  const { data: publicProfile } = await adminClient
+    .from("leader_profiles")
+    .select("photo_key")
+    .eq("profile_id", memberId)
+    .maybeSingle();
+
   const { error } = await adminClient.auth.admin.deleteUser(memberId);
 
   if (error) {
     return { error: "Could not delete that account. Please try again." };
   }
+  await deletePublicImage((publicProfile as { photo_key: string | null } | null)?.photo_key);
 
   revalidatePath("/admin");
   return {};

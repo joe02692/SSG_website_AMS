@@ -21,6 +21,19 @@ import { SCOUT_STAGES } from "@/lib/onboarding";
 
 export const TOOLS_TIMEZONE = "Africa/Cairo";
 export const MAX_TOOLS_PER_STAGE = 40;
+/**
+ * How far back "copy last week" looks for a list. Without a floor the page
+ * read every item ever saved, and past the 2,000-row cap some stages lost the
+ * button.
+ */
+export const COPY_LOOKBACK_WEEKS = 12;
+
+/** The Saturday `weeks` weeks before the given "YYYY-MM-DD". */
+export function weeksBefore(weekStart: string, weeks: number): string {
+  const at = new Date(`${weekStart}T00:00:00Z`);
+  at.setUTCDate(at.getUTCDate() - weeks * 7);
+  return at.toISOString().slice(0, 10);
+}
 
 /** Cairo's calendar date and weekday (0 = Sunday … 6 = Saturday) right now. */
 function cairoToday(now = new Date()): { y: number; m: number; d: number; dow: number } {
@@ -118,6 +131,7 @@ export async function getWeekTools(weekStart: string): Promise<{
       .from("stage_tools")
       .select("stages(code)")
       .lt("week_start", weekStart)
+      .gte("week_start", weeksBefore(weekStart, COPY_LOOKBACK_WEEKS))
       .limit(2000),
   ]);
 

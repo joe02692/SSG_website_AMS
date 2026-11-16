@@ -17,7 +17,8 @@
 const MAX_DIMENSION = 1600;
 const JPEG_QUALITY = 0.82;
 
-export async function compressImage(file: File): Promise<File> {
+/** `maxDimension`: the longest side kept, in pixels (documents: 1600). */
+export async function compressImage(file: File, maxDimension = MAX_DIMENSION): Promise<File> {
   if (!file.type.startsWith("image/")) return file;
 
   // Small images aren't worth re-encoding; doing so can even make them bigger.
@@ -28,7 +29,7 @@ export async function compressImage(file: File): Promise<File> {
 
     const scale = Math.min(
       1,
-      MAX_DIMENSION / Math.max(bitmap.width, bitmap.height),
+      maxDimension / Math.max(bitmap.width, bitmap.height),
     );
 
     // Already small enough in both dimensions — leave it alone.

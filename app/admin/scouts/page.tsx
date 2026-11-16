@@ -26,6 +26,8 @@ type ScoutRow = {
   personal_phone: string;
   parent_phone: string;
   document_path: string | null;
+  /** 0029 — absent before that migration. */
+  review_status?: "pending" | "approved" | "rejected";
   profiles: { full_name: string | null } | null;
   stages: { name_en: string; sort: number } | null;
 };
@@ -48,6 +50,7 @@ export default async function ScoutsPage() {
   // an empty list even if this check were removed.
   await requireHeadSiteAdmin();
   const t = (await getT()).members.scouts;
+  const ta = (await getT()).features.scoutApproval;
   const locale = await getLocale();
   const dateLocale = intlLocale(locale);
 
@@ -69,9 +72,11 @@ export default async function ScoutsPage() {
       .order("sort", { referencedTable: "stages", ascending: true })
       .order("date_of_birth", { ascending: false })
       .limit(MAX_ROWS);
-  let { data, error: scoutError } = await scoutQuery(
-    "id, profile_id, full_name, date_of_birth, address, national_id, personal_phone, parent_phone, document_path, profiles:profile_id(full_name), stages(name_en, sort), guardianships(profiles:guardian_id(full_name))",
-  );
+  const COLUMNS_0025 =
+    "id, profile_id, full_name, date_of_birth, address, national_id, personal_phone, parent_phone, document_path, profiles:profile_id(full_name), stages(name_en, sort), guardianships(profiles:guardian_id(full_name))";
+  // review_status (0029): who is still waiting for approval.
+  let { data, error: scoutError } = await scoutQuery(`${COLUMNS_0025}, review_status`);
+  if (scoutError) ({ data, error: scoutError } = await scoutQuery(COLUMNS_0025));
   if (scoutError) {
     ({ data, error: scoutError } = await scoutQuery(
       "profile_id, date_of_birth, address, national_id, personal_phone, parent_phone, document_path, profiles:profile_id(full_name), stages(name_en, sort)",
@@ -216,6 +221,15 @@ export default async function ScoutsPage() {
                       <bdi className="font-medium text-ink">
                         {nameOf(row)}
                       </bdi>
+                      {row.review_status === "pending" || row.review_status === "rejected" ? (
+                        <span
+                          className={`ms-2 rounded-full px-2 py-0.5 text-[11px] font-bold ${
+                            row.review_status === "pending" ? "bg-sun/40 text-forest" : "bg-danger-surface text-danger-ink"
+                          }`}
+                        >
+                          {row.review_status === "pending" ? ta.statusPending : ta.statusRejected}
+                        </span>
+                      ) : null}
                       {row.guardianships && row.guardianships.length > 0 ? (
                         <span className="block text-xs text-brand-ink">
                           {t.parentAccounts(

@@ -8,7 +8,7 @@ import {
 } from "@/app/admin/events-actions";
 import { Field, inputClass } from "@/components/ui/field";
 import { useT } from "@/lib/i18n/client";
-import { shrinkImage } from "@/lib/shrink-image";
+import { compressImage } from "@/lib/compress-image";
 
 export type AdminEvent = {
   id: string;
@@ -171,7 +171,7 @@ function EventForm({ event, onClose }: { event: AdminEvent; onClose: () => void 
     const file = photoRef.current?.files?.[0];
     if (file) {
       setPreparing(true);
-      data.set("photo", await shrinkImage(file, 1600));
+      data.set("photo", await compressImage(file, 1600));
       setPreparing(false);
     } else {
       data.delete("photo");

@@ -34,7 +34,7 @@ const nextConfig: NextConfig = {
   // securityheaders.com — it only helps someone looking for known holes).
   poweredByHeader: false,
   // Event photos and leaders' profile pictures are sent through server
-  // actions. The browser shrinks them first (lib/shrink-image.ts); this is the
+  // actions. The browser shrinks them first (lib/compress-image.ts); this is the
   // ceiling for a photo it couldn't shrink (default is 1 MB).
   experimental: {
     serverActions: { bodySizeLimit: "3mb" },

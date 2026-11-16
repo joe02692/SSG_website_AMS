@@ -9,7 +9,7 @@ import {
 import { Field, inputClass } from "@/components/ui/field";
 import { Avatar } from "@/components/stages/stage-explorer";
 import { useT } from "@/lib/i18n/client";
-import { shrinkImage } from "@/lib/shrink-image";
+import { compressImage } from "@/lib/compress-image";
 
 type StageSeat = {
   code: string;
@@ -55,7 +55,7 @@ export function LeaderPublicForm({
     const file = photoRef.current?.files?.[0];
     if (file) {
       setPreparing(true);
-      data.set("photo", await shrinkImage(file, 900));
+      data.set("photo", await compressImage(file, 900));
       setPreparing(false);
     } else {
       data.delete("photo");

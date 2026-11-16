@@ -21,7 +21,7 @@ export const PUBLIC_IMAGE_FOLDERS = {
 
 export type PublicImageFolder = keyof typeof PUBLIC_IMAGE_FOLDERS;
 
-/** What the browser may send (it shrinks big photos first; see ImagePicker). */
+/** What the browser may send (it shrinks big photos first; lib/compress-image.ts). */
 export const MAX_IMAGE_UPLOAD_BYTES = 2.5 * 1024 * 1024;
 
 const SIZES: Record<PublicImageFolder, { width: number; height: number; fit: "cover" | "inside" }> = {

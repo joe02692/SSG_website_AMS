@@ -5,7 +5,7 @@ import { LEADER_COMMITTEES, SCOUT_STAGES } from "@/lib/onboarding";
 import type { Profile } from "@/lib/dal";
 import { getLeaderDetails } from "@/lib/dal";
 import { managedStages } from "@/lib/seasonal-plans";
-import type { ItemSource } from "@/lib/stage-tools";
+import { COPY_LOOKBACK_WEEKS, weeksBefore, type ItemSource } from "@/lib/stage-tools";
 
 /**
  * "Paper requests" (migration 0028, table request_items) — item lists like
@@ -111,6 +111,7 @@ export async function getCommitteePapers(weekStart: string): Promise<{
       .select("list_key")
       .eq("kind", "committee")
       .lt("week_start", weekStart)
+      .gte("week_start", weeksBefore(weekStart, COPY_LOOKBACK_WEEKS))
       .limit(2000),
   ]);
   const current = current0.error?.code === "42703" ? await committeeQuery(COLUMNS_0028) : current0;

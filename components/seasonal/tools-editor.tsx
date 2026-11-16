@@ -122,12 +122,13 @@ export function ToolsEditor({
     startTransition(async () => {
       const result = await setItemSourceAction({}, data);
       setState(result);
-      if (result.error)
-        setSourceDraft((d) => {
-          const rest = { ...d };
-          delete rest[id];
-          return rest;
-        });
+      // Saved (the page now carries the stored value) or refused: either
+      // way the on-screen guess is no longer needed.
+      setSourceDraft((d) => {
+        const rest = { ...d };
+        delete rest[id];
+        return rest;
+      });
     });
   }
 
