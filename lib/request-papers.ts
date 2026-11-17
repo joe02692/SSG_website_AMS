@@ -5,6 +5,7 @@ import { LEADER_COMMITTEES, SCOUT_STAGES } from "@/lib/onboarding";
 import type { Profile } from "@/lib/dal";
 import { getLeaderDetails } from "@/lib/dal";
 import { managedStages } from "@/lib/seasonal-plans";
+import { isSiteAdminRole } from "@/lib/roles";
 import { COPY_LOOKBACK_WEEKS, weeksBefore, type ItemSource } from "@/lib/stage-tools";
 
 /**
@@ -157,14 +158,14 @@ export async function getEventPapers(eventIds: string[]): Promise<Record<string,
   return out;
 }
 
-/** The committees the signed-in leader may edit (all of them for the head admin). */
+/** The committees the signed-in leader may edit (all of them for site admins and the head admin, 0031). */
 export async function editableCommittees(profile: Profile): Promise<string[]> {
-  if (profile.role === "head_site_admin") return COMMITTEE_CODES;
+  if (isSiteAdminRole(profile.role)) return COMMITTEE_CODES;
   const details = await getLeaderDetails();
   return (details?.committees ?? []).filter((c) => COMMITTEE_CODES.includes(c));
 }
 
-/** May the signed-in leader set where items come from (0029)? Logistics + head admin. */
+/** May the signed-in leader set where items come from (0029)? Logistics + site admins. */
 export async function canSetItemSource(profile: Profile): Promise<boolean> {
   return (await editableCommittees(profile)).includes("logistics");
 }

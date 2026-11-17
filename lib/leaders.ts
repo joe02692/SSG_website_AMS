@@ -28,6 +28,10 @@ export type PublicLeader = {
   joinYear: number | null;
   stages: string[];
   titles: { stage: string; title: StageTitle }[];
+  /** Work committees (program, media, …) — 0031. */
+  committees: string[];
+  /** The website owner (the head site admin) — 0031. */
+  isOwner: boolean;
 };
 
 type LeaderRow = {
@@ -42,6 +46,8 @@ type LeaderRow = {
   join_year: number | null;
   stages: string[] | null;
   titles: { stage: string; title: StageTitle }[] | null;
+  committees?: string[] | null;
+  is_owner?: boolean | null;
 };
 
 /** Once per request, however many parts of the page ask (React cache). */
@@ -65,6 +71,8 @@ export const getPublicLeaders = cache(async (): Promise<PublicLeader[]> => {
       joinYear: row.join_year,
       stages: row.stages ?? [],
       titles: row.titles ?? [],
+      committees: row.committees ?? [],
+      isOwner: row.is_owner === true,
     }))
     .sort((a, b) => a.name.localeCompare(b.name));
 });

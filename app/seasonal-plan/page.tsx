@@ -5,7 +5,7 @@ import { PageBanner } from "@/components/page-banner";
 import { AddPlanFile, PlanFileControls } from "@/components/seasonal/plan-controls";
 import { PlanSheetEditor } from "@/components/seasonal/plan-sheet-editor";
 import { requireRole } from "@/lib/dal";
-import { STAFF_ROLES } from "@/lib/roles";
+import { STAFF_ROLES, isSiteAdminRole } from "@/lib/roles";
 import { getObjectBytes } from "@/lib/b2";
 import { SCOUT_STAGES } from "@/lib/onboarding";
 import { ArchiveDownload } from "@/components/seasonal/archive-download";
@@ -102,8 +102,10 @@ export default async function SeasonalPlanPage({
       : "";
 
   const managerNote =
-    profile.role === "head_site_admin"
-      ? t.youManageAll
+    isSiteAdminRole(profile.role)
+      ? profile.role === "head_site_admin"
+        ? t.youManageAll
+        : t.youManageAllSite
       : profile.role === "stage_admin"
         ? managed.migrationMissing
           ? t.migrationMissing

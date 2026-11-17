@@ -1,5 +1,5 @@
-import Image from "next/image";
 import type { SiteEvent } from "@/lib/events";
+import { EventPhoto } from "@/components/events/event-photo";
 import { EVENTS_TIMEZONE } from "@/lib/events";
 import type { Dictionary } from "@/lib/i18n/dictionaries";
 
@@ -83,6 +83,17 @@ function NoPhoto() {
   );
 }
 
+function PinnedBadge({ label }: { label: string }) {
+  return (
+    <span className="inline-flex items-center gap-1 rounded-full bg-sun px-3 py-1 text-xs font-bold uppercase tracking-wider text-forest shadow-sm">
+      <svg aria-hidden viewBox="0 0 24 24" className="size-3.5" fill="currentColor">
+        <path d="M14.5 2.5 21.5 9.5l-1.8 1.8-1.3-.4-3.6 3.6.6 4-1.6 1.6-4-4-5.3 5.3-1.4-1.4 5.3-5.3-4-4 1.6-1.6 4 .6 3.6-3.6-.4-1.3 1.8-1.8Z" />
+      </svg>
+      {label}
+    </span>
+  );
+}
+
 export function FeaturedEvent({ event, locale, t, now }: { event: SiteEvent; locale: string; t: Strings; now: number }) {
   const days = daysUntil(event.startsAt, now);
   const started = new Date(event.startsAt).getTime() <= now;
@@ -90,17 +101,26 @@ export function FeaturedEvent({ event, locale, t, now }: { event: SiteEvent; loc
     <article className="reveal overflow-hidden rounded-3xl border-2 border-line bg-surface-raised shadow-sm md:grid md:grid-cols-[1.1fr_1fr]">
       <div className="relative aspect-[16/10] md:aspect-auto md:min-h-[320px]">
         {event.photo ? (
-          <Image src={event.photo} alt="" fill unoptimized preload fetchPriority="high" sizes="(min-width: 768px) 55vw, 100vw" className="object-cover" />
+          <EventPhoto
+            src={event.photo}
+            title={event.title}
+            priority
+            sizes="(min-width: 768px) 55vw, 100vw"
+            openLabel={t.openPhoto(event.title)}
+            closeLabel={t.closePhoto}
+          />
         ) : (
           <NoPhoto />
         )}
-        <span className="absolute start-4 top-4">
+        <span className="pointer-events-none absolute start-4 top-4">
           <DateBadge iso={event.startsAt} locale={locale} large />
         </span>
       </div>
       <div className="flex flex-col gap-3 p-6 sm:p-8">
         <p className="flex flex-wrap items-center gap-2">
-          <span className="rounded-full bg-forest px-3 py-1 text-xs font-bold uppercase tracking-wider text-sun">{t.nextUp}</span>
+          {event.pinned ? <PinnedBadge label={t.pinned} /> : (
+            <span className="rounded-full bg-forest px-3 py-1 text-xs font-bold uppercase tracking-wider text-sun">{t.nextUp}</span>
+          )}
           <span className="rounded-full border border-leaf px-3 py-1 text-xs font-bold text-forest">
             {started ? t.happeningNow : t.inDays(days)}
           </span>
@@ -134,15 +154,22 @@ export function EventCard({ event, locale, t, now }: { event: SiteEvent; locale:
     <article className="reveal flex flex-col overflow-hidden rounded-2xl border-2 border-line bg-surface-raised transition hover:-translate-y-0.5 hover:border-leaf hover:shadow-md">
       <div className="relative aspect-[16/9]">
         {event.photo ? (
-          <Image src={event.photo} alt="" fill unoptimized sizes="(min-width: 1024px) 33vw, (min-width: 640px) 50vw, 100vw" className="object-cover" />
+          <EventPhoto
+            src={event.photo}
+            title={event.title}
+            sizes="(min-width: 1024px) 33vw, (min-width: 640px) 50vw, 100vw"
+            openLabel={t.openPhoto(event.title)}
+            closeLabel={t.closePhoto}
+          />
         ) : (
           <NoPhoto />
         )}
-        <span className="absolute start-3 top-3">
+        <span className="pointer-events-none absolute start-3 top-3">
           <DateBadge iso={event.startsAt} locale={locale} />
         </span>
-        <span className="absolute end-3 top-3 rounded-full bg-forest/90 px-2.5 py-1 text-xs font-bold text-cream">
-          {t.inDays(days)}
+        <span className="pointer-events-none absolute end-3 top-3 flex flex-col items-end gap-1.5">
+          <span className="rounded-full bg-forest/90 px-2.5 py-1 text-xs font-bold text-cream">{t.inDays(days)}</span>
+          {event.pinned ? <PinnedBadge label={t.pinned} /> : null}
         </span>
       </div>
       <div className="flex flex-1 flex-col gap-2 p-5">

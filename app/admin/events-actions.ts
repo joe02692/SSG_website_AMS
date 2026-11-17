@@ -112,10 +112,15 @@ export async function saveEventItemAction(_prev: EventsFormState, formData: Form
     published: formData.get("published") === "on",
     updated_by: viewer.id,
   };
+  const pinned = formData.get("pinned") === "on";
 
-  const result = id
-    ? await supabase.from("events").update(row).eq("id", id).select("id").maybeSingle()
-    : await supabase.from("events").insert({ ...row, created_by: viewer.id }).select("id").maybeSingle();
+  const write = (values: typeof row & { pinned?: boolean }) =>
+    id
+      ? supabase.from("events").update(values).eq("id", id).select("id").maybeSingle()
+      : supabase.from("events").insert({ ...values, created_by: viewer.id }).select("id").maybeSingle();
+  let result = await write({ ...row, pinned });
+  // Before migration 0031 there is no "pinned" column: save the rest.
+  if (result.error?.code === "PGRST204" || result.error?.code === "42703") result = await write(row);
 
   if (result.error || !result.data) {
     console.error("[events] could not save", result.error);
@@ -128,6 +133,31 @@ export async function saveEventItemAction(_prev: EventsFormState, formData: Form
 
   done();
   return { notice: id ? t.updated : t.added, savedId: (result.data as { id: string }).id };
+}
+
+/** Pins or unpins one event (0031). Pinned events are listed first on /events. */
+export async function togglePinEventAction(_prev: EventsFormState, formData: FormData): Promise<EventsFormState> {
+  const t = (await getT()).features.adminEvents;
+  const viewer = await headAdmin();
+  if (!viewer) return { error: t.notAllowed };
+  const id = text(formData, "id");
+  if (!UUID.test(id)) return { error: t.notAllowed };
+  const pinned = formData.get("pinned") === "true";
+
+  const supabase = await createClient();
+  const { data, error } = await supabase
+    .from("events")
+    .update({ pinned, updated_by: viewer.id })
+    .eq("id", id)
+    .select("id")
+    .maybeSingle();
+  if (error || !data) {
+    console.error("[events] could not pin", error);
+    if (error?.code === "PGRST204" || error?.code === "42703") return { error: t.pinMissing };
+    return { error: t.couldNotSave };
+  }
+  done();
+  return { notice: pinned ? t.pinnedDone : t.unpinnedDone };
 }
 
 export async function deleteEventItemAction(_prev: EventsFormState, formData: FormData): Promise<EventsFormState> {

@@ -4,6 +4,7 @@ import { startTransition, useActionState, useEffect, useRef, useState } from "re
 import {
   deleteEventItemAction,
   saveEventItemAction,
+  togglePinEventAction,
   type EventsFormState,
 } from "@/app/admin/events-actions";
 import { Field, inputClass } from "@/components/ui/field";
@@ -22,6 +23,8 @@ export type AdminEvent = {
   startsAt: string;
   endsAt: string;
   published: boolean;
+  /** Listed first on /events (0031). */
+  pinned: boolean;
   photo: string | null;
   /** One line worked out on the server: "Sat 21 Nov, 9:00 am". */
   when: string;
@@ -39,6 +42,7 @@ const BLANK: AdminEvent = {
   startsAt: "",
   endsAt: "",
   published: true,
+  pinned: false,
   photo: null,
   when: "",
   status: "upcoming",
@@ -86,6 +90,12 @@ export function EventsManager({ events }: { events: AdminEvent[] }) {
               )}
               <div className="min-w-0 flex-1">
                 <p className="font-semibold text-ink">
+                  {event.pinned ? (
+                    <span className="me-2 inline-flex items-center gap-1 rounded-full bg-sun px-2 py-0.5 align-middle text-xs font-bold text-forest">
+                      <PushPin className="size-3.5" />
+                      {t.pinnedBadge}
+                    </span>
+                  ) : null}
                   <bdi>{event.titleAr}</bdi>
                   {event.titleEn ? (
                     <span className="text-ink-muted">
@@ -107,7 +117,8 @@ export function EventsManager({ events }: { events: AdminEvent[] }) {
               >
                 {t.status[event.status]}
               </span>
-              <span className="flex gap-2">
+              <span className="flex flex-wrap gap-2">
+                <PinButton id={event.id} pinned={event.pinned} />
                 <button
                   type="button"
                   onClick={() => setEditing(event.id)}
@@ -122,6 +133,45 @@ export function EventsManager({ events }: { events: AdminEvent[] }) {
         )}
       </ul>
     </div>
+  );
+}
+
+export function PushPin({ className }: { className?: string }) {
+  return (
+    <svg aria-hidden viewBox="0 0 24 24" className={className} fill="currentColor">
+      <path d="M14.5 2.5 21.5 9.5l-1.8 1.8-1.3-.4-3.6 3.6.6 4-1.6 1.6-4-4-5.3 5.3-1.4-1.4 5.3-5.3-4-4 1.6-1.6 4 .6 3.6-3.6-.4-1.3 1.8-1.8Z" />
+    </svg>
+  );
+}
+
+function PinButton({ id, pinned }: { id: string; pinned: boolean }) {
+  const t = useT().features.adminEvents;
+  const [state, action, pending] = useActionState<EventsFormState, FormData>(togglePinEventAction, {});
+  return (
+    <>
+      <button
+        type="button"
+        disabled={pending}
+        aria-pressed={pinned}
+        onClick={() => {
+          const data = new FormData();
+          data.set("id", id);
+          data.set("pinned", pinned ? "false" : "true");
+          startTransition(() => action(data));
+        }}
+        className={`inline-flex items-center gap-1.5 rounded-md border-2 px-3 py-1 text-sm font-semibold transition disabled:opacity-60 ${
+          pinned ? "border-sun bg-sun text-forest hover:opacity-85" : "border-line text-ink hover:border-leaf"
+        }`}
+      >
+        <PushPin className="size-4" />
+        {pending ? "…" : pinned ? t.unpin : t.pin}
+      </button>
+      {state.error ? (
+        <span role="alert" className="w-full text-sm text-danger-ink">
+          {state.error}
+        </span>
+      ) : null}
+    </>
   );
 }
 
@@ -248,6 +298,14 @@ function EventForm({ event, onClose }: { event: AdminEvent; onClose: () => void 
         <span>
           <span className="block font-display text-base font-medium text-brand-ink">{t.published}</span>
           <span className="text-xs text-ink-subtle">{t.publishedHint}</span>
+        </span>
+      </label>
+
+      <label className="flex items-start gap-3">
+        <input type="checkbox" name="pinned" defaultChecked={event.pinned} className="mt-1 size-5 shrink-0 accent-forest" />
+        <span>
+          <span className="block font-display text-base font-medium text-brand-ink">{t.pinnedLabel}</span>
+          <span className="text-xs text-ink-subtle">{t.pinnedHint}</span>
         </span>
       </label>
 

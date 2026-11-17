@@ -5,6 +5,7 @@ import type { Profile } from "@/lib/dal";
 import { copyObject, deleteAllVersions, listObjects, objectMetadata } from "@/lib/b2";
 import { SCOUT_STAGES } from "@/lib/onboarding";
 import { adminStageCode } from "@/lib/stage-admins";
+import { isSiteAdminRole } from "@/lib/roles";
 import { planExtension, type PlanExtension } from "@/lib/seasonal-plan-rules";
 
 /**
@@ -46,12 +47,12 @@ export function planFolder(stageCode: string): string {
   return `${PLAN_ROOT}/${stage?.label ?? stageCode}/`;
 }
 
-/** Which stages this member may add or delete plans for. */
+/** Which stages this member may add or delete plans for (site admins and the head admin: all, 0031). */
 export async function managedStages(profile: Profile): Promise<{
   codes: string[];
   migrationMissing: boolean;
 }> {
-  if (profile.role === "head_site_admin") return { codes: STAGE_CODES, migrationMissing: false };
+  if (isSiteAdminRole(profile.role)) return { codes: STAGE_CODES, migrationMissing: false };
   if (profile.role !== "stage_admin") return { codes: [], migrationMissing: false };
   const { code, migrationMissing } = await adminStageCode(profile.id);
   return { codes: code ? [code] : [], migrationMissing };

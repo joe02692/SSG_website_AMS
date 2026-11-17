@@ -8,6 +8,7 @@ import { useT } from "@/lib/i18n/client";
 import { SCOUT_STAGES } from "@/lib/onboarding";
 import { Field, inputClass } from "@/components/ui/field";
 import { SubmitButton } from "@/components/ui/submit-button";
+import { CheckEmailDialog } from "@/components/auth/check-email-dialog";
 
 const initialState: AuthState = {};
 
@@ -56,6 +57,8 @@ export function SignupForm({
       className="space-y-4"
       noValidate
     >
+      {state.checkEmail ? <CheckEmailDialog email={state.checkEmail} leader={role === "leader"} /> : null}
+
       {state.notice ? (
         <p
           role="status"

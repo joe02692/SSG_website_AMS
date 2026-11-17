@@ -15,6 +15,10 @@ import { stageAdminsByStage } from "@/lib/stage-admins";
 import { EVENT_TIMEZONE, getEventForEdit, isoToCairoLocal } from "@/lib/site-event";
 import { EventSettings } from "@/components/admin/event-settings";
 import { ScoutRequests } from "@/components/members/scout-requests";
+import { MemberSearch } from "@/components/members/member-search";
+import { ConfirmEmailButton } from "@/components/members/confirm-email-button";
+import { getAuthUserInfo } from "@/lib/auth-users";
+import { normalizeSearch } from "@/lib/search";
 
 export async function generateMetadata(): Promise<Metadata> {
   return { title: (await getT()).members.page.metaTitle };
@@ -153,7 +157,7 @@ export default async function MembersPage() {
   ]);
 
   // The event countdown (migration 0023). Read fresh, not from the cache.
-  const event = await getEventForEdit();
+  const [event, authUsers] = await Promise.all([getEventForEdit(), getAuthUserInfo()]);
   const te = all.members.event;
   const eventStatus = describeEvent(event, te, dateLocale);
 
@@ -253,8 +257,9 @@ export default async function MembersPage() {
           >
             {t.allMembers}
           </h2>
-          <div className="mt-4 relative overflow-x-auto rounded-xl border border-line">
-            <table className="w-full min-w-130 text-start text-sm">
+          <MemberSearch tableId="members-table" total={members.length} />
+          <div className="mt-2 relative overflow-x-auto rounded-xl border border-line">
+            <table id="members-table" className="w-full min-w-130 text-start text-sm">
               <thead className="border-b border-line bg-surface text-xs uppercase tracking-wider text-ink-subtle">
                 <tr>
                   <th scope="col" className="px-4 py-3 font-medium">
@@ -274,10 +279,28 @@ export default async function MembersPage() {
                 </tr>
               </thead>
               <tbody className="divide-y divide-line bg-surface-raised">
-                {members.map((member) => (
-                  <tr key={member.id}>
+                {members.map((member) => {
+                  const auth = authUsers.get(member.id);
+                  const stageLabel = stageAdmins.byMember[member.id] ? stageName(stageAdmins.byMember[member.id]) : "";
+                  return (
+                  <tr
+                    key={member.id}
+                    data-search={normalizeSearch(
+                      [member.full_name, auth?.email, all.roles.labels[member.role], stageLabel].filter(Boolean).join(" "),
+                    )}
+                  >
                     <td className="px-4 py-3 font-medium text-ink">
                       <bdi>{member.full_name ?? "—"}</bdi>
+                      {auth?.email ? (
+                        <span dir="ltr" className="mt-0.5 block break-all text-xs font-normal text-ink-muted rtl:text-right">
+                          {auth.email}
+                        </span>
+                      ) : null}
+                      {auth && !auth.confirmed ? (
+                        <span className="mt-1 inline-block rounded-full border border-warning-line bg-warning-surface px-2 py-0.5 text-[11px] font-semibold text-warning-ink">
+                          {all.members.confirmEmail.notConfirmed}
+                        </span>
+                      ) : null}
                     </td>
                     <td className="px-4 py-3">
                       <span
@@ -297,6 +320,9 @@ export default async function MembersPage() {
                         {member.id === viewer.id ||
                         member.role === "head_site_admin" ? null : (
                           <div className="flex flex-col items-end gap-2">
+                            {auth && !auth.confirmed ? (
+                              <ConfirmEmailButton memberId={member.id} name={member.full_name ?? t.thisMember} />
+                            ) : null}
                             <ChangeRole
                               memberId={member.id}
                               name={member.full_name ?? t.thisMember}
@@ -321,7 +347,8 @@ export default async function MembersPage() {
                       </td>
                     ) : null}
                   </tr>
-                ))}
+                  );
+                })}
               </tbody>
             </table>
           </div>

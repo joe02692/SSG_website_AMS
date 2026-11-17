@@ -453,3 +453,25 @@ html:has(dialog.stage-dialog[open]) {
     animation: stage-backdrop-in 0.2s ease-out both;
   }
 }
+
+/* The "confirm your email" pop-up after signing up (components/auth/
+   check-email-dialog.tsx): pops in, and the envelope gives a little bounce
+   so it is impossible to miss. */
+dialog.check-email[open] {
+  @starting-style {
+    opacity: 0;
+    scale: 0.9;
+  }
+  transition: opacity 0.3s ease-out, scale 0.3s ease-out;
+}
+@media (prefers-reduced-motion: no-preference) {
+  dialog.check-email[open] .check-email-icon {
+    animation: check-email-bounce 1.2s ease-in-out 0.3s 2;
+  }
+}
+@keyframes check-email-bounce {
+  0%, 100% { translate: 0 0; }
+  30% { translate: 0 -10px; }
+  60% { translate: 0 0; }
+  80% { translate: 0 -4px; }
+}

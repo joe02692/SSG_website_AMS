@@ -8,6 +8,14 @@ import { getT } from "@/lib/i18n/server";
 
 const UUID = /^[0-9a-f-]{36}$/i;
 
+function CrownIcon({ className }: { className?: string }) {
+  return (
+    <svg aria-hidden viewBox="0 0 24 24" className={className} fill="currentColor">
+      <path d="M3 7.5 7.5 11 12 4l4.5 7L21 7.5 19 18H5L3 7.5ZM5 19.5h14V21H5v-1.5Z" />
+    </svg>
+  );
+}
+
 async function findLeader(id: string) {
   if (!UUID.test(id)) return null;
   return (await getPublicLeaders()).find((l) => l.id === id) ?? null;
@@ -30,6 +38,7 @@ export default async function LeaderPage({ params }: PageProps<"/leaders/[id]">)
   const all = await getT();
   const t = all.features.leaderProfile;
   const stageName = (code: string) => all.stages[code as keyof typeof all.stages] ?? code;
+  const committeeNames = all.members.leaders.committeeNames as Record<string, string>;
 
   const facts: { label: string; value: string }[] = [];
   if (leader.age !== null) facts.push({ label: t.age, value: t.years(leader.age) });
@@ -43,9 +52,30 @@ export default async function LeaderPage({ params }: PageProps<"/leaders/[id]">)
     <SiteShell>
       <section className="on-dark relative overflow-hidden bg-forest text-cream">
         <div className="relative mx-auto flex w-[calc(100%-40px)] max-w-[900px] flex-col items-center gap-5 py-10 text-center sm:flex-row sm:items-end sm:text-start">
-          <Avatar name={leader.name} photo={leader.photo} size="xl" />
+          {leader.isOwner ? (
+            <span className="relative shrink-0">
+              <span aria-hidden className="absolute -inset-2 rounded-full bg-[conic-gradient(from_0deg,var(--color-sun),#fff3a8,var(--color-sun),#e0b400,var(--color-sun))] opacity-90" />
+              <span className="relative block rounded-full ring-4 ring-forest">
+                <Avatar name={leader.name} photo={leader.photo} size="xl" />
+              </span>
+              <span
+                aria-hidden
+                className="absolute -top-3 start-1/2 grid size-11 -translate-x-1/2 place-items-center rounded-full bg-sun text-forest shadow-lg ring-4 ring-forest rtl:translate-x-1/2"
+              >
+                <CrownIcon className="size-6" />
+              </span>
+            </span>
+          ) : (
+            <Avatar name={leader.name} photo={leader.photo} size="xl" />
+          )}
           <div className="min-w-0">
-            <p className="font-display text-sm font-semibold uppercase tracking-[0.14em] text-sun">{t.eyebrow}</p>
+            {leader.isOwner ? (
+              <p className="mb-2 inline-flex items-center gap-2 rounded-full bg-sun px-3.5 py-1.5 text-sm font-bold text-forest shadow-md">
+                <CrownIcon className="size-4" />
+                {t.owner}
+              </p>
+            ) : null}
+            <p className="font-display text-sm font-semibold uppercase tracking-[0.14em] text-sun">{leader.isOwner ? t.ownerNote : t.eyebrow}</p>
             <h1 className="mt-1 text-[clamp(26px,4.5vw,38px)] leading-tight text-white">
               <bdi>{leader.name}</bdi>
             </h1>
@@ -58,6 +88,11 @@ export default async function LeaderPage({ params }: PageProps<"/leaders/[id]">)
                   </li>
                 );
               })}
+              {leader.committees.map((code) => (
+                <li key={`c-${code}`} className="rounded-full bg-leaf px-3 py-1 text-sm font-semibold text-white">
+                  {t.committee(committeeNames[code] ?? code)}
+                </li>
+              ))}
             </ul>
           </div>
         </div>

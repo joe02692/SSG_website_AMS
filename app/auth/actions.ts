@@ -22,6 +22,8 @@ export type AuthState = {
   error?: string;
   fieldErrors?: Partial<Record<string, string>>;
   notice?: string;
+  /** Sign-up succeeded and a confirmation email is on its way to this address. */
+  checkEmail?: string;
 };
 
 const EMAIL_RE = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
@@ -153,6 +155,7 @@ export async function signUpAction(
     if (data.session) revalidatePath("/", "layout");
     return {
       notice: e.requestSent,
+      ...(data.session ? {} : { checkEmail: email }),
     };
   }
 
@@ -171,6 +174,7 @@ export async function signUpAction(
   // mirror that by showing the same message either way.
   return {
     notice: e.accountCreated,
+    checkEmail: email,
   };
 }
 
@@ -209,6 +213,9 @@ export async function signInAction(
   });
 
   if (error) {
+    // Supabase only says "not confirmed" after the password was right, so
+    // telling them reveals nothing a stranger could use.
+    if (error.code === "email_not_confirmed") return { error: e.notConfirmed };
     // Deliberately vague: don't reveal whether the address is registered.
     return { error: e.noMatch };
   }

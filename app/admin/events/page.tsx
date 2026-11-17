@@ -43,6 +43,7 @@ export default async function AdminEventsPage() {
     startsAt: isoToCairoLocal(row.starts_at),
     endsAt: isoToCairoLocal(row.ends_at),
     published: row.published,
+    pinned: row.pinned === true,
     photo: publicImageUrl(row.photo_key),
     when: when(row.starts_at),
     status: !row.published
