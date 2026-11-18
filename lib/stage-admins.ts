@@ -28,6 +28,20 @@ export const adminStageCode = cache(
   },
 );
 
+/**
+ * The stages whose "Stage leader" seat (قائد المرحلة) this leader holds and
+ * still serves (0028/0030). Since 0032 the seat gives the same powers over
+ * that stage as its stage admins.
+ */
+export const stageLeaderSeats = cache(async (profileId: string): Promise<string[]> => {
+  const supabase = await createClient();
+  const { data, error } = await supabase.rpc("stage_title_holders");
+  if (error) return [];
+  return ((data ?? []) as { stage_code: string; title: string; profile_id: string }[])
+    .filter((row) => row.profile_id === profileId && row.title === "leader")
+    .map((row) => row.stage_code);
+});
+
 export type StageAdmin = { id: string; name: string };
 
 /** Every stage admin, grouped by stage code. For the head admin's pages. */

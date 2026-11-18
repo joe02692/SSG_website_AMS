@@ -106,13 +106,13 @@ export default async function SeasonalPlanPage({
       ? profile.role === "head_site_admin"
         ? t.youManageAll
         : t.youManageAllSite
-      : profile.role === "stage_admin"
-        ? managed.migrationMissing
-          ? t.migrationMissing
-          : managed.codes[0]
-            ? t.youManage(all.stages[managed.codes[0] as keyof typeof all.stages])
-            : t.noAdminStage
-        : null;
+      : profile.role === "stage_admin" && managed.migrationMissing
+        ? t.migrationMissing
+        : managed.codes.length > 0
+          ? t.youManage(managed.codes.map((c) => all.stages[c as keyof typeof all.stages] ?? c).join("، "))
+          : profile.role === "stage_admin"
+            ? t.noAdminStage
+            : null;
 
   return (
     <SiteShell>

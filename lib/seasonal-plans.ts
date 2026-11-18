@@ -4,8 +4,8 @@ import * as XLSX from "@e965/xlsx";
 import type { Profile } from "@/lib/dal";
 import { copyObject, deleteAllVersions, listObjects, objectMetadata } from "@/lib/b2";
 import { SCOUT_STAGES } from "@/lib/onboarding";
-import { adminStageCode } from "@/lib/stage-admins";
-import { isSiteAdminRole } from "@/lib/roles";
+import { adminStageCode, stageLeaderSeats } from "@/lib/stage-admins";
+import { isSiteAdminRole, isStaffRole } from "@/lib/roles";
 import { planExtension, type PlanExtension } from "@/lib/seasonal-plan-rules";
 
 /**
@@ -53,9 +53,14 @@ export async function managedStages(profile: Profile): Promise<{
   migrationMissing: boolean;
 }> {
   if (isSiteAdminRole(profile.role)) return { codes: STAGE_CODES, migrationMissing: false };
-  if (profile.role !== "stage_admin") return { codes: [], migrationMissing: false };
+  // The "Stage leader" seat runs its stage like a stage admin (0032).
+  const seats = isStaffRole(profile.role) ? await stageLeaderSeats(profile.id) : [];
+  if (profile.role !== "stage_admin") {
+    return { codes: STAGE_CODES.filter((c) => seats.includes(c)), migrationMissing: false };
+  }
   const { code, migrationMissing } = await adminStageCode(profile.id);
-  return { codes: code ? [code] : [], migrationMissing };
+  const codes = STAGE_CODES.filter((c) => c === code || seats.includes(c));
+  return { codes, migrationMissing };
 }
 
 export type PlanFile = {

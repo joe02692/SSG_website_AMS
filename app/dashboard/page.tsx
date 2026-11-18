@@ -3,7 +3,8 @@ import Link from "next/link";
 import { SiteShell } from "@/components/site-shell";
 import { BannerScenery } from "@/components/green-scenery";
 import { requireUser, getCurrentProfile, getMyChildren, getScoutDetails } from "@/lib/dal";
-import { isHeadSiteAdminRole, isParentRole, isStageRole } from "@/lib/roles";
+import { isHeadSiteAdminRole, isParentRole, isStageRole, isStaffRole } from "@/lib/roles";
+import { stageLeaderSeats } from "@/lib/stage-admins";
 import { ageFromDateOfBirth, usesScoutDetails } from "@/lib/onboarding";
 import { LinkChildForm } from "@/components/children/link-child-form";
 import { ParentCode } from "@/components/children/parent-code";
@@ -37,6 +38,7 @@ export default async function DashboardPage({
   // 0029: a scout who signed himself up waits for his stage's approval.
   const review = isScout ? (await getScoutDetails())?.review_status : undefined;
   const ta = all.features.scoutApproval;
+  const holdsSeat = profile && isStaffRole(profile.role) ? (await stageLeaderSeats(profile.id)).length > 0 : false;
   const tc = all.account.children;
 
   const actions = [
@@ -50,7 +52,7 @@ export default async function DashboardPage({
       href: "/dashboard/stage",
       title: t.stageTitle,
       body: t.stageBody,
-      show: isStageRole(profile?.role),
+      show: isStageRole(profile?.role) || holdsSeat,
     },
     {
       href: "/admin",

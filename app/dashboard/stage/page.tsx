@@ -2,7 +2,9 @@ import type { Metadata } from "next";
 import Link from "next/link";
 import { SiteShell } from "@/components/site-shell";
 import { requireRole } from "@/lib/dal";
-import { STAGE_ROLES } from "@/lib/roles";
+import { STAFF_ROLES, isStageRole } from "@/lib/roles";
+import { stageLeaderSeats } from "@/lib/stage-admins";
+import { redirect } from "next/navigation";
 import { getT } from "@/lib/i18n/server";
 import { ScoutRequests } from "@/components/members/scout-requests";
 
@@ -13,7 +15,10 @@ export async function generateMetadata(): Promise<Metadata> {
 export default async function StagePage() {
   // Leader-only. proxy.ts already bounced anonymous visitors; this is the
   // check that actually enforces the role.
-  const profile = await requireRole(...STAGE_ROLES);
+  const profile = await requireRole(...STAFF_ROLES);
+  // Stage leaders / admins, plus whoever holds a stage's "Stage leader" seat (0032).
+  const seats = await stageLeaderSeats(profile.id);
+  if (!isStageRole(profile.role) && seats.length === 0) redirect("/dashboard?denied=1");
   const t = (await getT()).account.stage;
 
   return (
@@ -34,7 +39,7 @@ export default async function StagePage() {
         </p>
 
         {/* New scouts of this stage waiting for approval (0029). */}
-        {profile.role === "stage_admin" ? <ScoutRequests /> : null}
+        {profile.role === "stage_admin" || seats.length > 0 ? <ScoutRequests /> : null}
 
         <div className="mt-8 rounded-2xl border border-dashed border-line bg-surface p-10 text-center">
           <p className="text-lg font-medium text-ink">{t.empty}</p>
