@@ -85,11 +85,14 @@ export async function signUpAction(
   }
   const supabase = await createClient();
 
-  // Asking to lead means telling us which stage, so the head admin reviewing a
-  // list of names has something to recognise them by.
+  // The stage is optional (some leaders are only in a committee, 23 Nov
+  // 2026) — but a Stage Admin runs a stage, so asking for that needs one.
   const isLeaderRequest = requestedRole === "leader";
-  if (isLeaderRequest && !STAGE_CODES.includes(requestedStage)) {
+  if (isLeaderRequest && requestedStage && !STAGE_CODES.includes(requestedStage)) {
     fieldErrors.requestedStage = e.chooseStage;
+  }
+  if (isLeaderRequest && requestedPosition === "stage_admin" && !requestedStage) {
+    fieldErrors.requestedStage = e.stageForAdmin;
   }
   // The role they'd like (0024). Still only a wish — the head admin decides.
   if (isLeaderRequest && !isRequestablePosition(requestedPosition)) {
@@ -139,7 +142,7 @@ export async function signUpAction(
             ? requestedRole
             : "scout",
         ...(isLeaderRequest
-          ? { requested_stage: requestedStage, requested_position: requestedPosition }
+          ? { ...(requestedStage ? { requested_stage: requestedStage } : {}), requested_position: requestedPosition }
           : {}),
       },
     },

@@ -270,8 +270,8 @@ export const LEADER_QUESTIONS: Question[] = [
     id: "committee_codes",
     label: "Stages you serve",
     type: "checkbox",
-    required: true,
-    hint: "Tick every stage you lead. Most leaders serve more than one.",
+    required: false,
+    hint: "Tick every stage you lead. Leave it empty if you're only in a committee.",
     options: SCOUT_STAGES,
   },
   {

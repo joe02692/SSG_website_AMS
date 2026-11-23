@@ -58,6 +58,8 @@ const AR: Record<string, string> = {
   "Students only — graduates skip this.": "للطلاب فقط — يتخطاه الخريجون.",
   "Tick every stage you lead. Most leaders serve more than one.":
     "اختر كل مرحلة تقودها. معظم القادة يخدمون في أكثر من مرحلة.",
+  "Tick every stage you lead. Leave it empty if you're only in a committee.":
+    "اختر كل مرحلة تقودها. اتركها فارغة إذا كنت في لجنة فقط.",
   "Tick every committee you're part of, if any.": "اختر كل لجنة تنتمي إليها، إن وُجدت.",
   "Choose a year…": "اختر السنة…",
   "So the leaders can reach you about your children. 11 digits, starting 01.":
@@ -137,6 +139,7 @@ const AR: Record<string, string> = {
   "Students need to give an academic year.": "على الطلاب إدخال السنة الدراسية.",
   "Enter a whole number of years, 0 to 70.": "أدخل عددًا صحيحًا من السنوات، من 0 إلى 70.",
   "Tick at least one stage.": "اختر مرحلة واحدة على الأقل.",
+  "Tick at least one stage or one committee.": "اختر مرحلة واحدة أو لجنة واحدة على الأقل.",
   "Choose from the listed stages.": "اختر من المراحل المعروضة.",
   "Choose from the listed committees.": "اختر من اللجان المعروضة.",
   "Could not store the ID card photo. Please try again.": "تعذّر حفظ صورة البطاقة. يُرجى المحاولة مرة أخرى.",

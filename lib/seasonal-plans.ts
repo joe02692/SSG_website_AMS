@@ -5,7 +5,8 @@ import type { Profile } from "@/lib/dal";
 import { copyObject, deleteAllVersions, listObjects, objectMetadata } from "@/lib/b2";
 import { SCOUT_STAGES } from "@/lib/onboarding";
 import { adminStageCode, stageLeaderSeats } from "@/lib/stage-admins";
-import { isSiteAdminRole, isStaffRole } from "@/lib/roles";
+import { isHeadSiteAdminRole, isSiteAdminRole, isStaffRole } from "@/lib/roles";
+import { getLeaderDetails } from "@/lib/dal";
 import { planExtension, type PlanExtension } from "@/lib/seasonal-plan-rules";
 
 /**
@@ -28,6 +29,13 @@ import { planExtension, type PlanExtension } from "@/lib/seasonal-plan-rules";
  *   • add / replace / archive: the head site admin for any stage; a stage
  *     admin for the stage the head admin assigned them (admin_stage_id)
  *   • delete for good: the head site admin only
+ *
+ * The Program committee has its own space beside the stages (23 Nov 2026):
+ *
+ *   Seasonal Plans/Program Committee/…   (+ its own Archive folder)
+ *
+ * Only the committee's members and the head site admins can see it; every
+ * member of the committee can add, replace, archive, open, edit and download.
  */
 
 export const PLAN_ROOT = "Seasonal Plans";
@@ -37,14 +45,51 @@ export const MAX_PLANS_PER_STAGE = 3;
 
 const STAGE_CODES = SCOUT_STAGES.map((s) => s.value);
 
+/** The Program committee's own plans space (not a stage). */
+export const PROGRAM_SPACE = "program";
+
+/** Every plans space: the eight stages, then the Program committee. */
+export const PLAN_SPACES = [...STAGE_CODES, PROGRAM_SPACE];
+
+/** A scouting stage code (stage tools, event papers, …). Not the Program space. */
 export function isStageCode(value: unknown): value is string {
   return typeof value === "string" && STAGE_CODES.includes(value);
 }
 
-/** "kashafa" → "Seasonal Plans/Scouts/" */
+/** A seasonal-plans space: a stage, or the Program committee. */
+export function isPlanSpace(value: unknown): value is string {
+  return typeof value === "string" && PLAN_SPACES.includes(value);
+}
+
+/** "kashafa" → "Seasonal Plans/Scouts/"; "program" → "Seasonal Plans/Program Committee/" */
 export function planFolder(stageCode: string): string {
+  if (stageCode === PROGRAM_SPACE) return `${PLAN_ROOT}/Program Committee/`;
   const stage = SCOUT_STAGES.find((s) => s.value === stageCode);
   return `${PLAN_ROOT}/${stage?.label ?? stageCode}/`;
+}
+
+/** Is the signed-in leader on the Program committee? */
+async function onProgramCommittee(profile: Profile): Promise<boolean> {
+  if (!isStaffRole(profile.role)) return false;
+  return ((await getLeaderDetails())?.committees ?? []).includes(PROGRAM_SPACE);
+}
+
+/**
+ * May this member see (open, edit cells, download) a plans space? Every
+ * leader sees the stages; the Program space only its committee and the head
+ * site admins.
+ */
+export async function canViewPlanSpace(profile: Profile, space: string): Promise<boolean> {
+  if (!isStaffRole(profile.role) || !isPlanSpace(space)) return false;
+  if (space !== PROGRAM_SPACE) return true;
+  return isHeadSiteAdminRole(profile.role) || (await onProgramCommittee(profile));
+}
+
+/** The plans spaces this member may add / replace / archive files in. */
+export async function managedPlanSpaces(profile: Profile): Promise<{ codes: string[]; migrationMissing: boolean }> {
+  const stages = await managedStages(profile);
+  const program = isHeadSiteAdminRole(profile.role) || (await onProgramCommittee(profile));
+  return { codes: program ? [...stages.codes, PROGRAM_SPACE] : stages.codes, migrationMissing: stages.migrationMissing };
 }
 
 /** Which stages this member may add or delete plans for (site admins and the head admin: all, 0031). */
@@ -93,7 +138,7 @@ function decode(value: string | undefined): string | null {
 export async function listPlans(): Promise<Record<string, PlanFile[]>> {
   const objects = await listObjects(`${PLAN_ROOT}/`);
   const byStage: Record<string, PlanFile[]> = {};
-  for (const code of STAGE_CODES) {
+  for (const code of PLAN_SPACES) {
     const folder = planFolder(code);
     const files = objects
       .filter((o) => o.key.startsWith(folder) && !o.key.startsWith(archiveFolder(code)) && planExtension(o.key))
@@ -198,7 +243,7 @@ export async function archivePlanFile(stageCode: string, key: string): Promise<v
 export async function archiveCounts(): Promise<Record<string, number>> {
   const objects = await listObjects(`${PLAN_ROOT}/`);
   const counts: Record<string, number> = {};
-  for (const code of STAGE_CODES) {
+  for (const code of PLAN_SPACES) {
     const n = objects.filter((o) => o.key.startsWith(archiveFolder(code)) && planExtension(o.key)).length;
     if (n) counts[code] = n;
   }

@@ -7,7 +7,6 @@ import { PlanSheetEditor } from "@/components/seasonal/plan-sheet-editor";
 import { requireRole } from "@/lib/dal";
 import { STAFF_ROLES, isSiteAdminRole } from "@/lib/roles";
 import { getObjectBytes } from "@/lib/b2";
-import { SCOUT_STAGES } from "@/lib/onboarding";
 import { ArchiveDownload } from "@/components/seasonal/archive-download";
 import { StageToolsSection } from "@/components/seasonal/stage-tools-section";
 import { CommitteePapersSection } from "@/components/seasonal/committee-papers-section";
@@ -15,9 +14,13 @@ import { canSetItemSource, editableCommittees } from "@/lib/request-papers";
 import {
   MAX_PLANS_PER_STAGE,
   archiveCounts,
-  isStageCode,
+  PLAN_SPACES,
+  PROGRAM_SPACE,
+  canViewPlanSpace,
+  isPlanSpace,
   listArchive,
   listPlans,
+  managedPlanSpaces,
   managedStages,
   type ArchivedPlan,
   type PlanFile,
@@ -53,12 +56,19 @@ export default async function SeasonalPlanPage({
   const locale = await getLocale();
   const { stage: openStage, sheet: sheetParam, file: fileParam } = await searchParams;
 
+  // Stages only — for the weekly tools below.
   const managed = await managedStages(profile);
+  // Plans: the stages + the Program committee's space (23 Nov 2026).
+  const managedPlans = await managedPlanSpaces(profile);
+  const seesProgram = await canViewPlanSpace(profile, PROGRAM_SPACE);
+  const spaces = PLAN_SPACES.filter((code) => code !== PROGRAM_SPACE || seesProgram);
+  const spaceName = (code: string) =>
+    code === PROGRAM_SPACE ? t.programSpace : all.stages[code as keyof typeof all.stages] ?? code;
 
   let plans: Record<string, PlanFile[]> = {};
   let archived: Record<string, number> = {};
   let storageFailed = false;
-  const selected = isStageCode(openStage) ? openStage : null;
+  const selected = isPlanSpace(openStage) && spaces.includes(openStage) ? openStage : null;
   let archive: ArchivedPlan[] = [];
   try {
     [plans, archived, archive] = await Promise.all([
@@ -73,7 +83,7 @@ export default async function SeasonalPlanPage({
 
   // The file being read on the page, if one was opened (?file=… — or the
   // stage's first file when the link names none).
-  const stageFiles = openStage ? plans[openStage] ?? [] : [];
+  const stageFiles = selected ? plans[selected] ?? [] : [];
   const open = stageFiles.find((p) => p.fileName === fileParam) ?? (fileParam ? undefined : stageFiles[0]);
   // The open file is drawn as it looks in Excel: its own colours, borders,
   // column widths, merged cells and checkboxes (lib/plan-render.ts).
@@ -108,8 +118,8 @@ export default async function SeasonalPlanPage({
         : t.youManageAllSite
       : profile.role === "stage_admin" && managed.migrationMissing
         ? t.migrationMissing
-        : managed.codes.length > 0
-          ? t.youManage(managed.codes.map((c) => all.stages[c as keyof typeof all.stages] ?? c).join("، "))
+        : managedPlans.codes.length > 0
+          ? t.youManage(managedPlans.codes.map(spaceName).join("، "))
           : profile.role === "stage_admin"
             ? t.noAdminStage
             : null;
@@ -124,7 +134,7 @@ export default async function SeasonalPlanPage({
         {managerNote ? (
           <div className="mb-6 rounded-xl border border-line bg-surface-raised px-4 py-3 text-sm text-ink">
             <p className="font-semibold text-forest">{managerNote}</p>
-            {managed.codes.length > 0 ? <p className="mt-1 text-ink-muted">{t.rules}</p> : null}
+            {managedPlans.codes.length > 0 ? <p className="mt-1 text-ink-muted">{t.rules}</p> : null}
           </div>
         ) : null}
 
@@ -135,24 +145,27 @@ export default async function SeasonalPlanPage({
         ) : null}
 
         <ul className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4">
-          {SCOUT_STAGES.map((stage, i) => {
+          {spaces.map((code, i) => {
+            const stage = { value: code };
             const files = plans[stage.value] ?? [];
-            const name = all.stages[stage.value as keyof typeof all.stages];
+            const name = spaceName(stage.value);
             const isOpen = open?.stage === stage.value;
-            const canManage = managed.codes.includes(stage.value);
+            const canManage = managedPlans.codes.includes(stage.value);
+            const isProgram = code === PROGRAM_SPACE;
             return (
               <li
                 key={stage.value}
-                className={`flex flex-col rounded-2xl border-2 bg-surface-raised p-4 ${
-                  isOpen ? "border-leaf shadow-md" : "border-line"
-                }`}
+                className={`flex flex-col rounded-2xl border-2 p-4 ${
+                  isOpen ? "border-leaf shadow-md" : isProgram ? "border-sun" : "border-line"
+                } ${isProgram ? "bg-sun/10" : "bg-surface-raised"}`}
               >
                 <div className="flex items-center gap-3">
                   <span className="grid size-9 shrink-0 place-items-center rounded-full bg-forest text-xs font-bold text-sun">
-                    {String(i + 1).padStart(2, "0")}
+                    {isProgram ? "★" : String(i + 1).padStart(2, "0")}
                   </span>
                   <h2 className="text-lg leading-tight text-forest">{name}</h2>
                 </div>
+                {isProgram ? <p className="mt-1 text-xs text-ink-muted">{t.programOnly}</p> : null}
 
                 {/* Up to three files, each with its own buttons. */}
                 <div className="mt-3 flex-1 space-y-3 text-sm">
@@ -232,7 +245,7 @@ export default async function SeasonalPlanPage({
           <section id="plan-preview" aria-labelledby="plan-preview-heading" className="mt-10 scroll-mt-24">
             <div className="flex flex-wrap items-center justify-between gap-3">
               <h2 id="plan-preview-heading" className="text-[clamp(20px,3vw,26px)] text-maroon">
-                {t.previewTitle(all.stages[open.stage as keyof typeof all.stages])}
+                {t.previewTitle(spaceName(open.stage))}
                 <bdi className="mt-1 block text-sm font-semibold text-ink-muted">{open.originalName ?? open.fileName}</bdi>
               </h2>
               <Link
@@ -293,7 +306,7 @@ export default async function SeasonalPlanPage({
           <section id="plan-archive" aria-labelledby="plan-archive-heading" className="mt-10 scroll-mt-24">
             <h2 id="plan-archive-heading" className="flex items-center gap-2 text-[clamp(18px,2.6vw,22px)] text-maroon">
               <ArchiveIcon />
-              {t.archiveTitle(all.stages[selected as keyof typeof all.stages])}
+              {t.archiveTitle(spaceName(selected))}
             </h2>
             <p className="mt-1 text-sm text-ink-muted">{t.archiveIntro}</p>
             <ul className="mt-4 divide-y divide-line overflow-hidden rounded-xl border border-line bg-surface-raised">

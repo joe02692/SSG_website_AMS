@@ -660,8 +660,10 @@ async function saveLeaderDetails(
   }
 
   const allowedCommittees = SCOUT_STAGES.map((stage) => stage.value);
-  if (committeeCodes.length === 0) {
-    fieldErrors.committee_codes = "Tick at least one stage.";
+  // A leader serves at least one stage OR sits on at least one committee —
+  // some leaders are in a committee only (23 Nov 2026).
+  if (committeeCodes.length === 0 && committees.length === 0) {
+    fieldErrors.committee_codes = "Tick at least one stage or one committee.";
   } else if (committeeCodes.some((code) => !allowedCommittees.includes(code))) {
     fieldErrors.committee_codes = "Choose from the listed stages.";
   }
@@ -813,9 +815,11 @@ async function saveLeaderDetails(
   // mean something. Delete-then-insert is safe here because RLS scopes both
   // statements to this member's own rows.
   await supabase.from("leader_committees").delete().eq("profile_id", profileId);
-  const { error: committeeError } = await supabase
-    .from("leader_committees")
-    .insert(stageIds.map((stageId) => ({ profile_id: profileId, stage_id: stageId })));
+  const { error: committeeError } = stageIds.length
+    ? await supabase
+        .from("leader_committees")
+        .insert(stageIds.map((stageId) => ({ profile_id: profileId, stage_id: stageId })))
+    : { error: null };
 
   if (committeeError) {
     console.error("[onboarding] could not save committees", committeeError);

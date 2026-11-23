@@ -21,9 +21,10 @@ import {
   archivePlanFile,
   findPlan,
   isRealExcel,
-  isStageCode,
+  canViewPlanSpace,
+  isPlanSpace,
   listPlans,
-  managedStages,
+  managedPlanSpaces,
   newPlanKey,
 } from "@/lib/seasonal-plans";
 import { MAX_EDITS_PER_SAVE, applyPlanEdits, isCellAddress, type CellEdit } from "@/lib/plan-edit";
@@ -39,7 +40,8 @@ import { getT } from "@/lib/i18n/server";
  *
  *   • add / replace / archive a file — that stage's stage admins + the head
  *     site admin (managedStages)
- *   • edit cells, open, download — every leader (isStaffRole)
+ *   • edit cells, open, download — every leader (isStaffRole); the Program
+ *     committee's space only its members + head admins (canViewPlanSpace)
  *   • delete for good — the head site admin only
  *
  * Upload is two steps, like the members' documents: the browser PUTs the file
@@ -64,8 +66,8 @@ async function t() {
 async function managerFor(stage: unknown) {
   const profile = await getCurrentProfile();
   if (!profile) return { error: (await t()).signInFirst } as const;
-  if (!isStageCode(stage)) return { error: (await t()).notAllowed } as const;
-  const { codes } = await managedStages(profile);
+  if (!isPlanSpace(stage)) return { error: (await t()).notAllowed } as const;
+  const { codes } = await managedPlanSpaces(profile);
   if (!codes.includes(stage)) return { error: (await t()).notAllowed } as const;
   return { profile, stage } as const;
 }
@@ -193,7 +195,7 @@ export async function planDownloadAction(formData: FormData): Promise<PlanLink> 
   const who = await leader();
   if ("error" in who) return { error: who.error };
   const stage = formData.get("stage");
-  if (!isStageCode(stage)) return { error: words.notAllowed };
+  if (!isPlanSpace(stage) || !(await canViewPlanSpace(who.profile, stage))) return { error: words.notAllowed };
   if (storageMissing()) return { error: words.storageMissing };
 
   try {
@@ -214,9 +216,10 @@ export async function archiveDownloadAction(formData: FormData): Promise<PlanLin
   if ("error" in who) return { error: who.error };
   const stage = formData.get("stage");
   const key = String(formData.get("key") ?? "");
-  if (!isStageCode(stage) || !key.startsWith(archiveFolder(stage)) || key.includes("..") || !planExtension(key)) {
+  if (!isPlanSpace(stage) || !key.startsWith(archiveFolder(stage)) || key.includes("..") || !planExtension(key)) {
     return { error: words.notAllowed };
   }
+  if (!(await canViewPlanSpace(who.profile, stage))) return { error: words.notAllowed };
   if (storageMissing()) return { error: words.storageMissing };
   try {
     return { url: await presignDownload(key, key.slice(archiveFolder(stage).length)) };
@@ -247,7 +250,8 @@ export async function savePlanEditsAction(input: {
   const words = await t();
   const who = await leader();
   if ("error" in who) return { error: who.error };
-  if (!isStageCode(input?.stage) || typeof input.sheet !== "string" || !input.sheet) return { error: words.notAllowed };
+  if (!isPlanSpace(input?.stage) || typeof input.sheet !== "string" || !input.sheet) return { error: words.notAllowed };
+  if (!(await canViewPlanSpace(who.profile, input.stage))) return { error: words.notAllowed };
   if (!Array.isArray(input.edits) || input.edits.length === 0) return { notice: words.noChanges };
   if (input.edits.length > MAX_EDITS_PER_SAVE) return { error: words.tooManyEdits(MAX_EDITS_PER_SAVE) };
   const edits = input.edits.filter(
@@ -307,7 +311,7 @@ export async function purgePlanAction(formData: FormData): Promise<PlanResult> {
   if (!profile) return { error: words.signInFirst };
   if (!isHeadSiteAdminRole(profile.role)) return { error: words.onlyHeadAdmin };
   const stage = formData.get("stage");
-  if (!isStageCode(stage)) return { error: words.notAllowed };
+  if (!isPlanSpace(stage)) return { error: words.notAllowed };
   if (storageMissing()) return { error: words.storageMissing };
   try {
     const plan = await findPlan(stage, formData.get("file"));
@@ -332,7 +336,7 @@ export async function purgeArchivedPlanAction(formData: FormData): Promise<PlanR
   const key = String(formData.get("key") ?? "");
   // Only a file inside that stage's own Archive folder — never a current
   // plan, another stage, or anything outside Seasonal Plans/.
-  if (!isStageCode(stage) || !key.startsWith(archiveFolder(stage)) || key.includes("..") || !planExtension(key)) {
+  if (!isPlanSpace(stage) || !key.startsWith(archiveFolder(stage)) || key.includes("..") || !planExtension(key)) {
     return { error: words.notAllowed };
   }
   if (storageMissing()) return { error: words.storageMissing };
